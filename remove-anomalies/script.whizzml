@@ -1,0 +1,26 @@
+;; Remove the top n anomalies from a dataset
+
+;; Given an anomaly resource, get the list of its top_anomaly row numbers
+(define (anomalous-rows a)
+  (map (lambda (x) (get x "row_number"))
+       (get-in a ["model" "top_anomalies"])))
+
+;; Given a list of row numbers, generate a flatline expression
+;; that discards those rows.
+(define (row-filter rows)
+  (let (eqs (map (lambda (n) (flatline "(= (row-number) {n})")) rows))
+    (flatline "(not (or @{eqs}))")))
+
+;; Given a dataset and a number of anomalies, generate a new one
+;; that removes from the original the anomalous rows.
+(define (normalize-dataset dataset-id n)
+  (let (a-id (create-and-wait-anomaly {"dataset" dataset-id "top_n" n})
+        anomaly (fetch a-id {"exclude" "trees,fields"})
+        rows (anomalous-rows anomaly)
+        filter (row-filter rows))
+     (delete a-id)
+     (create-and-wait-dataset {"origin_dataset" dataset-id
+                               "lisp_filter" filter})))
+
+;; Script with parameters dataset-id and n
+(define normalized-dataset (normalize-dataset dataset-id n))

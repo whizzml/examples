@@ -11,6 +11,8 @@ By convention, when the artifact is a library, the files are called
 
 ## Examples
 
+- `remove-anomailes` Using Flatline and an anomaly detector, remove
+  from an input dataset its anomalous rows.
 - `find-neighbors`  Using cluster distances as a metric, find
   instances in a dataset close to a given row.
 - `stacked-generalization` Simple
