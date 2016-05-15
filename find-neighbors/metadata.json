@@ -1,0 +1,14 @@
+{
+  "name": "Find neighbors",
+  "description": "Find the closest cluster rows to a given one",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {"name": "cluster-id", "type": "cluster-id", "description": "The cluster to select rows from"},
+    {"name": "n", "type": "number", "description": "The number of points to return"},
+    {"name": "instance", "type": "map", "description": "Base row to compute distances, as a map from field identifiers to values"}
+  ],
+  "outputs": [
+    {"name": "rows", "type": "list", "description": "The list of the n closest rows to `base`"}
+  ]
+}

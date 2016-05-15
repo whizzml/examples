@@ -1,0 +1,6 @@
+{
+  "name": "Stacked generalization",
+  "description": "Simple example of stacked generalization using models, ensembles, and logistic regression",
+  "kind": "library",
+  "source_code": "library.whizzml"
+}
