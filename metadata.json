@@ -1,0 +1,8 @@
+{
+  "name": "WhizzML Examples",
+  "description": "A collection of whizzml scripts and libraries maintained by BigML",
+  "kind": "package",
+  "components": ["remove-anomalies",
+                 "find-neighbors",
+                 "stacked-generalization"]
+}
