@@ -3,7 +3,7 @@
 Each script or library is in a directory in this folder.  For each one
 you will always find a readme explaining what's its purpose and usage,
 the actual whizzml code in a `.whizzml` file, and the JSON metadata
-for the associated BigML resource.
+needed to create BigML resources.
 
 By convention, when the artifact is a library, the files are called
 `library.whizzml` and `metadata.json`, while for a script we use
@@ -11,7 +11,7 @@ By convention, when the artifact is a library, the files are called
 
 ## Examples
 
-- `remove-anomailes` Using Flatline and an anomaly detector, remove
+- `remove-anomalies` Using Flatline and an anomaly detector, remove
   from an input dataset its anomalous rows.
 - `find-neighbors`  Using cluster distances as a metric, find
   instances in a dataset close to a given row.
