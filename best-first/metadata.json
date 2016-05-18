@@ -1,0 +1,13 @@
+{
+  "name": "Best-first feature selection",
+  "description": "Find the best features for modeling using a greedy algorithm",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {"name": "dataset-id", "type": "dataset-id", "description": "The data to select features from"},
+    {"name": "n", "type": "number", "description": "The number of features to select"}
+  ],
+  "outputs": [
+    {"name": "output-features", "type": "list", "description": "The list of the n selected fields"}
+  ]
+}
