@@ -1,0 +1,54 @@
+;; Functions for creating the two dataset parts
+;; and the model and ensemble from the training set.
+
+(define (sample-dataset ds-id rate oob)
+  (create-and-wait-dataset {"sample_rate" rate
+                            "origin_dataset"  ds-id
+                            "out_of_bag" oob
+                            "seed" "whizzml-example"}))
+
+(define (split-dataset ds-id rate)
+  (list (sample-dataset ds-id rate false)
+        (sample-dataset ds-id rate true)))
+
+(define (make-model ds-id)
+  (create-and-wait-model {"dataset" ds-id}))
+
+(define (make-ensemble ds-id size)
+  (create-and-wait-ensemble {"dataset" ds-id
+                             "number_of_models" size}))
+
+;; Functions for evaluating model and ensemble
+;; using the test set, and to extract f-measure from
+;; the evaluation results
+
+(define (evaluate-model model-id ds-id)
+  (create-and-wait-evaluation {"model" model-id
+                               "dataset" ds-id}))
+
+(define (evaluate-ensemble model-id ds-id)
+  (create-and-wait-evaluation {"ensemble" model-id
+                               "dataset" ds-id}))
+
+(define (f-measure ev-id)
+  (get-in (fetch ev-id) ["result" "model" "average_f_measure"]))
+
+;; Function encapsulating the full workflow
+(define (model-or-ensemble src-id)
+  (let (ds-id (create-and-wait-dataset {"source" src-id})
+                                          ;; ^ full dataset
+        ids (split-dataset ds-id 0.8)     ;; split it 80/20
+        train-id (nth ids 0)              ;; the 80% for training
+        test-id (nth ids 1)               ;; and 20% for evaluations
+        m-id (make-model train-id)        ;; create a model
+        e-id (make-ensemble train-id 15)  ;; and an ensemble
+        m-f (f-measure (evaluate-model m-id test-id)) ;; evaluate
+        e-f (f-measure (evaluate-ensemble e-id test-id)))
+    (log-info "model f " m-f " / ensemble f " e-f)
+    (if (> m-f e-f)  m-id e-id)))
+
+;; Compute the result of the script execution
+;; - Inputs: [{"name": "input-source-id", "type": "source-id"}]
+;; - Outputs: [{"name": "result", "type": "resource-id"}]
+
+(define result (model-or-ensemble input-source-id))
