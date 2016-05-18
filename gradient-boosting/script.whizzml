@@ -1,0 +1,258 @@
+;; This is a vanilla implementation of gradient boosting.  The main
+;; function is at the bottom of the script, where it explains the
+;; algorithm in some detail.
+
+;; A constant added to the generated field names to let us know that
+;; we generated them
+(define boost-id "__bmlboost")
+
+;; The names of the fields contain ground truth - if there are k
+;; classes, this is k coluns, one for each class.  If the true class
+;; for a given point is the nth class, the value in column in for that
+;; point is 1, else it is zero.
+(define (truth-names nclasses)
+  (map (lambda (i) (str boost-id "_truth_" i)) (range nclasses)))
+
+;; For each of the "names" classes below, we are generating field
+;; names, one for each class, at each iteration of the algorithm.
+
+;; This generates a unique field name given a prefix `name` and an
+;; iteration number.
+(define (field-names nclasses iteration name)
+  (map (lambda (i) (str boost-id "_" name "_" i "_iter_" iteration))
+       (range nclasses)))
+
+;; The names for the fields containing the total scores (the running
+;; sum of all gradient steps) at iteration `iteration`
+(define (sum-names nclasses iteration)
+  (field-names nclasses iteration "sum"))
+
+;; The names for the fields containing the scores at iteration `iteration`
+(define (pred-names nclasses iteration)
+  (field-names nclasses iteration "prediction"))
+
+;; Field names for the softmax probabilities at iteration `iteration`
+(define (softmax-names nclasses iteration)
+  (field-names nclasses iteration "softmax"))
+
+;; The field name for the gradients (the objective for each class) at
+;; each iteration
+(define (grad-names nclasses iteration)
+  (field-names nclasses iteration "gradient"))
+
+;; Helper methods to get dataset attributes
+(define (get-fields dataset)
+  (get (fetch dataset) "fields"))
+
+(define (get-id dataset name)
+  (id-from-fields (get-fields dataset) name))
+
+(define (id-from-fields fields name)
+  (let (is-field? (lambda (fid) (= (get (get fields fid) "name") name)))
+    (head (filter is-field? (keys fields)))))
+
+(define (default-inputs dataset-id obj-id)
+  (let (fields-structure (get (fetch dataset-id) "fields")
+        fids (keys fields-structure)
+        field-val (lambda (fid k) (get-in fields-structure [fid k])))
+    (filter (lambda (k) (and (field-val k "preferred") (not (= obj-id k))))
+            fids)))
+
+;; Helper methods to add fields to the given dataset using flatline
+;; expressions
+(define (make-fields names exprs)
+  (let (make-field (lambda (i) {"name" (nth names i) "field" (nth exprs i)}))
+    (map make-field (range (min (count exprs) (count names))))))
+
+(define (add-fields dataset new-fields input-ids)
+  (let (req {"origin_dataset" dataset "new_fields" new-fields})
+    (if (empty? input-ids)
+      (create-and-wait-dataset req)
+      (create-and-wait-dataset (assoc req "input_fields" input-ids)))))
+
+;; Get the original input fields from the dataset, to make sure we use
+;; the same fields to learn at each iteration.
+(define (get-inputs fields)
+  (let (not-generated? (lambda (astr) (not (contains-string? boost-id astr)))
+        is-input? (lambda (fid) (not-generated? (get (get fields fid) "name"))))
+    (filter is-input? (keys fields))))
+
+;; Get the objective field ids for the given iteration
+(define (get-objectives fields nclasses iteration)
+  (let (gnames (grad-names nclasses iteration))
+    (map (lambda (name) (id-from-fields fields name)) gnames)))
+
+;; Get the total number of classes for the problem from the field
+;; descriptor
+(define (get-num-classes dataset obj-id)
+  (let (obj (get (get-fields dataset) obj-id))
+    (count (get-in obj ["summary" "categories"]))))
+
+;; Create in-sample and out-of-sample data for the current iteration
+(define (bootstrap dataset iteration)
+  (let (sample (lambda (ds oob?) (create-dataset {"origin_dataset" ds
+                                                  "sample_rate" 1
+                                                  "replacement" true
+                                                  "out_of_bag" oob?
+                                                  "seed" (str iteration)}))
+        ids [(sample dataset false) (sample dataset true)]
+        _ (wait-forever* ids))
+    ids))
+
+;; After computing the gradient, get the sum of squares, which will
+;; give us a rough idea of how correct our probabilities are.  Sort of
+;; like the Brier Score, I think.
+(define (sum-gradient dataset nclasses iteration)
+  (let (fs (get-fields dataset)
+        gnames (grad-names nclasses iteration)
+        gfs (map (lambda (name) (id-from-fields fs name)) gnames)
+        get-sum (lambda (fid) (get-in (get fs fid) ["summary" "sum_squares"])))
+    (reduce + 0 (map get-sum gfs))))
+
+;; Create the ground truth "matrix" from the original objective field
+;; - that is, turn each objective field value into a one-hot vector.
+(define (add-truth dataset input-ids obj-id)
+  (let (obj (get (get-fields dataset) obj-id)
+        oname (get obj "name")
+        cats (map (lambda (c) (head c)) (get-in obj ["summary" "categories"]))
+        ncls (count cats)
+        fexp (lambda (c) (flatline "(if (= (f {{obj-id}}) {{c}}) 1.0 0.0)"))
+        truth-exprs (map fexp cats)
+        new-fields (make-fields (truth-names ncls) truth-exprs)
+        ds (add-fields dataset new-fields (append input-ids obj-id))
+        oid (get-id ds oname))
+    (create-and-wait-dataset {"origin_dataset" ds "excluded_fields" [oid]})))
+
+;; Compute the gradient given the ground truth fields and the current
+;; probabilities
+(define (compute-gradient dataset nclasses iteration)
+  (let (next-names (grad-names nclasses iteration)
+        preds (if (> iteration 0)
+                (map (lambda (n) (flatline "(f {{n}})"))
+                     (softmax-names nclasses iteration))
+                (repeat nclasses (str (/ 1 nclasses))))
+        tns (truth-names nclasses)
+        fexp (lambda (idx)
+               (let (actual (nth tns idx)
+                     predicted (nth preds idx))
+                 (flatline "(- (f {{actual}}) {predicted})")))
+        new-fields (make-fields next-names (map fexp (range nclasses))))
+    (add-fields dataset new-fields [])))
+
+;; Compute the ground truth field and the initial gradient
+(define (format dataset nclasses input-ids obj-id)
+  (let (with-truth (add-truth dataset input-ids obj-id))
+    (compute-gradient with-truth nclasses 0)))
+
+;; Predict the value of the gradient for all points in the dataset
+;; Need to predict one at a time so we can preserve all fields
+(define (batch-predict dataset iteration mod-ids)
+  (let (pnames (pred-names (count mod-ids) iteration))
+    (loop (last-ds dataset mids mod-ids names pnames)
+      (if (empty? mids)
+        last-ds
+        (let (req {"all_fields" true
+                   "output_dataset" true
+                   "model" (head mids)
+                   "dataset" last-ds
+                   "prediction_name" (head names)}
+              bp (create-and-wait-batchprediction req)
+              new-ds (get (fetch bp) "output_dataset_resource")
+              _ (wait-forever new-ds))
+          (recur new-ds (tail mids) (tail names)))))))
+
+;; Sum the last set of predictions with the current set of sums to get
+;; new scores
+(define (create-sums dataset nclasses iteration)
+  (let (this-preds (pred-names nclasses iteration)
+        this-sums (sum-names nclasses iteration)
+        last-sums (if (> iteration 1) (sum-names nclasses (- iteration 1)) [])
+        fexp (lambda (idx)
+               (let (this-pred (nth this-preds idx))
+                 (if (empty? last-sums)
+                   (flatline "(f {{this-pred}})")
+                   (let (last-sum (nth last-sums idx))
+                     (flatline "(+ (f {{this-pred}}) (f {{last-sum}}))")))))
+        new-fields (make-fields this-sums (map fexp (range nclasses))))
+    (add-fields dataset new-fields [])))
+
+;; Create the softmax probabilities from the given scores
+(define (create-softmax-probs dataset nclasses iteration)
+  (let (this-sums (sum-names nclasses iteration)
+        this-softmaxs (softmax-names nclasses iteration)
+        fl-exp (lambda (name) (flatline "(exp (f {{name}}))"))
+        exp-sum (str "(+ " (join " " (map fl-exp this-sums)) ")")
+        fexp (lambda (name) (str "(/ " (fl-exp name) " " exp-sum  ")"))
+        new-fields (make-fields this-softmaxs (map fexp this-sums)))
+    (add-fields dataset new-fields [])))
+
+;; Learn a set of trees over the objective fields, one for each class
+(define (learn-trees dataset nclasses iteration)
+  (let (fs (get-fields dataset)
+        iids (get-inputs fs)
+        oids (get-objectives fs nclasses iteration)
+        req {"dataset" dataset "input_fields" iids}
+        create (lambda (oid) (create-model (assoc req "objective_field" oid)))
+        ids (map create oids)
+        _ (wait-forever* ids))
+    ids))
+
+;; Strings together prediction, summing, softmax-ing, and computing
+;; the gradient
+(define (create-fields dataset iteration mod-ids)
+  (let (nclasses (count mod-ids)
+        pred-ds (batch-predict dataset iteration mod-ids)
+        sum-ds (create-sums pred-ds nclasses iteration)
+        prob-ds (create-softmax-probs sum-ds nclasses iteration))
+    (compute-gradient prob-ds nclasses iteration)))
+
+;; Perform gradient tree boosting on the given dataset, with the given
+;; input field ids and give objective field.  The algorithm calculates
+;; a series of gradient steps where each step is based on the
+;; per-class probability of the model given all of the previous steps.
+;; Each step is represented by a tree, thus, if n is the number of
+;; classes, the algorithm learns n trees at each step.
+
+;; The output of this function is a list of lists of model ids, where
+;; each "row" represents a gradient step and each "column" is a class.
+;; Class probabilities are calculated by the softmax function, so if i
+;; represents a gradient step index, and j represents a class index,
+;; and m_{ij} is the score of the model in the ith row and the jth
+;; column, the probability of class c is given by:
+;;
+;; exp(sum_i m_{ic}) / (sum_j exp(sum_i m_{ij}))
+(define (gradient-boost dataset)
+  (let (objective (dataset-get-objective-id dataset)
+        inputs (default-inputs dataset objective)
+        nclasses (get-num-classes dataset objective)
+        formatted (format dataset nclasses inputs objective))
+    (loop (ds formatted
+           iteration 1
+           total-imp 0
+           imp-1 0
+           imp-2 0
+           models [])
+      (log-info "Iteration " iteration)
+      (let (sets (bootstrap ds iteration)
+            train (nth sets 0)
+            test (nth sets 1)
+            last-gradient (sum-gradient test nclasses (- iteration 1))
+            _ (log-info "Gradient: " last-gradient)
+            new-models (learn-trees train nclasses (- iteration 1))
+            new-test (create-fields test iteration new-models)
+            this-gradient (sum-gradient new-test nclasses iteration)
+            _ (log-info "Gradient: " this-gradient)
+            this-imp (- last-gradient this-gradient)
+            pct (* (/ (+ this-imp imp-1 imp-2) (+ this-imp total-imp)) 100))
+        (log-info "Improvement over last 3 iterations: " pct "%")
+        ;; Stop arbitrarily at 1% improvement over last three iterations
+        (if (> pct 1)
+          (recur (create-fields ds iteration new-models)
+                 (+ iteration 1)
+                 (+ total-imp this-imp)
+                 this-imp
+                 imp-1
+                 (append models new-models))
+          models)))))
+
+(define model-array (gradient-boost dataset-id))

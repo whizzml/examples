@@ -1,0 +1,17 @@
+{
+  "name": "Gradient Boosting",
+  "description": "Perform gradient boosting for classification",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {"name": "dataset-id",
+     "type": "dataset-id",
+     "description": "Select the training dataset"
+    }
+  ],
+  "outputs": [
+    {"name": "model-array",
+     "type": "list",
+     "description": "The n-by-k array of output models, where n is the number of gradient steps and k is the number of classes."}
+  ]
+}
