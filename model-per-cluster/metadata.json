@@ -1,0 +1,11 @@
+{
+  "name": "Model by clusters",
+  "description": "Scripts to model data after clustering and make predictions using the resulting per-cluster model",
+  "kind": "package",
+  "components":[
+    "create-cluster-models",
+    "use-cluster-models",
+    "single-prediction",
+    "batch-prediction"
+  ]
+}

@@ -1,0 +1,67 @@
+;; Given a source, finds out clusters using G-means, and creates
+;; predictive models for each cluster.
+
+;; Samples a dataset with a given rate (between 0 and 1) and getting
+;; the sampled rows (oob = false) or the complementary ones (oob = true),
+;; using a fixed seed.
+(define (sample-dataset ds-id rate oob)
+  (create-dataset {"sample_rate" rate
+                   "origin_dataset"  ds-id
+                   "out_of_bag" oob
+                   "seed" "whizzml-example"}))
+
+;; Creates a model with 80% of the input dataset, evaluates it
+;; with the remaining 20%. Returns the model and evaluation ids.
+(define (evaluate-model-on-dataset ds-id)
+  (let (training-id (sample-dataset ds-id 0.8 false)
+        test-id (sample-dataset ds-id 0.8 true)
+        _ (wait training-id)
+        model-id (create-model {"dataset" training-id})
+        _ (wait* [test-id model-id])
+        ev-id (create-evaluation {"model" model-id "dataset" test-id}))
+     {"model" model-id
+      "training" training-id
+      "test" test-id
+      "evaluation" ev-id}))
+
+(define (create-evaluations ds-ids)
+  (let (mds (map evaluate-model-on-dataset ds-ids))
+    (for (md mds)
+      (let (mid (get md "model")
+            eid (get md "evaluation"))
+        (wait eid)
+        (delete* [mid (get md "training") (get md "test")])
+        (fetch eid)))))
+
+(define (create-centroid-datasets cluster-id centroid-ids)
+  (wait* (create* "dataset" (for (id centroid-ids)
+                              {"cluster" cluster-id "centroid" id}))))
+
+(define (create-centroid-models dataset-ids)
+  (create* "model" (for (id dataset-ids) {"dataset" id})))
+
+(define (centroids-prop cluster prop)
+  (let (cs (get-in cluster ["clusters" "clusters"]))
+    (map (lambda (c) (get c prop)) cs)))
+
+;; Given a dataset id, creates a cluster and models for each of the
+;; resulting centroid datasets.  Returns the cluster-id, a map from
+;; centroid id to its model, a map to centroid id to their names, and
+;; a map from centroid id to the evaluation.
+(define (make-cluster-models ds-id)
+  (let (cluster-id (create-and-wait-cluster {"dataset" ds-id})
+        cluster (fetch cluster-id)
+        cid (get cluster "resource")
+        cids (centroids-prop cluster "id")
+        cnames (centroids-prop cluster "name")
+        ds-ids (create-centroid-datasets cid cids)
+        mod-ids (create-centroid-models ds-ids)
+        evs (create-evaluations ds-ids))
+    [cid (make-map cids mod-ids) (make-map cids cnames) (make-map cids evs)]))
+
+(define dataset-id (create-and-wait-dataset {"source" source-id}))
+(define full-result (make-cluster-models dataset-id))
+(define cluster-id (nth full-result 0))
+(define models (nth full-result 1))
+(define names (nth full-result 2))
+(define evaluations (nth full-result 3))

@@ -1,0 +1,6 @@
+{
+  "name": "Predict using cluster models",
+  "description": "A library with functions to make predictions from the results of a `Create clusters models` execution",
+  "kind": "library",
+  "source_code": "library.whizzml"
+}

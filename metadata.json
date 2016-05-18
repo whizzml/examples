@@ -2,7 +2,12 @@
   "name": "WhizzML Examples",
   "description": "A collection of whizzml scripts and libraries maintained by BigML",
   "kind": "package",
-  "components": ["remove-anomalies",
-                 "find-neighbors",
-                 "stacked-generalization"]
+  "components": [
+    "remove-anomalies",
+    "find-neighbors",
+    "stacked-generalization",
+    "best-first",
+    "gradient-boosting",
+    "model-per-cluster"
+  ]
 }

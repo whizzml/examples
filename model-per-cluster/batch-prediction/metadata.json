@@ -1,0 +1,25 @@
+{
+  "name": "Batch predictions with cluster models",
+  "description": "Perform a batch prediction using cluster models",
+  "resource": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "execution-id",
+      "type": "execution-id",
+      "description": "The execution of `Create cluster models` that created the cluster and models needed for making these predictions"
+    },
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "A dataset to perform predictions over each of its rows"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "prediction",
+      "type": "map",
+      "description": "The resulting prediction object"
+    }
+  ]
+}

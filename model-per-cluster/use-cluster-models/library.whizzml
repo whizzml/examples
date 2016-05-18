@@ -1,0 +1,83 @@
+;; Takes the outputs of a model-by-clusters executions and
+;; given input data, classifies it in one of the available centroids
+;; and then makes a predicition with the choosen centroid's model
+
+;; Execution parsing
+
+(define (get-output exec n)
+  (nth (nth (get-in exec ["execution" "outputs"]) n) 1))
+
+(define (get-cluster-id exec) (get-output exec 1))
+(define (get-models exec) (get-output exec 2))
+(define (get-centroid-names exec) (values (get-output exec 3)))
+
+(define (get-model-ids exec) (values (get-models exec)))
+(define (get-centroid-ids exec) (keys (get-models exec)))
+(define (get-model exec cid) (get (get-models exec) cid))
+
+;; Predictions by cluster
+
+(define (input-centroid cluster-id input-data)
+  (let (pid (create-and-wait-centroid {"cluster" cluster-id
+                                       "input_data" input-data})
+        pred (fetch pid))
+    (get pred "centroid_id")))
+
+(define (predict-by-cluster exec-id input-data)
+  (let (exec (fetch exec-id)
+        cluster-id (get-cluster-id exec)
+        centroid-id (input-centroid cluster-id input-data)
+        model-id (get-model exec centroid-id)
+        pred (fetch (create-and-wait-prediction {"model" model-id
+                                        "input_data" input-data})))
+    {"prediction" (get pred "prediction")
+     "model" model-id
+     "centroid" centroid-id}))
+
+;; Batch predictions by cluster
+
+(define (filter-centroid ds-id centroid-id)
+  (let (cname "centroid"
+        fl (flatline "(= {{centroid-id}} (f {{cname}}))"))
+    (create-and-wait-dataset {"origin_dataset" ds-id
+                              "lisp_filter" fl})))
+
+
+(define (batchprediction-dataset bp-id)
+  (get (fetch bp-id) "output_dataset_resource"))
+
+(define (split-by-clusters ds-id cluster-id centroid-names)
+  (let (bc (create-and-wait-batchcentroid {"cluster" cluster-id
+                                           "dataset" ds-id
+                                           "output_dataset" true
+                                           "all_fields" true
+                                           "distance" false
+                                           "centroid_name" "centroid"})
+        cds-id (batchprediction-dataset bc)
+        _ (wait cds-id)
+        ds-ids (map (lambda (cid) (filter-centroid cds-id cid)) centroid-names))
+     (wait* ds-ids)))
+
+(define (make-predictions ds-ids model-ids)
+  (let (p-ids (for (n (range (count ds-ids)))
+                (let (mid (nth model-ids n)
+                      dsid (nth ds-ids n))
+                  (create-batchprediction {"model" mid "dataset" dsid
+                                           "all_fields" true
+                                           "output_dataset" true
+                                           "confidence" true})))
+         ds-ids (map batchprediction-dataset (wait* p-ids))
+         _ (wait* ds-ids)
+         ds-id (create-and-wait-dataset {"origin_datasets" ds-ids}))
+    (delete* ds-ids)
+    ds-id))
+
+(define (batchpredict-by-cluster exec-id ds-id)
+  (let (exec (fetch exec-id)
+        centroid-names (get-centroid-names exec)
+        model-ids (get-model-ids exec)
+        cluster-id (get-cluster-id exec)
+        ds-ids (split-by-clusters ds-id cluster-id centroid-names)
+        result (make-predictions ds-ids model-ids))
+    (delete* ds-ids)
+    result))
