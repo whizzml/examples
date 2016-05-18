@@ -5,11 +5,12 @@
   "components": [
     "model-or-ensemble",
     "remove-anomalies",
-    "smacdown-branin",
     "find-neighbors",
     "stacked-generalization",
     "best-first",
     "gradient-boosting",
-    "model-per-cluster"
+    "model-per-cluster",
+    "smacdown-branin",
+    "smacdown-ensemble"
   ]
 }

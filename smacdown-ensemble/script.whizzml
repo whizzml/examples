@@ -1,0 +1,94 @@
+;; Here's a custom generator for creating BigML ensembles.  As
+;; "random_candidate_ratio" tends towards 1, the ensemble becomes a
+;; bag.
+(define (smacdown-ensemble--model-params-generator objective-type)
+  (lambda ()
+    (let (max-trees 127
+          max-nodes 1999
+          regression (= "numeric" objective-type))
+      {"random_candidate_ratio" (rand)
+       "stat_pruning" (if (< (rand) 0.5) false true)
+       "balance_objective" (if (or regression (< (rand) 0.5)) false true)
+       "number_of_models" (+ 1 (round (exp (* (log max-trees) (rand)))))
+       "randomize" true
+       "node_threshold" (round (rand-range 4 max-nodes))})))
+
+;; This function takes a training and test set (and an objective field
+;; id) and evaluates a set of parameters by training a model with
+;; those parameters and performing an evaluation on them.  We decide
+;; that phi is the metric we'd like to opimize, so we pull 1 - phi out
+;; of each evaluation to return as the objective, as the algorithm
+;; seeks to *minimize* a value and we want to *maximize* phi.
+(define (smacdown-ensemble--evaluator train test obj metric name)
+  (lambda (params itr)
+    (log-info "Evaluating " (count params) " candidates...")
+    (let (train-params {"dataset" train
+                        "objective_field" obj
+                        "seed" "SMACdown"
+                        "name" (str name " smacdown itr " itr " test model")}
+          mod-fn (lambda (p) (merge p train-params))
+          eval-fn (lambda (m) {"model" m "dataset" test})
+          mod-ids (create-and-wait* "ensemble" (map mod-fn params))
+          eval-ids (create-and-wait* "evaluation" (map eval-fn mod-ids))
+          phi (lambda (ev)
+                (let (metric-value (get-in ev ["result" "model" metric]))
+                  (if (not (number? metric-value))
+                    (raise {"message" (str metric " is not a valid metric!")
+                            "code" -30})
+                    (- 1 metric-value)))))
+      (log-info "Evaluation complete.")
+      (map (lambda (eid) (phi (fetch eid))) eval-ids))))
+
+;; Take a dataset, create a training and test set, and find the
+;; optimal parameters.  The function returns a list of parameters
+;; ranked by objective.
+(define (optimize-ensemble dataset-id objective-field-id metric name)
+  (let (train-params {"origin_dataset" dataset-id
+                      "sample_rate" 0.8
+                      "replacement" false
+                      "seed" "SMACdown"}
+        objective-field (if (empty? objective-field-id)
+                          (dataset-get-objective-id dataset-id)
+                          objective-field-id)
+        otype (get-in (fetch dataset-id) ["fields" objective-field "optype"])
+        _ (log-info "Objective field id is " objective-field)
+        _ (log-info "Objective field type is " otype)
+        test-params (assoc train-params "out_of_bag" true)
+        train-id (create-dataset train-params)
+        test-id (create-dataset test-params)
+        _ (wait* [train-id test-id])
+        eval-fn (smacdown-ensemble--evaluator train-id
+                                              test-id
+                                              objective-field
+                                              metric
+                                              name)
+        generator (smacdown-ensemble--model-params-generator otype)
+        output (smacdown-optimize generator eval-fn name)
+        finalize (lambda (p) (assoc (dissoc p smacdown--actual)
+                                    metric
+                                    (- 1 (get p smacdown--actual))))
+        params (map finalize output)
+        _ (log-info "SMACdown complete.")
+        _ (when (empty? name)
+            (log-info "Deleting resources...")
+            (delete* (created-resources)))
+        ;; Have to recreate if they were deleted in the previous step
+        _ (log-info "Training model on full dataset...")
+        mod-prms (merge (get (head params) "parameters")
+                        {"objective_field" objective-field "seed" "SMACdown"})
+        full-mod (create-ensemble (assoc mod-prms "dataset" dataset-id))
+        _ (log-info "Returning evaluated parameter sets...")
+        train-id (create-dataset train-params)
+        test-id (create-dataset test-params)
+        _ (wait* [train-id test-id])
+        best-mod (create-and-wait-ensemble (assoc mod-prms "dataset" train-id))
+        best-eval (create-evaluation {"model" best-mod "dataset" test-id})
+        _ (wait* [best-eval full-mod]))
+    (cons (assoc (head params)
+                 "full_model" full-mod
+                 "model" best-mod
+                 "evaluation" best-eval)
+          (tail params))))
+
+(define result
+  (optimize-ensemble dataset-id objective-id metric resource-prefix))

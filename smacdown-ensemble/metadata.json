@@ -1,0 +1,36 @@
+{
+  "name": "Ensemble optimization",
+  "description": "Script for ensemble optimization using SMACdown",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs":[
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "Dataset for which we are seeking an optimal ensemble"
+    },
+    {
+      "name": "objective-id",
+      "type": "string",
+      "default": "",
+      "description": "The ensemble's objective field, or empty to use the dataset's default"
+    },
+    {
+      "name": "metric",
+      "type": "string",
+      "default": "average_phi",
+      "description": "Evaluation metric that we want to optimize.  It must be a number"
+    },
+    {
+      "name": "prefix",
+      "type": "string",
+      "default": "",
+      "description": "Prefix for the name of created resources.  If empty, all intermediate resources will be deleted"
+    }
+  ],
+  "outputs":[
+    {
+      "name": "result",
+      "type": "list"
+    }]
+}
