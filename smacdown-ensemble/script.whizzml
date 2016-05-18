@@ -91,4 +91,4 @@
           (tail params))))
 
 (define result
-  (optimize-ensemble dataset-id objective-id metric resource-prefix))
+  (optimize-ensemble dataset-id objective-id metric prefix))
