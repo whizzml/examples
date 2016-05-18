@@ -1,0 +1,28 @@
+;; This file demonstrates using SMACdown to optimize a function, in
+;; this case, the venerable branin function.
+
+;; Definition of the branin function
+(define (branin x1 x2)
+  (let (pi 3.14159265359
+        a 1
+        b (/ 5.1 (* 4 (pow pi 2)));
+        c (/ 5 pi)
+        r 6
+        s 10
+        t (/ 1 (* 8 pi)))
+    (+ (* a (pow (+ (- x2 (* b (pow x1 2))) (- (* c x1) r)) 2))
+       (* s (- 1 t) (cos x1))
+       s)))
+
+;; This function generates random parameters to the branin function in
+;; the proper range.
+(define (branin-generator) {"x1" (rand-range -5 10) "x2" (rand-range 0 15)})
+
+;; This function takes a list of parameter maps of the format
+;; generated above and returns a list of values, where each value in
+;; the list is the value of applying the function to be optimized to
+;; the corresponding parameters in the input list.
+(define (branin-evaluator params)
+  (map (lambda (p) (branin (get p "x1") (get p "x2"))) params))
+
+(define result (smacdown-optimize branin-generator branin-evaluator))

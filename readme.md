@@ -15,13 +15,17 @@ By convention, when the artifact is a library, the files are called
   predictions, given an input source.
 - `remove-anomalies` Using Flatline and an anomaly detector, remove
   from an input dataset its anomalous rows.
+- `smacdown-branin` Simple example of SMACdown, using the Branin
+  function as evaluator.
 - `find-neighbors`  Using cluster distances as a metric, find
   instances in a dataset close to a given row.
 - `stacked-generalization` Simple
   [stacking](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking)
   using decision tree, ensembles and logistic regression.
 - `best-first` Feature selection using a greedy algorithm.
-- `gradient-boosting` Boosting algorithm using gradient descent.
+- `gradient-boosting`
+  [Boosting](https://en.wikipedia.org/wiki/Gradient_boosting)
+  algorithm using gradient descent.
 - `model-per-cluster` Scripts and library to model data after
   clustering and make predictions using the resulting per-cluster
   model.

@@ -5,6 +5,7 @@
   "components": [
     "model-or-ensemble",
     "remove-anomalies",
+    "smacdown-branin",
     "find-neighbors",
     "stacked-generalization",
     "best-first",

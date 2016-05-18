@@ -1,0 +1,14 @@
+{
+  "name": "Branin optimization",
+  "description": "Find extrema of Branin using SMACdown",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [],
+  "outputs": [
+    {
+      "name": "result",
+      "type": "number",
+      "description": "Extreme of the Branin function"
+    }
+  ]
+}
