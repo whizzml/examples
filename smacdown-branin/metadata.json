@@ -7,8 +7,8 @@
   "outputs": [
     {
       "name": "result",
-      "type": "number",
-      "description": "Extreme of the Branin function"
+      "type": "list",
+      "description": "A list of maps. Each map contanins a `actual_value` and a parameters map."
     }
   ]
 }

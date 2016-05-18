@@ -22,7 +22,11 @@
 ;; generated above and returns a list of values, where each value in
 ;; the list is the value of applying the function to be optimized to
 ;; the corresponding parameters in the input list.
-(define (branin-evaluator params)
+(define (branin-evaluator params ignored)
   (map (lambda (p) (branin (get p "x1") (get p "x2"))) params))
 
-(define result (smacdown-optimize branin-generator branin-evaluator))
+(define result (smacdown-optimize branin-generator branin-evaluator "test"))
+
+;; We delete all intermediate resources (there will be a lot), since
+;; we are interested only in the final result.
+(delete* (created-resources))
