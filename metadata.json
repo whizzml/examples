@@ -3,6 +3,7 @@
   "description": "A collection of whizzml scripts and libraries maintained by BigML",
   "kind": "package",
   "components": [
+    "model-or-ensemble",
     "remove-anomalies",
     "find-neighbors",
     "stacked-generalization",
