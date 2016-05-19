@@ -1,6 +1,6 @@
 {
   "name": "Basic 5-fold cross-validation",
-  "description": "5-fold cross-validation of the model created with default parameters",
+  "description": "5-fold cross-validation of a model created with default parameters",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
