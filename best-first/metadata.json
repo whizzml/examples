@@ -13,6 +13,12 @@
       "name": "n",
       "type": "number",
       "description": "The number of features to select"
+    },
+    {
+      "name": "objective-id",
+      "type": "string",
+      "default": "",
+      "description": "Objective field ID, or empty for default dataset objective field"
     }
   ],
   "outputs": [

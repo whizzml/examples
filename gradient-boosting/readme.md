@@ -13,3 +13,7 @@ An implementation of gradient boosting, along the following steps:
 - Apply the *softmax* to these sums to get a set of class
   probabilities for each point.
 - Iterate!
+
+Since the algorithm works by manipulating class probabilities, the
+script can only be used when the requested objective field is
+categorical.

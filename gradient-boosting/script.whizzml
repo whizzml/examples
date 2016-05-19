@@ -206,6 +206,18 @@
         prob-ds (create-softmax-probs sum-ds nclasses iteration))
     (compute-gradient prob-ds nclasses iteration)))
 
+;; Retrieves and checks whether the objective field of the given
+;; dataset is categorical, raising an error otherwise.
+(define (get-objective ds-id obj-id)
+  (let (obj-id (if (empty? obj-id)
+                   (dataset-get-objective-id dataset-id)
+                   obj-id)
+        otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
+    (when (not (= "categorical" otype))
+      (raise (str "The dataset's objective field must be categorical, "
+                  "but is " otype)))
+    obj-id))
+
 ;; Perform gradient tree boosting on the given dataset, with the given
 ;; input field ids and give objective field.  The algorithm calculates
 ;; a series of gradient steps where each step is based on the
@@ -221,8 +233,8 @@
 ;; column, the probability of class c is given by:
 ;;
 ;; exp(sum_i m_{ic}) / (sum_j exp(sum_i m_{ij}))
-(define (gradient-boost dataset)
-  (let (objective (dataset-get-objective-id dataset)
+(define (gradient-boost dataset objective)
+  (let (objective (get-objective dataset objective)
         inputs (default-inputs dataset objective)
         nclasses (get-num-classes dataset objective)
         formatted (format dataset nclasses inputs objective))
@@ -255,4 +267,4 @@
                  (append models new-models))
           models)))))
 
-(define model-array (gradient-boost dataset-id))
+(define model-array (gradient-boost dataset-id objective-id))
