@@ -1,5 +1,9 @@
 # Examples of WhizzML scripts and libraries
 
+<p align=center><a href="http://bigml.com/whizzml"><img
+src="https://static.horizon.bigml.com/static/img/whizzml/whizzml_share_logo.png"
+alt="WhizzML" width=350></img></a></p>
+
 Each script or library is in a directory in this folder.  For each one
 you will always find a readme explaining what's its purpose and usage,
 the actual whizzml code in a `.whizzml` file, and the JSON metadata
