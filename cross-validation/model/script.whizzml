@@ -340,7 +340,10 @@
                                    balance-objective
                                    weight-field
                                    objective-weights
-                                   node-threshold))
+                                   node-threshold)
+        objective-id (if (empty? objective-id)
+                         (dataset-get-objective-id dataset-id)
+                         objective-id))
     (cross-validation dataset-id k-folds objective-id options {})))
 
 

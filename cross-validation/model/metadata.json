@@ -18,7 +18,8 @@
       {
           "name": "objective-id",
           "type": "string",
-          "description": "Objective field ID"
+          "default": "",
+          "description": "Objective field ID, or empty for default dataset objective field"
       },
       {
           "name": "missing-splits",
