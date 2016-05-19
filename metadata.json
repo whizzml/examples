@@ -12,6 +12,7 @@
     "model-per-cluster",
     "smacdown-branin",
     "smacdown-ensemble",
-    "best-k"
+    "best-k",
+    "anomaly-shift"
   ]
 }

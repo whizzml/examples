@@ -33,3 +33,5 @@ By convention, when the artifact is a library, the files are called
   model.
 - `best-k` Scripts and library implementing Pham-Dimov-Nguyen
   algorithm for choosing the best k in k-means clusters.
+- `anomaly-shift` Calculate the average anomaly between two given
+  datasets.

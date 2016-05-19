@@ -1,0 +1,192 @@
+;; anomaly shift
+;;
+;; given two datasets (one used for "training" and another from "production")
+;; calculates the average anomaly between the two datasets
+
+;; sample-dataset
+;;
+;; samples a dataset using bagging. This lets you split one dataset into two.
+;;
+;; Inputs:
+;;   dst-id: (string) Dataset ID for the Dataset we want to sample.
+;;   rate: (float) Value between 0 & 1. The size of the bigger sample.
+;;                 e.g. 0.8 -> 80% of original dataset is in the new dataset.
+;;   oob: (boolean) Indicator of whether we want the bagged chunk of data
+;;                  or the out of bag chunk.
+;;                  e.g. if rate = 0.8, bagged = 80% of data.
+;;                  out of bag = remaining 20%
+;;   seed: (string) Any string. Used to make the sampling determistic (repeatable)
+;;
+;; Output: (string) Dataset ID for the new dataset
+
+(define (sample-dataset dst-id rate oob seed)
+  (create-and-wait-dataset {"sample_rate" rate
+                            "origin_dataset" dst-id
+                            "out_of_bag" oob
+                            "seed" seed}))
+
+;; anomaly-evaluation
+;;
+;; creates an batch anomaly score of the given model against the given dataset.
+;;
+;; Inputs:
+;;   anomaly-id: (string) Anomaly detector ID
+;;   dst-id: (string) Production dataset ID
+;;
+;; Output: (string) Batch Anomaly Score ID
+
+(define (anomaly-evaluation anomaly-id dst-id)
+  (create-and-wait-batchanomalyscore {"anomaly" anomaly-id
+                                      "dataset" dst-id
+                                      "all_fields" true
+                                      "output_dataset" true }))
+
+;; avg-anomaly
+;;
+;; computes the average anomaly from the batch anomaly score
+;;
+;; Input: evdst-id (string) Batch anomaly score dataset ID
+;; Output: (float) Average batch anomaly score for evaluation
+
+(define (avg-anomaly evdst-id)
+  (let (evdst (fetch evdst-id)
+        score-field (get-in evdst ["objective_field" "id"])
+        sum (get-in evdst ["fields" score-field "summary" "sum"])
+        population (get-in evdst ["fields" score-field "summary" "population"]))
+    (/ sum population)))
+
+;; anomaly-measure
+;;
+;; given two datasets (one used for "training" and another from "production")
+;; calculates the phi-coefficient between the two datasets
+;; to determine the associated covariate shift
+;;
+;; Inputs:
+;;   train-dst: (string) Dataset ID for the training data
+;;   train-exc: (list) Fields to exclude from the training dataset
+;;   prod-dst: (string) Dataset ID for the production data
+;;   prod-exc: (list) Fields to exclude from production dataset
+;;   seed: (string) See "sample-dataset"
+;;   clean: (boolean) Delete intermediate datasets
+;;
+;; Output: (float) Average anomaly score. Value between 0 and 1.
+
+(define (anomaly-measure train-dst train-exc prod-dst prod-exc seed clean)
+  (let (traino-dst (sample-dataset train-dst 0.8 false seed)
+        prodo-dst (sample-dataset prod-dst 0.8 true seed)
+        anomaly (create-and-wait-anomaly {"dataset" traino-dst
+                                          "excluded_fields" train-exc})
+        ev-id (anomaly-evaluation anomaly prodo-dst)
+        evdst-id (get-in (fetch ev-id) ["output_dataset_resource"])
+        _ (wait-forever evdst-id)
+        score (avg-anomaly evdst-id))
+      (if clean
+        (prog (delete evdst-id)
+              (delete ev-id)
+              (delete anomaly)
+              (delete prodo-dst)
+              (delete traino-dst)))
+      score))
+
+
+;; EXAMPLE
+;;
+;; (anomaly-measure "dataset/..." [...] "dataset/..." [...] "test-run-1" true) -> ???
+;; (anomaly-measure "dataset/..." [...] "dataset/..." [...] "test-run-2" true) -> ???
+;;
+;; and by comparing the results over many runs,
+;; you can determine the absence/presence of covariate shift
+
+;; anomaly-loop
+;;
+;; Loop to sequence sampling the datasets and compute phi coefficients
+;;
+;; Inputs:
+;;   train-dst: (string) Dataset ID for the training data
+;;   train-exc: (list) Fields to exclude from the training dataset
+;;   prod-dst: (string) Dataset ID for the production data
+;;   prod-exc: (list) Fields to exclude from production dataset
+;;   seed: (string) Prefix for dataset seed. See "sample-dataset"
+;;   niter: (number) Number of iterations
+;;   clean: (boolean) Delete intermediate datasets
+;;   logf: (boolean) Enable logging
+;;
+;; Output: (list) A list of average anomaly scores for specified datasets over `niter` trials. Values between 0 and 1.
+
+(define (anomaly-loop train-dst train-exc prod-dst prod-exc seed niter clean logf)
+  (loop (iter 1
+         scores-list [])
+    (if logf
+      (log-info "Iteration " iter))
+    (let (score (anomaly-measure train-dst train-exc prod-dst prod-exc (str seed " " iter) clean)
+          scores-list (append scores-list score))
+      (if logf
+        (log-info "Iteration " iter scores-list))
+      (if (< iter niter)
+        (recur (+ iter 1)
+                scores-list)
+        scores-list))))
+
+
+;; anomaly-measures
+;;
+;; given two datasets (one used for "training" and another from "production")
+;; calculates a list of average anomaly scores between samples of the two datasets
+;; to determine the associated sample shift
+;;
+;; Inputs:
+;;   train-dst: (string) Dataset ID for the training data
+;;   train-exc: (list) Fields to exclude from the training dataset
+;;   prod-dst: (string) Dataset ID for the production data
+;;   prod-exc: (list) Fields to exclude from production dataset
+;;   seed: (string) Prefix for dataset seed. See "sample-dataset"
+;;   niter: (number) Number of iterations
+;;   clean: (boolean) Delete intermediate datasets
+;;   logf: (boolean) Enable logging
+;;
+;; Output: (list) A list of average anomaly scores for specified datasets over `niter` trials. Values between 0 and 1.
+
+(define (anomaly-measures train-dst train-exc prod-dst prod-exc seed niter clean logf)
+  (let (values (anomaly-loop train-dst train-exc prod-dst prod-exc seed niter clean logf))
+     values))
+
+;; EXAMPLE
+;;
+;; (anomaly-measures "dataset/..." [...] "dataset/..." [...] "test-run" 20 true true) -> ???
+;;
+;; and by comparing the list of anomaly measures
+;; you can determine the absence/presence of data shift
+
+
+;; anamoly-estimate
+;;
+;; given two datasets (one used for "training" and another from "production")
+;; calculates an estimate of the average anomaly score between the two datasets
+;; to determine the associated sample shift
+;;
+;; Inputs:
+;;   train-dst: (string) Dataset ID for the training data
+;;   train-exc: (list) Fields to exclude from the training dataset
+;;   prod-dst: (string) Dataset ID for the production data
+;;   prod-exc: (list) Fields to exclude from production dataset
+;;   seed: (string) Prefix for dataset seed. See "sample-dataset"
+;;   niter: (number) Number of iterations to be averaged
+;;   clean: (boolean) Delete intermediate datasets
+;;   logf: (boolean) Enable logging
+;;
+;; Output: (float) Average anomaly score for specified datasets over `niter` trials. Values between 0 and 1.
+
+(define (anomaly-estimate train-dst train-exc prod-dst prod-exc seed niter clean logf)
+  (let (values (anomaly-measures train-dst train-exc prod-dst prod-exc seed niter clean logf)
+        sum (reduce + 0 values)
+        cnt (count values))
+    (/ sum cnt)))
+
+;; EXAMPLE
+;;
+;; (anomaly-estimate "dataset/..." [...] "dataset/..." [...] "test-run" 4 true true) -> ???;; anomaly-shift-estimate
+
+;;
+;; Basic script to use the anomaly-shift library
+;;
+(define result (anomaly-estimate train-dst train-exc prod-dst prod-exc seed niter clean logf))

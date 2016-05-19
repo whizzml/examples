@@ -1,0 +1,56 @@
+{
+  "name": "Anomaly Shift Estimate",
+  "description": "Computation of the average anomaly between two datasets",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "train-dst",
+      "type": "dataset-id",
+      "description": "Training dataset ID"
+    },
+    {
+      "name": "train-exc",
+      "type": "list",
+      "description": "Training dataset field exclusion list"
+    },
+    {
+      "name": "prod-dst",
+      "type": "dataset-id",
+      "description": "Production dataset ID"
+    },
+    {
+      "name": "prod-exc",
+      "type": "list",
+      "description": "Production dataset field exclusion list",
+      "default":[]
+    },
+    {
+      "name": "seed",
+      "type": "string",
+      "description": "Dataset seed prefix"
+    },
+    {
+      "name": "niter",
+      "type": "number",
+      "description": "Number of sample estimates to average"
+    },
+    {
+      "name": "clean",
+      "type": "boolean",
+      "description": "Delete intermediate objects created during computation"
+    },
+    {
+      "name": "logf",
+      "type": "boolean",
+      "description": "Generate log entries"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": "number",
+      "description": "Anomaly estimate"
+    }
+  ]
+}
