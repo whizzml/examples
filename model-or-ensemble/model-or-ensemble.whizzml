@@ -38,7 +38,7 @@
 (define (check-objective ds-id)
   (let (obj-id (dataset-get-objective-id ds-id)
         otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
-    (when (not (= "categorical") otype)
+    (when (not (= "categorical" otype))
       (raise (str "The dataset objective field must be categorical, but is "
                   otype)))
     ds-id))
