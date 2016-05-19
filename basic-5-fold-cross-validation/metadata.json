@@ -1,0 +1,20 @@
+{
+  "name": "Basic 5-fold cross-validation",
+  "description": "5-fold cross-validation of the model created with default parameters",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "dataset-id",
+          "type": "dataset-id",
+          "description": "Select the dataset to train/test the model"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "cross-validation-output",
+          "type": "evaluation-id",
+          "description": "Average of evaluations results"
+      }
+  ]
+}

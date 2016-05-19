@@ -1,0 +1,287 @@
+;;cross-validation-1-click
+;;
+;;creates 5-fold cross validation using models with default parameters
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;
+;; Output: (evaluation-id) Average of evaluations results
+;;
+(define (cross-validation-1-click dataset-id)
+  (cross-validation dataset-id 5 (dataset-get-objective-id dataset-id) {} {}))
+
+(define cross-validation-output (cross-validation-1-click dataset-id))
+
+;; The rest of the code will eventually be defined as a library.
+
+(define MODEL_OPTIONS ["balance_objective"
+                       "missing_splits"
+                       "pruning"
+                       "weight_field"
+                       "objective_weights"
+                       "node_threshold"])
+(define ENSEMBLE_OPTIONS (concat MODEL_OPTIONS
+                                 ["sample_rate"
+                                  "replacement"
+                                  "randomize"
+                                  "number_of_models"
+                                  "seed"]))
+(define EVALUATION_OPTIONS ["sample_rate"
+                            "out_of_bag"
+                            "range"
+                            "replacement"
+                            "ordering"
+                            "seed"
+                            "missing_strategy"
+                            "combiner"])
+;; cross-validation
+;;
+;; creates k-fold cross-validation for a dataset
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;   model-options: (map) options to use in model/ensemble
+;;   evaluation-options: (map) options to use in evaluation creation
+;;
+;; Output: (map) Average of evaluations results
+;;
+;; Raises:
+;;  101: The dataset-id argument is not a string
+;;  102: The dataset-id is not a valid dataset ID
+;;  103: The k-folds argument is not an integer
+;;  104: The k-folds argument is not >= 2
+;;  106: The objective field ID is not in the selectable IDs list
+;;
+(define (cross-validation dataset-id
+                          k-folds
+                          objective-id
+                          model-options
+                          evaluation-options)
+  (resource-ID-ok? dataset-id "dataset")
+  (integer-ok? k-folds 2 false)
+  (let (dataset (fetch dataset-id)
+        dataset-name (get dataset "name"))
+    (dataset-objective-id? objective-id dataset)
+    (let (k-fold-datasets (create-k-folds dataset-id k-folds)
+         objective-name (get-objective-name dataset objective-id)
+         evaluations (create-k-evaluations k-fold-datasets
+                                           objective-name
+                                           dataset-name
+                                           model-options
+                                           evaluation-options))
+     (create-and-wait-evaluation {"evaluations" evaluations}))))
+
+;; resource-ID-ok?
+;;
+;; Validates that the argument is a resource ID and its type. Raises an error
+;; if otherwise.
+;;
+;; Inputs:
+;;   resource-id: (string) Resource ID
+;;   type: (string) type of resource
+(define (resource-ID-ok? resource-id type)
+  (when (not (string? resource-id))
+    (raise {"message" (str "Resource ID string expected. Found "
+                           resource-id " instead.")
+            "code" 101}))
+  (when (not (= (resource-type resource-id) type))
+    (raise {"message" (str "Failed to find a correct " type " ID.")
+            "code" 102})))
+
+
+;; integer-ok?
+;;
+;; Validates that the argument is an integer. Raises error if otherwise.
+;;
+;; Inputs:
+;;  value: (number) integer to be checked
+;;  minimum: (number) minimum value (false if not set)
+;;  maximum: (number) maximum value (false if not set)
+(define (integer-ok? value minimum maximum)
+  (when (not (integer? value))
+    (raise {"message" (str "Integer value expected. Found " value " instead.")
+            "code" 103}))
+  (when (and minimum (< value minimum))
+    (raise {"message" (str "Minimum accepted value is " minimum ". " value
+                           " found.")
+            "code" 104}))
+  (when (and maximum (> value maximum))
+    (raise {"message" (str "Maximum accepted value is " maximum ". " value
+                           " found.")
+            "code" 105})))
+
+;; choosable-objective-ids
+;;
+;; List of IDs of the fields in the dataset that can be chosen as objective
+;; field.
+;;
+;; Inputs:
+;;  fields: (map) Fields structure
+;; Output: (list) list of field IDs
+(define (choosable-objective-ids fields)
+  (let (field-val (lambda (fid k) (get-in fields [fid k]))
+        objective-types ["categorical", "numeric"]
+        pref? (lambda (k) (field-val k "preferred"))
+        pred? (lambda (k) (member? (field-val k "optype") objective-types)))
+    (filter (lambda (x) (and (pref? x) (pred? x))) (keys fields))))
+
+
+;; dataset-objective-id?
+;;
+;; Validates that the argument is a valid objective id in the reference
+;; dataset.
+;;
+;; Inputs:
+;;  objective-id: (string) ID of the objective field
+;;  dataset: (map) dataset resource information
+(define (dataset-objective-id? objective-id dataset)
+  (let (fields (get dataset "fields")
+        objective-ids (choosable-objective-ids fields))
+    (when (not (member? objective-id objective-ids))
+      (raise {"message" (str "Failed to find the objective ID in the dataset"
+                             " choosable fields.")
+              "code" 106}))))
+
+;; get-objective-name
+;;
+;; Returns the name of the field used as objective field
+;;
+;; Inputs:
+;;  dataset: (map) Dataset resource info
+;;  objective-id: (string) ID of the objective field
+;;
+;; Outputs: (string) Name of the objective field
+
+(define (get-objective-name dataset objective-id)
+  (let (fields (get dataset "fields"))
+    (get-in fields [objective-id "name"])))
+
+
+;; create-k-folds
+;;
+;; creating k-fold splits from a dataset
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;
+;; Output: (list) List of dataset IDs
+;;
+(define (create-k-folds dataset-id k-folds)
+  (let (k-fold-fn (lambda (x) (create-dataset
+                               {"origin_dataset" dataset-id
+                                "row_offset" x
+                                "row_step" k-folds
+                                "new_fields" [{"name" "k_fold"
+                                               "field" (str x)}]}))
+        dataset-ids (map k-fold-fn (range 0 k-folds)))
+    (wait* dataset-ids)))
+
+;; pair-k-folds
+;;
+;; Builds a list of pairs of hold-out and complementary datasets for all
+;; the k-fold dataset IDs.
+;;
+;; Inputs:
+;;   dataset-ids: (list) List of the k-fold dataset IDs
+;;
+;; Output: (list) List of pairs [hold-out dataset, multidataset with the rest]
+;;
+(define (pair-k-folds dataset-ids)
+  (map (lambda(x) (list (nth dataset-ids x)
+                        (concat (take x dataset-ids)
+                                (drop (+ x 1) dataset-ids))))
+       (range 0 (count dataset-ids))))
+
+
+;; filter-map
+;;
+;; Filters the keys in a map, keeping only the ones that appear in the list.
+;;
+;; Inputs:
+;;   map: (map) Key, value maps
+;;   keys-list: (list) List of keys to be kept in the map
+;; Output: (map) filtered map with only the keys in the keys-list
+;;
+(define (filter-map map keys-list)
+  (reduce (lambda (x y) (let (value (get map y))
+                             (cond value (assoc x y value) x)))
+          {}
+          keys-list))
+
+;; create-k-models
+;;
+;; Creates the models for a set of k-fold datasets
+;;
+;; Inputs:
+;;   type: (string) type of model (model or ensemble)
+;;   multidatasets: (list) List of lists of datset IDs once a k-fold is
+;;                         excluded
+;;   objective-name: (string) name of the objective field
+;;   model-options: (map) Options for the model or ensemble
+;;
+;; Output: (list) model IDs
+;;
+(define (create-k-models type multidatasets objective-name model-options)
+  (let (models (map (lambda (x) (create type
+                                    (merge {"datasets" x
+                                            "objective_field"
+                                            objective-name}
+                                            model-options)))
+                           multidatasets))
+    (wait* models)))
+
+;; create-k-evaluations
+;;
+;; Creates the models/ensembles and evaluations for a set of k-fold datasets
+;;
+;; Inputs:
+;;   dataset-ids: (list) List of the k-fold dataset IDs
+;;   objective-name: (string) Objective field name
+;;   dataset-name: (string) Name of the origin dataset
+;;   model-options: (map) Options used to build the models/ensembles
+;;   evaluation-options: (map) Options used to build evaluations
+;;
+;; Output: (list) List of evaluation IDs
+;;
+(define (create-k-evaluations dataset-ids
+                              objective-name
+                              dataset-name
+                              model-options
+                              evaluation-options)
+  (let (number-of-models (get model-options "number_of_models" 1)
+        k-fold-pairs (pair-k-folds dataset-ids)
+        ensemble-options (filter-map model-options ENSEMBLE_OPTIONS)
+        model-options (filter-map model-options MODEL_OPTIONS)
+        evaluation-options (filter-map evaluation-options EVALUATION_OPTIONS)
+        type (if (> number-of-models 1) "ensemble" "model")
+        multidatasets (map (lambda (x) (nth x 1)) k-fold-pairs)
+        models (if (> number-of-models 1)
+                   (create-k-models type
+                                    multidatasets
+                                    objective-name
+                                    ensemble-options)
+                   (create-k-models type
+                                    multidatasets
+                                    objective-name
+                                    model-options))
+        evaluations (loop (index 0 evaluations [])
+                      (if (= index (count dataset-ids))
+                          evaluations
+                          (let (name (str (+ index 1)
+                                          "-fold Evaluation "
+                                          dataset-name)
+                                evaluations
+                                (append evaluations
+                                        (create-evaluation
+                                         (merge (assoc {}
+                                                       type
+                                                       (nth models index)
+                                                       "dataset"
+                                                       (nth dataset-ids
+                                                            index)
+                                                       "name"
+                                                       name)
+                                                evaluation-options))))
+                          (recur (+ index 1) evaluations)))))
+    (wait* evaluations)))
