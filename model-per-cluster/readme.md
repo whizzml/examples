@@ -21,3 +21,14 @@ Finally, the trivial scripts [single-prediction](single-prediction)
 and [batch-prediction](batch-prediction), simply use the functions
 exported by the [use-cluster-models library](use-cluster-models) to
 make predictions.
+
+## How to install
+
+- Install the `create-cluster-models` script, using
+  [this url](./create-cluster-models).
+- Install the `use-cluster-models` library, using
+  [this url](./use-cluster-models).
+- Install [single-prediction](./single-prediction), with the previous
+  library as (its only) dependency.
+- Install [batch-prediction](./batch-prediction), with the previous
+  library as (its only) dependency.
