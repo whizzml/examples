@@ -64,12 +64,13 @@
                       "sample_rate" 0.8
                       "replacement" false
                       "seed" "SMACdown"}
+        test-params (assoc train-params "out_of_bag" true)
         obj-id (if (= objective-id "default")
                    (dataset-get-objective-id dataset-id)
                    objective-id)
         otype (or (get-in (fetch dataset-id) ["fields" obj-id "optype"])
                   (raise {"message" (str "Invalid objective field")}))
-        params (find-optimal-params train-params obj-id otype)
+        params (find-optimal-parameters train-params obj-id otype)
         _ (log-info "SMACdown complete. Deleting intermediate resources...")
         _ (delete* (resource-ids (created-resources)))
         _ (log-info "Training model on full dataset...")
