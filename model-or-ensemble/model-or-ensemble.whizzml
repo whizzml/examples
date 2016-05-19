@@ -30,31 +30,22 @@
   (create-and-wait-evaluation {"ensemble" model-id
                                "dataset" ds-id}))
 
-(define (f-measure ev-id)
-  (get-in (fetch ev-id) ["result" "model" "average_f_measure"]))
-
-;; Checks whether the objective field of the given dataset
-;; is categorical, raising an error otherwise.
-(define (check-objective ds-id)
-  (let (obj-id (dataset-get-objective-id ds-id)
-        otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
-    (when (not (= "categorical" otype))
-      (raise (str "The dataset objective field must be categorical, but is "
-                  otype)))
-    ds-id))
+(define (quality-measure ev-id)
+  (or (get-in (fetch ev-id) ["result" "model" "average_f_measure"])
+      (get-in (fetch ev-id) ["result" "model" "r_squared"])
+      (raise "The models couldn't be evaluated")))
 
 ;; Function encapsulating the full workflow
 (define (model-or-ensemble src-id)
   (let (ds-id (create-and-wait-dataset {"source" src-id})
                                           ;; ^ full dataset
-        ds-id (check-objective ds-id)     ;; with a categorical objective
         ids (split-dataset ds-id 0.8)     ;; split it 80/20
         train-id (nth ids 0)              ;; the 80% for training
         test-id (nth ids 1)               ;; and 20% for evaluations
         m-id (make-model train-id)        ;; create a model
         e-id (make-ensemble train-id 15)  ;; and an ensemble
-        m-f (f-measure (evaluate-model m-id test-id)) ;; evaluate
-        e-f (f-measure (evaluate-ensemble e-id test-id)))
+        m-f (quality-measure (evaluate-model m-id test-id)) ;; evaluate
+        e-f (quality-measure (evaluate-ensemble e-id test-id)))
     (log-info "model f " m-f " / ensemble f " e-f)
     (if (> m-f e-f)  m-id e-id)))
 

@@ -3,9 +3,8 @@
 A very simple script in which we decide whether it's better to use a
 model or an ensemble for making predictions by creating both (given an
 input source) and evaluating the results, chossing the one with best
-f-1 measure in its evaluation.  As only classification problems have
-this measure in their evaluations, the default objective field of the
-input dataset must be categorical.
+f-1 measure in its evaluation if the objective field is categorical,
+or r-measure for regression problems.
 
 Given an input dataset:
 
