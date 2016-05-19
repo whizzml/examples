@@ -56,6 +56,11 @@
       (assoc (dissoc p smacdown--actual)
         metric (- 1 (get p smacdown--actual))))))
 
+;; Delete resources ignoring errors
+(define (safe-delete id)
+  (try (delete id)
+       (catch e (log-info (str "Error deleting resource " id " ignored")))))
+
 ;; Take a dataset, create a training and test set, and find the
 ;; optimal parameters.  The function returns a list of parameters
 ;; ranked by objective.
@@ -72,7 +77,7 @@
                   (raise {"message" (str "Invalid objective field")}))
         params (find-optimal-parameters train-params obj-id otype)
         _ (log-info "SMACdown complete. Deleting intermediate resources...")
-        _ (delete* (created-resources))
+        _ (map safe-delete (created-resources))
         _ (log-info "Training model on full dataset...")
         mod-prms (merge (get (head params) "parameters")
                         {"objective_field" obj-id "seed" "SMACdown"})
