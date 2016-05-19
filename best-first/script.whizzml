@@ -52,13 +52,23 @@
         choose-best (lambda (id) (if (= max-val (get value-map id)) id false)))
     (some choose-best potentials)))
 
+;; Retrieves and checks whether the objective field of the given
+;; dataset is categorical, raising an error otherwise.
+(define (get-objective ds-id)
+  (let (obj-id (dataset-get-objective-id dataset-id)
+        otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
+    (when (not (= "categorical" otype))
+      (raise (str "The dataset's objective field must be categorical, "
+                  "but is " otype)))
+    obj-id))
+
 ;; Do best-first feature selection.  Given a dataset and a target
 ;; number of features iteratively construct models for each feature,
 ;; evaluate them, and add the feature corresponding to the best
 ;; evaluation to the running set of features.  Stop when you reach the
 ;; target number, or you run out of features.
 (define (select-features dataset-id nfeatures)
-  (let (obj-id (dataset-get-objective-id dataset-id)
+  (let (obj-id (get-objective dataset-id)
         input-ids (default-inputs dataset-id obj-id)
         splits (split-dataset dataset-id 0.5)
         train-id (nth splits 0)

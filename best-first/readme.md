@@ -1,4 +1,4 @@
-# Best-first feature selection
+# Best-first feature selection for classifications
 
 Script to select the `n` best features for modeling a given dataset,
 using a greedy algorithm:
@@ -16,3 +16,8 @@ using a greedy algorithm:
 The script takes as inputs the dataset to use and the number of
 features (that is, dataset fields) to return and yields as output a
 list of the `n` selected features, as field identifiers.
+
+To select the best performance, the script uses the metric
+`average_phi` in the evaluations it performs, which is only available
+for classification problems.  Therefore, the script is only valid for
+categorical objective fields.

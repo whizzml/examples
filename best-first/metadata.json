@@ -4,10 +4,22 @@
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
-    {"name": "dataset-id", "type": "dataset-id", "description": "The data to select features from"},
-    {"name": "n", "type": "number", "description": "The number of features to select"}
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "The data to select features from"
+    },
+    {
+      "name": "n",
+      "type": "number",
+      "description": "The number of features to select"
+    }
   ],
   "outputs": [
-    {"name": "output-features", "type": "list", "description": "The list of the n selected fields"}
+    {
+      "name": "output-features",
+      "type": "list",
+      "description": "The list of the n selected fields"
+    }
   ]
 }
