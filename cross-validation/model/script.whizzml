@@ -1,85 +1,4 @@
-;;get_model_options
-;;
-;; maps the options to be used in models
-;; Inputs:
-;;   missing-splits: (boolean) Sets the missing_splits flag
-;;   stat-pruning: (boolean) Sets the statistical pruning flag
-;;   balance-objective: (boolean) Sets the balance_objective flag
-;;   weight-field: (string) ID of the field to be used as weight (weight_field)
-;;   objetive-weights: (list) List of values to be used as objective_weights
-;;   node-threshold: (integer) maximum number of nodes in the model
-;;
-;; Output: (map) options map
-;;
-(define (get_model_options missing-splits
-                           pruning
-                           balance-objective
-                           weight-field
-                           objetive-weights
-                           node-threshold)
-  (let (options {}
-    options (assoc options "missing_splits" missing-splits)
-    options (assoc options "stat_pruning" stat-pruning)
-    options (assoc options "balance_objective" balance-objective)
-    options (if (not (empty? weight-field))
-                (assoc options "weight_field" weight-field)
-                options)
-    options (if (not (empty? objective-weights))
-                (assoc options "objective_weights" objective-weights)
-                options)
-    options (if (not (= node-threshold -1))
-                (assoc options "node_threshold" node-threshold)
-                options))
-    options))
-
-
-;; model-cross-validation
-;;
-;; creates k-fold cross-validation for a dataset using models
-;;
-;; Inputs:
-;;   dataset-id: (string) Dataset ID
-;;   k-folds: (integer) Number of folds
-;;   objective-id: (string) ID of the objective field
-;;   missing-splits: (boolean) sets the missing_splits flag
-;;   pruning: (string) pruning configuration option
-;;   balance-objective: (boolean) sets the balance_objective flag
-;;   weight-field: (string) ID of the field to be used as weight_field
-;;   objective-weights: (list) List of objective_weights
-;;   node-threshold: (integer) maximum number of nodes in the model
-;;
-;; Output: (evaluation-id) Average of evaluations results
-;;
-(define (model-cross-validation dataset-id
-                                k-folds
-                                objective-id
-                                missing-splits
-                                stat-pruning
-                                balance-objective
-                                weight-field
-                                objective-weights
-                                node-threshold)
-  (let (options (get_model_options missing-splits
-                                   stat-pruning
-                                   balance-objective
-                                   weight-field
-                                   objective-weights
-                                   node-threshold))
-    (cross-validation dataset-id k-folds objective-id options {})))
-
-
-(define cross-validation-output (model-cross-validation
-                                 dataset-id
-                                 k-folds
-                                 objective-id
-                                 missing-splits
-                                 stat-pruning
-                                 balance-objective
-                                 weight-field
-                                 objective-weights
-                                 node-threshold))
-
-;; The rest of the code will eventually be defined as a library.
+;; This code will eventually be defined as a library.
 
 (define MODEL_OPTIONS ["balance_objective"
                        "missing_splits"
@@ -352,3 +271,86 @@
                                                 evaluation-options))))
                           (recur (+ index 1) evaluations)))))
     (wait* evaluations)))
+
+;; Script
+
+;;get-model-options
+;;
+;; maps the options to be used in models
+;; Inputs:
+;;   missing-splits: (boolean) Sets the missing_splits flag
+;;   stat-pruning: (boolean) Sets the statistical pruning flag
+;;   balance-objective: (boolean) Sets the balance_objective flag
+;;   weight-field: (string) ID of the field to be used as weight (weight_field)
+;;   objetive-weights: (list) List of values to be used as objective_weights
+;;   node-threshold: (integer) maximum number of nodes in the model
+;;
+;; Output: (map) options map
+;;
+(define (get-model-options missing-splits
+                           pruning
+                           balance-objective
+                           weight-field
+                           objetive-weights
+                           node-threshold)
+  (let (options {}
+    options (assoc options "missing_splits" missing-splits)
+    options (assoc options "stat_pruning" stat-pruning)
+    options (assoc options "balance_objective" balance-objective)
+    options (if (not (empty? weight-field))
+                (assoc options "weight_field" weight-field)
+                options)
+    options (if (not (empty? objective-weights))
+                (assoc options "objective_weights" objective-weights)
+                options)
+    options (if (not (= node-threshold -1))
+                (assoc options "node_threshold" node-threshold)
+                options))
+    options))
+
+
+;; model-cross-validation
+;;
+;; creates k-fold cross-validation for a dataset using models
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;   objective-id: (string) ID of the objective field
+;;   missing-splits: (boolean) sets the missing_splits flag
+;;   pruning: (string) pruning configuration option
+;;   balance-objective: (boolean) sets the balance_objective flag
+;;   weight-field: (string) ID of the field to be used as weight_field
+;;   objective-weights: (list) List of objective_weights
+;;   node-threshold: (integer) maximum number of nodes in the model
+;;
+;; Output: (evaluation-id) Average of evaluations results
+;;
+(define (model-cross-validation dataset-id
+                                k-folds
+                                objective-id
+                                missing-splits
+                                stat-pruning
+                                balance-objective
+                                weight-field
+                                objective-weights
+                                node-threshold)
+  (let (options (get-model-options missing-splits
+                                   stat-pruning
+                                   balance-objective
+                                   weight-field
+                                   objective-weights
+                                   node-threshold))
+    (cross-validation dataset-id k-folds objective-id options {})))
+
+
+(define cross-validation-output (model-cross-validation
+                                 dataset-id
+                                 k-folds
+                                 objective-id
+                                 missing-splits
+                                 stat-pruning
+                                 balance-objective
+                                 weight-field
+                                 objective-weights
+                                 node-threshold))

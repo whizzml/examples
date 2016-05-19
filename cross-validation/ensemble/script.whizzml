@@ -1,147 +1,4 @@
-;;get_model_options
-;;
-;; maps the options to be used in models
-;; Inputs:
-;;   missing-splits: (boolen) Sets the missing_splits flag
-;;   stat-pruning: (boolean) Sets the statistical pruning flag
-;;   balance-objective: (boolean) Sets the balance_objective flag
-;;   weight-field: (string) ID of the field to be used as weight (weight_field)
-;;   objetive-weights: (list) List of values to be used as objective_weights
-;;   node-threshold: (integer) Maximum number of nodes in the model
-;; Output: (map) options map
-;;
-(define (get_model_options missing-splits
-                           stat-pruning
-                           balance-objective
-                           weight-field
-                           objetive-weights
-                           node-threshold)
-  (let (options {}
-    options (assoc options "missing_splits" missing-splits)
-    options (assoc options "stat_pruning" stat-pruning)
-    options (assoc options "balance_objective" balance-objective)
-    options (if (not (empty? weight-field))
-                (assoc options "weight_field" weight-field)
-                options)
-    options (if (not (empty? objective-weights))
-                (assoc options "objective_weights" objective-weights)
-                options)
-    options (if (not (= node-threshold -1))
-                (assoc options "node_threshold" node-threshold)
-                options))
-    options))
-
-;;get_ensemble_options
-;;
-;; maps the options to be used in esembles
-;; Inputs:
-;;   number-of-models: (integer) Number of models in the ensemble
-;;   missing-splits: (boolean) Sets the missing_splits flag
-;;   stat-pruning: (boolean) Sets the pruning flag
-;;   balance-objective: (boolean) Sets the balance_objective flag
-;;   weight-field: (string) ID of the field to be used as weight (weight_field)
-;;   objective-weights: (list) List of values to be used as objective_weights
-;;   node-threshold: (integer) Maximum number of nodes in the model
-;;   sample-rate: (float) Percentage of instances used as sample
-;;   replacement: (boolean) Sets the replacement flag
-;;   randomize: (boolean) Sets the randomize flag
-;;   seed: (string) Seed used in random samplings
-;; Output: (map) options map
-;;
-(define (get_ensemble_options number-of-models
-                              missing-splits
-                              stat-pruning
-                              balance-objective
-                              weight-field
-                              objetive-weights
-                              node-threshold
-                              sample-rate
-                              replacement
-                              randomize
-                              seed)
-  (let (options (get_model_options missing-splits
-                                   stat-pruning
-                                   balance-objective
-                                   weight-field
-                                   objective-weights
-                                   node-threshold)
-        options (if (> number-of-models 1)
-                    (assoc options "number_of_models" number-of-models)
-                    (assoc options "number_of_models" 10))
-        options (assoc options "sample_rate" sample-rate)
-        options (assoc options "replacement" replacement)
-        options (assoc options "randomize" randomize)
-        options (when (not (empty? seed))
-                      (assoc options "seed" seed)))
-    options))
-
-
-;; ensemble-cross-validation
-;;
-;; creates k-fold cross-validation for a dataset using ensembles
-;; Inputs:
-;;   dataset-id: (dataset-id) Dataset ID
-;;   k-folds: (integer) Number of folds
-;;   objective-id: (string) ID of the objective field
-;;   number-of-models: (integer) Number of models in the ensemble
-;;   missing-splits: (boolean) sets the missing_splits flag
-;;   stat-pruning: (boolean) Sets the statistical pruning flag
-;;   balance-objective: (boolean) sets the balance_objective flag
-;;   weight-field: (string) ID of the field to be used as weight_field
-;;   objective-weights: (list) List of objective_weights
-;;   node-threshold: (integer) Maximum number of nodes in the model
-;;   sample-rate: (float) Percentage of data used in sampling
-;;   replacement: (boolean) Sets the replacement flag
-;;   randomize: (boolean) Sets the randomize flag
-;;   seed: (string) Seed used in random samplings
-;;
-;; Output: (evaluation-id) Average of evaluations results
-;;
-(define (ensemble-cross-validation dataset-id
-                                   k-folds
-                                   objective-id
-                                   number-of-models
-                                   missing-splits
-                                   stat-pruning
-                                   balance-objective
-                                   weight-field
-                                   objective-weights
-                                   node-threshold
-                                   sample-rate
-                                   replacement
-                                   randomize
-                                   seed)
-  (let (options (get_ensemble_options number-of-models
-                                      missing-splits
-                                      stat-pruning
-                                      balance-objective
-                                      weight-field
-                                      objective-weights
-                                      node-threshold
-                                      sample-rate
-                                      replacement
-                                      randomize
-                                      seed))
-    (cross-validation dataset-id k-folds objective-id options {})))
-
-
-(define cross-validation-output (ensemble-cross-validation
-                                 dataset-id
-                                 k-folds
-                                 objective-id
-                                 number-of-models
-                                 missing-splits
-                                 stat-pruning
-                                 balance-objective
-                                 weight-field
-                                 objective-weights
-                                 node-threshold
-                                 sample-rate
-                                 replacement
-                                 randomize
-                                 seed))
-
-;; The rest of the code will eventually be defined as a library.
+;; This code will eventually be defined as a library.
 
 (define MODEL_OPTIONS ["balance_objective"
                        "missing_splits"
@@ -414,3 +271,149 @@
                                                 evaluation-options))))
                           (recur (+ index 1) evaluations)))))
     (wait* evaluations)))
+
+
+;; Script
+
+;;get-model-options
+;;
+;; maps the options to be used in models
+;; Inputs:
+;;   missing-splits: (boolen) Sets the missing_splits flag
+;;   stat-pruning: (boolean) Sets the statistical pruning flag
+;;   balance-objective: (boolean) Sets the balance_objective flag
+;;   weight-field: (string) ID of the field to be used as weight (weight_field)
+;;   objetive-weights: (list) List of values to be used as objective_weights
+;;   node-threshold: (integer) Maximum number of nodes in the model
+;; Output: (map) options map
+;;
+(define (get-model-options missing-splits
+                           stat-pruning
+                           balance-objective
+                           weight-field
+                           objetive-weights
+                           node-threshold)
+  (let (options {}
+    options (assoc options "missing_splits" missing-splits)
+    options (assoc options "stat_pruning" stat-pruning)
+    options (assoc options "balance_objective" balance-objective)
+    options (if (not (empty? weight-field))
+                (assoc options "weight_field" weight-field)
+                options)
+    options (if (not (empty? objective-weights))
+                (assoc options "objective_weights" objective-weights)
+                options)
+    options (if (not (= node-threshold -1))
+                (assoc options "node_threshold" node-threshold)
+                options))
+    options))
+
+;;get-ensemble-options
+;;
+;; maps the options to be used in esembles
+;; Inputs:
+;;   number-of-models: (integer) Number of models in the ensemble
+;;   missing-splits: (boolean) Sets the missing_splits flag
+;;   stat-pruning: (boolean) Sets the pruning flag
+;;   balance-objective: (boolean) Sets the balance_objective flag
+;;   weight-field: (string) ID of the field to be used as weight (weight_field)
+;;   objective-weights: (list) List of values to be used as objective_weights
+;;   node-threshold: (integer) Maximum number of nodes in the model
+;;   sample-rate: (float) Percentage of instances used as sample
+;;   replacement: (boolean) Sets the replacement flag
+;;   randomize: (boolean) Sets the randomize flag
+;;   seed: (string) Seed used in random samplings
+;; Output: (map) options map
+;;
+(define (get-ensemble-options number-of-models
+                              missing-splits
+                              stat-pruning
+                              balance-objective
+                              weight-field
+                              objetive-weights
+                              node-threshold
+                              sample-rate
+                              replacement
+                              randomize
+                              seed)
+  (let (options (get-model-options missing-splits
+                                   stat-pruning
+                                   balance-objective
+                                   weight-field
+                                   objective-weights
+                                   node-threshold)
+        options (if (> number-of-models 1)
+                    (assoc options "number_of_models" number-of-models)
+                    (assoc options "number_of_models" 10))
+        options (assoc options "sample_rate" sample-rate)
+        options (assoc options "replacement" replacement)
+        options (assoc options "randomize" randomize)
+        options (when (not (empty? seed))
+                      (assoc options "seed" seed)))
+    options))
+
+
+;; ensemble-cross-validation
+;;
+;; creates k-fold cross-validation for a dataset using ensembles
+;; Inputs:
+;;   dataset-id: (dataset-id) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;   objective-id: (string) ID of the objective field
+;;   number-of-models: (integer) Number of models in the ensemble
+;;   missing-splits: (boolean) sets the missing_splits flag
+;;   stat-pruning: (boolean) Sets the statistical pruning flag
+;;   balance-objective: (boolean) sets the balance_objective flag
+;;   weight-field: (string) ID of the field to be used as weight_field
+;;   objective-weights: (list) List of objective_weights
+;;   node-threshold: (integer) Maximum number of nodes in the model
+;;   sample-rate: (float) Percentage of data used in sampling
+;;   replacement: (boolean) Sets the replacement flag
+;;   randomize: (boolean) Sets the randomize flag
+;;   seed: (string) Seed used in random samplings
+;;
+;; Output: (evaluation-id) Average of evaluations results
+;;
+(define (ensemble-cross-validation dataset-id
+                                   k-folds
+                                   objective-id
+                                   number-of-models
+                                   missing-splits
+                                   stat-pruning
+                                   balance-objective
+                                   weight-field
+                                   objective-weights
+                                   node-threshold
+                                   sample-rate
+                                   replacement
+                                   randomize
+                                   seed)
+  (let (options (get-ensemble-options number-of-models
+                                      missing-splits
+                                      stat-pruning
+                                      balance-objective
+                                      weight-field
+                                      objective-weights
+                                      node-threshold
+                                      sample-rate
+                                      replacement
+                                      randomize
+                                      seed))
+    (cross-validation dataset-id k-folds objective-id options {})))
+
+
+(define cross-validation-output (ensemble-cross-validation
+                                 dataset-id
+                                 k-folds
+                                 objective-id
+                                 number-of-models
+                                 missing-splits
+                                 stat-pruning
+                                 balance-objective
+                                 weight-field
+                                 objective-weights
+                                 node-threshold
+                                 sample-rate
+                                 replacement
+                                 randomize
+                                 seed))
