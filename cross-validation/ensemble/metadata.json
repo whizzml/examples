@@ -61,7 +61,7 @@
           "name": "node-threshold",
           "type": "number",
           "default": -1,
-          "description": "Maximum number of nodes in the model"
+          "description": "Maximum number of nodes in the model, or -1 for all"
       },
       {
           "name": "sample-rate",
