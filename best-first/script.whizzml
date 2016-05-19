@@ -54,8 +54,10 @@
 
 ;; Retrieves and checks whether the objective field of the given
 ;; dataset is categorical, raising an error otherwise.
-(define (get-objective ds-id)
-  (let (obj-id (dataset-get-objective-id dataset-id)
+(define (get-objective ds-id obj-id)
+  (let (obj-id (if (empty? obj-id)
+                   (dataset-get-objective-id dataset-id)
+                   obj-id)
         otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
     (when (not (= "categorical" otype))
       (raise (str "The dataset's objective field must be categorical, "
@@ -67,8 +69,8 @@
 ;; evaluate them, and add the feature corresponding to the best
 ;; evaluation to the running set of features.  Stop when you reach the
 ;; target number, or you run out of features.
-(define (select-features dataset-id nfeatures)
-  (let (obj-id (get-objective dataset-id)
+(define (select-features dataset-id nfeatures objective-id)
+  (let (obj-id (get-objective dataset-id objective-id)
         input-ids (default-inputs dataset-id obj-id)
         splits (split-dataset dataset-id 0.5)
         train-id (nth splits 0)
@@ -85,4 +87,4 @@
           (recur (cons next-feat selected)
                  (filter (lambda (id) (not (= id next-feat))) potentials)))))))
 
-(define output-features (select-features dataset-id n))
+(define output-features (select-features dataset-id n objective-id))
