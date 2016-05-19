@@ -78,8 +78,7 @@
                                           "excluded_fields" train-exc})
         ev-id (anomaly-evaluation anomaly prodo-dst)
         evdst-id (get-in (fetch ev-id) ["output_dataset_resource"])
-        _ (wait-forever evdst-id)
-        score (avg-anomaly evdst-id))
+        score (avg-anomaly (wait evdst-id))
       (if clean
         (prog (delete evdst-id)
               (delete ev-id)

@@ -33,10 +33,20 @@
 (define (f-measure ev-id)
   (get-in (fetch ev-id) ["result" "model" "average_f_measure"]))
 
+;; Checks whether the objective field of the given dataset
+;; is categorical, raising an error otherwise.
+(define (check-objective ds-id)
+  (let (obj-id (dataset-get-objective-id ds-id)
+        otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
+    (when (not (= "categorical") otype)
+      (raise "The dataset objective field must be categorical, but is " otype))
+    ds-id))
+
 ;; Function encapsulating the full workflow
 (define (model-or-ensemble src-id)
   (let (ds-id (create-and-wait-dataset {"source" src-id})
                                           ;; ^ full dataset
+        ds-id (check-objective ds-id)     ;; with a categorical objective
         ids (split-dataset ds-id 0.8)     ;; split it 80/20
         train-id (nth ids 0)              ;; the 80% for training
         test-id (nth ids 1)               ;; and 20% for evaluations
