@@ -11,6 +11,7 @@
     "gradient-boosting",
     "model-per-cluster",
     "smacdown-branin",
-    "smacdown-ensemble"
+    "smacdown-ensemble",
+    "best-k"
   ]
 }

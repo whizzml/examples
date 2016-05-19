@@ -1,0 +1,255 @@
+;; best-k
+;;
+;; An implementation of k-means clustering using the Pham-Dimov-Nguyen
+;; algorithm for determining k
+;;
+;; Selection of K in K-means clustering
+;; Proc. IMechE, v.219, Part C: J. Mechanical Engineering Science
+;;
+
+
+;; generate-clusters
+;;
+;; Generates a set of clusters (BigML objects) using the k-means algorithm
+;; for the specified range of k.
+;;
+;; Inputs:
+;;   dataset: (string) Dataset ID for the dataset to be clustered
+;;   cluster-args: (map) arguments for the cluster operation
+;;   k-min: (number) minimum value of k
+;;   k-max: (number) maximum value of k
+;;
+;; Output: (list) Cluster metadata of created clusters
+;; 
+(define (generate-clusters dataset cluster-args k-min k-max)
+  (let (dname (get (fetch dataset) "name")
+        fargs (lambda(k) 
+                (assoc cluster-args "dataset" dataset 
+                                    "k" k 
+                                    "name" (str dname " - cluster (k=" k ")")))
+        clist (map fargs (range k-min (+ 1 k-max)))
+        ids (create* "cluster" clist))
+;;    (map fetch (wait-forever* ids))))
+    (map fetch (wait* ids))))
+
+
+;; extract-cluster-ids
+;;
+;; Helper function to extract list of cluster IDs from list of cluster metadata
+;;
+;; Inputs:
+;;   clusters: (list) Cluster metadata of created clusters
+;;
+;; Output: (list) Cluster IDs of clusters
+;;
+(define (extract-cluster-ids clusters)
+  (map (lambda (x) (get x "resource")) clusters))
+
+
+;; extract-eval-data
+;;
+;; Helper function to extract map of cluster data for k evaluation function
+;; from full cluster metadata
+;;
+;; Inputs:
+;;   clusters: (string) Cluster ID
+;;
+;; Output: (map) Cluster data for use in the evaluation function
+;;
+;; (define id (nth ids i))
+;; (define cid (fetch id))
+;;
+;; (get cid "k")
+;; id
+;; (get-in cid ["clusters" "within_ss"])
+;; (count (get cid "input_fields"))
+;;
+(define (extract-eval-data cluster)
+  (let (id (get cluster "resource")
+        k (get cluster "k")
+        n (count (get cluster "input_fields"))
+        within_ss (get-in cluster ["clusters" "within_ss"])
+        total_ss (get-in cluster ["clusters" "total_ss"]))         
+    {"id" id "k" k "n" n "within_ss" within_ss "total_ss" total_ss}))
+
+
+;; alpha-func
+;;
+;; Given the number of covariates, returns the weighting function alpha(k)
+;; Note this function can be re-written as
+;;
+;;           / 1 - (3/4 * n )                             (for k = 2)
+;; alpha_k = |
+;;           \ (5/6)^(k-2) * alpha_2 + [1 - 5/6^(k-2)]    (for k > 2)
+;;
+;; Inputs:
+;;   n: (number) number of covariates
+;;
+;; Outputs: (function) returns weighting function
+;;
+(define (alpha-func n)
+  (let (alpha_2 (- 1 (/ 3 (* 4 n)))
+        w (/ 5 6))
+    (lambda (k)
+      (if (<= k 2)
+        alpha_2
+        (+ (* (pow w (- k 2)) alpha_2) (- 1 (pow w (- k 2))))))))
+
+
+;; evaluation-func
+;;
+;; Given the number of covariates, returns the evaluation function
+;;
+;; Inputs:
+;;   n: (number) number of covariates
+;;
+;; Outputs: (function) returns the Pham-Dimov-Nguyen evaluation function
+;;
+(define (evaluation-func n)
+  (let (fa (alpha-func n))
+    (lambda (k sk skm)
+      (if (or (<= k 1) (not skm) (zero? skm))
+        1
+        (/ sk (* (fa k) skm))))))
+
+
+;; evaluate-clusters
+;;
+;; Computes the evalution function value f(k) for each k
+;;
+;; Inputs:
+;;   clusters: (list) Cluster metadata maps implicitly ordered by k
+;;
+;; Output: (list) Sequence of maps that have the field `fk` with the value f(k) added
+;;
+(define (evaluate-clusters clusters)
+  (let (cmdata (map extract-eval-data clusters)
+        n (get (nth cmdata 0) "n")
+        fe (evaluation-func n))
+    (loop (in cmdata
+           out []
+           ckz {})
+       (if (= [] in)
+         out
+         (let (ck (head in)
+               ckr (tail in)
+               k (get ck "k")
+               within_ss (get ck "within_ss")
+               within_ssz (if (<= k 2) (get ck "total_ss") (get ckz "within_ss"))
+               cko (assoc ck "fk" (fe k within_ss within_ssz)))
+           (recur ckr (append out cko) ck))))))
+
+
+;; clean-clusters
+;;
+;; Helper function to delete clusters created as intermediate resources
+;;
+;; Inputs:
+;;   evaluations: (list) maps of evaluation results including cluster IDs
+;;   cluster-id: (cluster) cluster to save (not delete)
+;;   logf: (boolean) Enable logging
+;;
+;; Output:
+;;
+(define (clean-clusters evaluations cluster-id logf)
+  (for (x evaluations)
+    (let (id (get x "id")
+          _ (if logf (log-info "Testing for deletion " id " " cluster-id)))
+      (if (!= id cluster-id)
+        (prog (delete id)
+              (if logf (log-info "Deleted " id))))))
+  cluster-id)
+
+
+;; best-cluster
+;;
+;; Creates cluster with specified k
+;;
+;; Inputs:
+;;   dataset: (string) Dataset ID for the dataset to be clustered
+;;   cluster-args: (map) cluster function arguments
+;;   k: (number) number of clusters
+;;
+;; Output: (cluster) Created cluster
+;;
+(define (best-cluster dataset cluster-args k)
+  (let (dname (get (fetch dataset) "name")
+        ckargs (assoc cluster-args "dataset" dataset 
+                                   "k" k
+                                   "name" (str dname " - cluster (k=" k ")")))
+    (create-and-wait-cluster ckargs)))
+
+
+;; evaluate-k-means
+;;
+;; Uses the Pham-Dimov-Nguyen algorithm to generate evaluations of k-mean clustering
+;;
+;; Inputs:
+;;   dataset: (string) Dataset ID for the dataset to be clustered
+;;   cluster-args: (map) cluster arguments for the cluster search operation
+;;   k-min: (number) minimum value of k
+;;   k-max: (number) maximum value of k
+;;   clean: (boolean) Delete all but optimal cluster
+;;   logf: (boolean) Enable logging
+;;
+;; Output: (list) Evaluations over the range of k
+;;
+(define (evaluate-k-means dataset cluster-args k-min k-max clean logf)
+  (let (clusters (generate-clusters dataset cluster-args k-min k-max)
+        evaluations (evaluate-clusters clusters))
+    (if clean
+      (clean-clusters evaluations "" logf))
+    evaluations))
+
+
+;; best-k-means
+;;
+;; Uses the Pham-Dimov-Nguyen algorithm to create the best K-means clustering
+;;
+;; Inputs:
+;;   dataset: (string) Dataset ID for the dataset to be clustered
+;;   cluster-args: (map) cluster arguments for the cluster search operation
+;;   k-min: (number) minimum value of k
+;;   k-max: (number) maximum value of k
+;;   bestcluster-args: (map) cluster arguments for the best cluster operation
+;;   clean: (boolean) Delete all but optimal cluster
+;;   logf: (boolean) Enable logging
+;;
+;; Output: (list) Best K-means cluster
+;;
+(define (best-k-means dataset cluster-args k-min k-max bestcluster-args clean logf)
+  (let (evaluations (evaluate-k-means dataset cluster-args k-min k-max false logf)
+        _ (if logf (log-info "Evaluations " evaluations))
+        besteval (min-key (lambda (x) (get x "fk")) evaluations)
+        _ (if logf (log-info "Best " besteval))
+        cluster-id (if (= cluster-args bestcluster-args)
+                     (get besteval "id")
+                     (best-cluster dataset bestcluster-args (get besteval "k"))))
+    (if clean
+      (clean-clusters evaluations cluster-id logf))
+    cluster-id))
+
+
+;; best-batchcentroid
+;;
+;; Uses the Pham-Dimov-Nguyen algorithm to create the batchcentroid annotated
+;; with the best K-means clustering
+;;
+;; Inputs:
+;;   dataset: (string) Dataset ID for the dataset to be clustered
+;;   cluster-args: (map) cluster arguments for the cluster search operation
+;;   k-min: (number) minimum value of k
+;;   k-max: (number) maximum value of k
+;;   bestcluster-args: (map) cluster arguments for the best cluster operation
+;;   clean: (boolean) Delete all but optimal cluster
+;;   logf: (boolean) Enable logging
+;;
+;; Output: (batchcentroid) Created batchcentroid
+;;
+(define (best-batchcentroid dataset cluster-args k-min k-max bestcluster-args clean logf)
+  (let (cluster-id (best-k-means dataset cluster-args k-min k-max bestcluster-args clean logf)
+        batchcentroid-id (create-and-wait-batchcentroid {"cluster" cluster-id
+                                                         "dataset" dataset
+                                                         "output_dataset" true
+                                                         "all_fields" true}))
+    batchcentroid-id))

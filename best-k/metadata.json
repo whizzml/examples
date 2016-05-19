@@ -1,0 +1,11 @@
+{
+  "name": "Best k",
+  "description": "Library and scripts implementing Pham-Dimov-Nguyen k selection algorithm",
+  "kind": "package",
+  "components":[
+    "best-k-means",
+    "cluster",
+    "evaluation",
+    "batchcentroid"
+  ]
+}

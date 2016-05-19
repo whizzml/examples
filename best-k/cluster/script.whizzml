@@ -1,0 +1,5 @@
+;; best-kmeans-cluster
+;;
+;; Basic script to use the best-kmeans library to find the optimal clustering
+;;
+(define best-cluster (best-k-means dataset cluster-args k-min k-max bestcluster-args clean logf))
