@@ -398,7 +398,10 @@
                                       sample-rate
                                       replacement
                                       randomize
-                                      seed))
+                                      seed)
+        objective-id (if (empty? objective-id)
+                         (dataset-get-objective-id dataset-id)
+                         objective-id))
     (cross-validation dataset-id k-folds objective-id options {})))
 
 
