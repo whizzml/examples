@@ -72,7 +72,7 @@
                   (raise {"message" (str "Invalid objective field")}))
         params (find-optimal-parameters train-params obj-id otype)
         _ (log-info "SMACdown complete. Deleting intermediate resources...")
-        _ (delete* (resource-ids (created-resources)))
+        _ (delete* (created-resources))
         _ (log-info "Training model on full dataset...")
         mod-prms (merge (get (head params) "parameters")
                         {"objective_field" obj-id "seed" "SMACdown"})
