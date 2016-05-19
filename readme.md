@@ -17,6 +17,8 @@ By convention, when the artifact is a library, the files are called
   from an input dataset its anomalous rows.
 - `smacdown-branin` Simple example of SMACdown, using the Branin
   function as evaluator.
+- `smacdown-ensemble` Use SMACdown to discover the best possible
+  ensemble to model a given dataset id.
 - `find-neighbors`  Using cluster distances as a metric, find
   instances in a dataset close to a given row.
 - `stacked-generalization` Simple
