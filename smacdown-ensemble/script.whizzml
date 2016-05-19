@@ -39,45 +39,43 @@
       (log-info "Evaluation complete.")
       (map (lambda (eid) (phi (fetch eid))) eval-ids))))
 
-;; Take a dataset, create a training and test set, and find the
-;; optimal parameters.  The function returns a list of parameters
-;; ranked by objective.
-(define (optimize-ensemble dataset-id objective-field-id metric name)
-  (let (train-params {"origin_dataset" dataset-id
-                      "sample_rate" 0.8
-                      "replacement" false
-                      "seed" "SMACdown"}
-        objective-field (if (empty? objective-field-id)
-                          (dataset-get-objective-id dataset-id)
-                          objective-field-id)
-        otype (get-in (fetch dataset-id) ["fields" objective-field "optype"])
-        _ (log-info "Objective field id is " objective-field)
-        _ (log-info "Objective field type is " otype)
-        test-params (assoc train-params "out_of_bag" true)
+;; Find optimal parameters using SMACdown
+(define (find-optimal-parameters train-params objective-id objective-type)
+  (let (test-params (assoc train-params "out_of_bag" true)
         train-id (create-dataset train-params)
         test-id (create-dataset test-params)
         _ (wait* [train-id test-id])
         eval-fn (smacdown-ensemble--evaluator train-id
                                               test-id
-                                              objective-field
+                                              objective-id
                                               metric
-                                              name)
-        generator (smacdown-ensemble--model-params-generator otype)
-        output (smacdown-optimize generator eval-fn name)
-        finalize (lambda (p) (assoc (dissoc p smacdown--actual)
-                                    metric
-                                    (- 1 (get p smacdown--actual))))
-        params (map finalize output)
-        _ (log-info "SMACdown complete.")
-        _ (when (empty? name)
-            (log-info "Deleting resources...")
-            (delete* (created-resources)))
-        ;; Have to recreate if they were deleted in the previous step
+                                              "smacdown-ensemble")
+        generator (smacdown-ensemble--model-params-generator objective-type)
+        output (smacdown-optimize generator eval-fn "smacdown-ensemble"))
+     (for (p output)
+      (assoc (dissoc p smacdown--actual)
+        metric (- 1 (get p smacdown--actual))))))
+
+;; Take a dataset, create a training and test set, and find the
+;; optimal parameters.  The function returns a list of parameters
+;; ranked by objective.
+(define (optimize-ensemble dataset-id objective-id metric)
+  (let (train-params {"origin_dataset" dataset-id
+                      "sample_rate" 0.8
+                      "replacement" false
+                      "seed" "SMACdown"}
+        obj-id (if (= objective-id "default")
+                   (dataset-get-objective-id dataset-id)
+                   objective-id)
+        otype (or (get-in (fetch dataset-id) ["fields" obj-id "optype"])
+                  (raise {"message" (str "Invalid objective field")}))
+        params (find-optimal-params train-params obj-id otype)
+        _ (log-info "SMACdown complete. Deleting intermediate resources...")
+        _ (delete* (resource-ids (created-resources)))
         _ (log-info "Training model on full dataset...")
         mod-prms (merge (get (head params) "parameters")
-                        {"objective_field" objective-field "seed" "SMACdown"})
+                        {"objective_field" obj-id "seed" "SMACdown"})
         full-mod (create-ensemble (assoc mod-prms "dataset" dataset-id))
-        _ (log-info "Returning evaluated parameter sets...")
         train-id (create-dataset train-params)
         test-id (create-dataset test-params)
         _ (wait* [train-id test-id])
@@ -90,5 +88,4 @@
                  "evaluation" best-eval)
           (tail params))))
 
-(define result
-  (optimize-ensemble dataset-id objective-id metric prefix))
+(define result (optimize-ensemble dataset-id objective-id metric))
