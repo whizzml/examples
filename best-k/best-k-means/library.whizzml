@@ -20,16 +20,15 @@
 ;;   k-max: (number) maximum value of k
 ;;
 ;; Output: (list) Cluster metadata of created clusters
-;; 
+;;
 (define (generate-clusters dataset cluster-args k-min k-max)
   (let (dname (get (fetch dataset) "name")
-        fargs (lambda(k) 
-                (assoc cluster-args "dataset" dataset 
-                                    "k" k 
+        fargs (lambda (k)
+                (assoc cluster-args "dataset" dataset
+                                    "k" k
                                     "name" (str dname " - cluster (k=" k ")")))
         clist (map fargs (range k-min (+ 1 k-max)))
         ids (create* "cluster" clist))
-;;    (map fetch (wait-forever* ids))))
     (map fetch (wait* ids))))
 
 
@@ -69,7 +68,7 @@
         k (get cluster "k")
         n (count (get cluster "input_fields"))
         within_ss (get-in cluster ["clusters" "within_ss"])
-        total_ss (get-in cluster ["clusters" "total_ss"]))         
+        total_ss (get-in cluster ["clusters" "total_ss"]))
     {"id" id "k" k "n" n "within_ss" within_ss "total_ss" total_ss}))
 
 
@@ -174,7 +173,7 @@
 ;;
 (define (best-cluster dataset cluster-args k)
   (let (dname (get (fetch dataset) "name")
-        ckargs (assoc cluster-args "dataset" dataset 
+        ckargs (assoc cluster-args "dataset" dataset
                                    "k" k
                                    "name" (str dname " - cluster (k=" k ")")))
     (create-and-wait-cluster ckargs)))

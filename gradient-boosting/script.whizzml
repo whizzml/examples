@@ -42,17 +42,19 @@
 
 ;; Helper methods to get dataset attributes
 (define (get-fields dataset)
-  (get (fetch dataset) "fields"))
+  (get (fetch dataset {"limit" -1}) "fields"))
 
 (define (get-id dataset name)
   (id-from-fields (get-fields dataset) name))
 
 (define (id-from-fields fields name)
-  (let (is-field? (lambda (fid) (= (get (get fields fid) "name") name)))
-    (head (filter is-field? (keys fields)))))
+  (loop (ids (keys fields) vs (values fields))
+    (cond (empty? ids) false
+          (= name (get (head vs) "name")) (head ids)
+          (recur (tail ids) (tail vs)))))
 
 (define (default-inputs dataset-id obj-id)
-  (let (fields-structure (get (fetch dataset-id) "fields")
+  (let (fields-structure (get (fetch dataset-id {"limit" -1}) "fields")
         fids (keys fields-structure)
         field-val (lambda (fid k) (get-in fields-structure [fid k])))
     (filter (lambda (k) (and (field-val k "preferred") (not (= obj-id k))))
@@ -95,9 +97,8 @@
                                                   "replacement" true
                                                   "out_of_bag" oob?
                                                   "seed" (str iteration)}))
-        ids [(sample dataset false) (sample dataset true)]
-        _ (wait-forever* ids))
-    ids))
+        ids [(sample dataset false) (sample dataset true)])
+    (wait* ids)))
 
 ;; After computing the gradient, get the sum of squares, which will
 ;; give us a rough idea of how correct our probabilities are.  Sort of
@@ -157,9 +158,8 @@
                    "dataset" last-ds
                    "prediction_name" (head names)}
               bp (create-and-wait-batchprediction req)
-              new-ds (get (fetch bp) "output_dataset_resource")
-              _ (wait-forever new-ds))
-          (recur new-ds (tail mids) (tail names)))))))
+              new-ds (get (fetch bp {"limit" -1}) "output_dataset_resource"))
+          (recur (wait new-ds) (tail mids) (tail names)))))))
 
 ;; Sum the last set of predictions with the current set of sums to get
 ;; new scores
@@ -193,9 +193,8 @@
         oids (get-objectives fs nclasses iteration)
         req {"dataset" dataset "input_fields" iids}
         create (lambda (oid) (create-model (assoc req "objective_field" oid)))
-        ids (map create oids)
-        _ (wait-forever* ids))
-    ids))
+        ids (map create oids))
+    (wait* ids)))
 
 ;; Strings together prediction, summing, softmax-ing, and computing
 ;; the gradient
@@ -212,7 +211,7 @@
   (let (obj-id (if (empty? obj-id)
                    (dataset-get-objective-id dataset-id)
                    obj-id)
-        otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
+        otype (get-in (fetch ds-id {"limit" -1}) ["fields" obj-id "optype"]))
     (when (not (= "categorical" otype))
       (raise (str "The dataset's objective field must be categorical, "
                   "but is " otype)))
