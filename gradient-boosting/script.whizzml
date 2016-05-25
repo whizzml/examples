@@ -66,8 +66,8 @@
   (let (make-field (lambda (i) {"name" (nth names i) "field" (nth exprs i)}))
     (map make-field (range (min (count exprs) (count names))))))
 
-(define (add-fields dataset new-fields input-ids)
-  (let (req {"origin_dataset" dataset "new_fields" new-fields})
+(define (add-fields dataset new-fields input-ids name)
+  (let (req {"origin_dataset" dataset "new_fields" new-fields "name" name})
     (if (empty? input-ids)
       (create-and-wait-dataset req)
       (create-and-wait-dataset (assoc req "input_fields" input-ids)))))
@@ -92,13 +92,15 @@
 
 ;; Create in-sample and out-of-sample data for the current iteration
 (define (bootstrap dataset iteration)
-  (let (sample (lambda (ds oob?) (create-dataset {"origin_dataset" ds
-                                                  "sample_rate" 1
-                                                  "replacement" true
-                                                  "out_of_bag" oob?
-                                                  "seed" (str iteration)}))
-        ids [(sample dataset false) (sample dataset true)])
-    (wait* ids)))
+  (let (sample (lambda (ds oob?)
+                 (let (name (str "boost-bootstrap-sample" iteration "/" oob?))
+                   (create-dataset {"origin_dataset" ds
+                                    "sample_rate" 1
+                                    "replacement" true
+                                    "out_of_bag" oob?
+                                    "name" name
+                                    "seed" (str iteration)}))))
+    (wait* [(sample dataset false) (sample dataset true)])))
 
 ;; After computing the gradient, get the sum of squares, which will
 ;; give us a rough idea of how correct our probabilities are.  Sort of
@@ -120,7 +122,10 @@
         fexp (lambda (c) (flatline "(if (= (f {{obj-id}}) {{c}}) 1.0 0.0)"))
         truth-exprs (map fexp cats)
         new-fields (make-fields (truth-names ncls) truth-exprs)
-        ds (add-fields dataset new-fields (append input-ids obj-id))
+        ds (add-fields dataset
+                       new-fields
+                       (append input-ids obj-id)
+                       "boost-ground-truth")
         oid (get-id ds oname))
     (create-and-wait-dataset {"origin_dataset" ds "excluded_fields" [oid]})))
 
@@ -138,7 +143,7 @@
                      predicted (nth preds idx))
                  (flatline "(- (f {{actual}}) {predicted})")))
         new-fields (make-fields next-names (map fexp (range nclasses))))
-    (add-fields dataset new-fields [])))
+    (add-fields dataset new-fields [] (str "boost-gradient-" iteration))))
 
 ;; Compute the ground truth field and the initial gradient
 (define (format dataset nclasses input-ids obj-id)
@@ -152,14 +157,17 @@
     (loop (last-ds dataset mids mod-ids names pnames)
       (if (empty? mids)
         last-ds
-        (let (req {"all_fields" true
+        (let (name (str "boost-predict-" iteration "/" (head mids))
+              req {"all_fields" true
                    "output_dataset" true
                    "model" (head mids)
                    "dataset" last-ds
+                   "name" name
                    "prediction_name" (head names)}
               bp (create-and-wait-batchprediction req)
               new-ds (get (fetch bp {"limit" -1}) "output_dataset_resource"))
-          (recur (wait new-ds) (tail mids) (tail names)))))))
+          (update-and-wait (wait new-ds) {"name" name})
+          (recur new-ds (tail mids) (tail names)))))))
 
 ;; Sum the last set of predictions with the current set of sums to get
 ;; new scores
@@ -174,7 +182,7 @@
                    (let (last-sum (nth last-sums idx))
                      (flatline "(+ (f {{this-pred}}) (f {{last-sum}}))")))))
         new-fields (make-fields this-sums (map fexp (range nclasses))))
-    (add-fields dataset new-fields [])))
+    (add-fields dataset new-fields [] (str "boost-sum-" iteration))))
 
 ;; Create the softmax probabilities from the given scores
 (define (create-softmax-probs dataset nclasses iteration)
@@ -184,16 +192,18 @@
         exp-sum (str "(+ " (join " " (map fl-exp this-sums)) ")")
         fexp (lambda (name) (str "(/ " (fl-exp name) " " exp-sum  ")"))
         new-fields (make-fields this-softmaxs (map fexp this-sums)))
-    (add-fields dataset new-fields [])))
+    (add-fields dataset new-fields [] (str "boost-softmax-" iteration))))
 
 ;; Learn a set of trees over the objective fields, one for each class
 (define (learn-trees dataset nclasses iteration)
   (let (fs (get-fields dataset)
         iids (get-inputs fs)
-        oids (get-objectives fs nclasses iteration)
-        req {"dataset" dataset "input_fields" iids}
-        create (lambda (oid) (create-model (assoc req "objective_field" oid)))
-        ids (map create oids))
+        ids (for (oid (get-objectives fs nclasses iteration))
+              (let (name (str "boost-tree-" iteration "/" oid))
+                (create-model {"dataset" dataset
+                               "input_fields" iids
+                               "objective_field" oid
+                               "name" name}))))
     (wait* ids)))
 
 ;; Strings together prediction, summing, softmax-ing, and computing
