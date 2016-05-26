@@ -1,0 +1,67 @@
+;; missing-count
+;;
+;; finds the number of missing datapoints for a given field in a dataset.
+;;
+;; Inputs:
+;;   field-name: (string) name of field we want to inspect
+;;   fields: (map) includes data for all fields
+;;
+;; Output: (integer) number of rows with missing data
+
+(define (missing-count field-name fields)
+  (get-in fields [field-name "summary" "missing_count"]))
+
+;; present-percent
+;;
+;; calculates the percentage of non-misisng data points for a field.
+;;
+;; Inputs:
+;;   data: (map) includes data for all fields
+;;   field-name: (string) name of field we want to inspect
+;;   total-rows: (integer) the total number of rows in this dataset
+;;
+;; Output: (float) between 0 & 1
+
+(define (present-percent data field-name total-rows)
+  (let (fields (get data "fields"))
+    (- 1 (/ (missing-count field-name fields) total-rows))))
+
+;; excluded-fields
+;;
+;; returns the field names for fields that will be excluded from the dataset
+;; because the amount of missing data is greater than the specified threshold
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   threshold: (float) Between 0 & 1. The precentange completeness of a row
+;;                      we require
+;;
+;; Output: (list) List of field names that will be excluded
+
+(define (excluded-fields dataset-id threshold)
+  (let (data (fetch dataset-id)
+        all-field-names (get data "input_fields")
+        total-rows (get data "rows"))
+    (filter (lambda (field-name)
+              (> threshold (present-percent data field-name total-rows)))
+            all-field-names)))
+
+;; filtered-dataset
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID - to be filtered
+;;   threshold: (float) Between 0 & 1. The precentange completeness of a row
+;;                      we require
+;;
+;; Output: (string) Dataset ID - filtered out rows based on threshold
+
+(define (filtered-dataset dataset-id threshold)
+  (create-and-wait-dataset {"origin_dataset" dataset-id
+                            "excluded_fields" (excluded-fields
+                                               dataset-id
+                                               threshold)}))
+
+(define result (filtered-dataset dataset-id n))
+
+;; EXAMPLE:
+;; (filtered-dataset "dataset/83hs0sj3819sdkd92k" 0.75) -> "dataset/kd8j83hf93h3hf83h99"

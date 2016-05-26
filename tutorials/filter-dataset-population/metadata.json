@@ -1,0 +1,6 @@
+{
+  "name": "Filter dataset on row population percentage",
+  "description": "Given a dataset, filters out fields that have less than n percent of their rows populated.",
+  "kind": "script",
+  "source_code": "script.whizzml"
+}
