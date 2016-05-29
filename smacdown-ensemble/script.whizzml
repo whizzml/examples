@@ -76,8 +76,10 @@
         otype (or (get-in (fetch dataset-id) ["fields" obj-id "optype"])
                   (raise {"message" (str "Invalid objective field")}))
         params (find-optimal-parameters train-params obj-id otype)
-        _ (log-info "SMACdown complete. Deleting intermediate resources...")
-        _ (map safe-delete (created-resources))
+        _ (log-info "SMACdown search complete")
+        _ (when delete-resources
+            (log-info "Deleting intermediate resources...")
+            (map safe-delete (created-resources)))
         _ (log-info "Training model on full dataset...")
         mod-prms (merge (get (head params) "parameters")
                         {"objective_field" obj-id "seed" "SMACdown"})

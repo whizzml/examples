@@ -20,6 +20,12 @@
       "type": "string",
       "default": "average_phi",
       "description": "Evaluation metric that we want to optimize.  It must be a number"
+    },
+    {
+      "name": "delete-resources",
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to delete all intermediate resources"
     }
   ],
   "outputs":[
