@@ -1,0 +1,6 @@
+{
+  "name": "Clean Data Library",
+  "description": "Functions to clean up datasets",
+  "kind': "library",
+  "source_code": "library.whizzml"
+}

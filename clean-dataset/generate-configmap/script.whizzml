@@ -1,0 +1,5 @@
+;; clean-data-generate-configmap
+;;
+;; Basic script to generate a configuration map template from a dataset
+;;
+(define config-mp (generate-configmap dataset-id))
