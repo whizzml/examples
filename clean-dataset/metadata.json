@@ -1,0 +1,10 @@
+{
+  "name": "Clean Dataset",
+  "description": "Library and scripts for cleaning a dataset",
+  "kind": "package",
+  "components":[
+    "clean-data",
+    "fill-missing",
+    "generate-configmap"
+  ]
+}

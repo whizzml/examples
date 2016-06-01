@@ -1,0 +1,21 @@
+{
+  "name": "Generate Configuration Map",
+  "description": "Basic script to generate a configuration map template from a dataset",
+  "kind": "script",
+  "source": "script.whizzml",
+  "imports": ["../clean-data"],
+  "inputs": [
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "Dataset ID"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "config-mp",
+      "type": "map",
+      "description": "Dataset fields and default fill values"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+;; extract-meta
+;;
+;; Accepts a nested map for one field in the ":fields" nested map in
+;; the dataset meta-data and returns a filtered map
+;;
+;; Inputs:
+;;   mpi: (map) Nested for one field in the ":fields" nested map
+;;
+;; Output: (map) Filtered map
+;;
+(define (extract-meta mpi) 
+  (let (mpis (get mpi "summary")
+        mpos (assoc {} "mean" (get mpis "mean")
+                       "median" (get mpis "median")
+                       "minimum" (get mpis "minimum")
+                       "maximum" (get mpis "maximum")))
+    (assoc {} "datatype" (get mpi "datatype") 
+              "name" (get mpi "name")
+              "optype" (get mpi "optype")
+              "summary" mpos)))
+
+;; extract-meta-func
+;;
+;; Given the meta-data for a dataset, returns a function that creates a filtered version
+;; of the nested map for one field in the ":fields" nested map in of the dataset meta-data
+;; 
+;;
+;; Inputs:
+;;   ds: (map) Dataset meta-data
+;;
+;; Output: (function) Filtering function
+;;
+(define (extract-meta-func ds)
+  (let (fields (get ds "fields"))
+    (lambda (mp id)
+      (let (mpi (get fields id)
+            mpo (extract-meta mpi))
+        (assoc mp id mpo)))))
+
+;; generate-configmap
+;;
+;; Standalone function that extracts information from the dataset meta-data
+;; that can be augmented with a "default" field for each field in the dataset.
+;; The augmented map can be used as the input map specifying default values
+;; for missing data in the dataset.
+;;
+;; Inputs:
+;;   dataset-id: (string) ID of dataset to be processed to fill-in missing data
+;;
+;; Output:  (map) Filtered version of the ":fields" section of the dataset meta-data
+;;          which can be augmented with a ":default" value for each field.
+;;
+(define (generate-configmap dataset-id)
+  (let (ds (fetch dataset-id)
+        flds (get ds "input_fields")
+        metafn (extract-meta-func ds))
+    (reduce metafn {} flds)))
+
+
+;; fill-missing
+;;
+;; Function that creates a complete result dataset from a source dataset with missing values.
+;;
+;; This function combines WhizzML and Flatline to generate the result dataset from 
+;; a source dataset with missing values in the dataset replaced by default values.
+;; WhizzML is used to create the result dataset, but a Flatline expression is passed
+;; to the BigML platform to specify how data in the source dataset is processed when
+;; creating the result dataset.
+;;
+;; In particular, the Flatline expression
+;; "(all-with-defaults <field-designator-0> <field-value-0>
+;;                     <field-designator-1> <field-value-1>
+;;                     …
+;;                     <field-designator-n> <field-value-n>)"
+;;
+;; is generated using the WhizzML "(flatline …)" function as
+;; (define x [...])
+;; (define fl (flatline "(all-with-defaults @{x})"))
+;;
+;; and then "fl" is used in WhizzML as the (string) value passed to the backend
+;; as a value for parameter(s) of the (create-and-wait-dataset ...) function.
+;;
+;; The fields and their default values are provided to this function in a augmented 
+;; version of the field map returned by the (extract-meta …) function:
+;; {:000000
+;;  {...
+;;   :name "Employment Rate",
+;;   ...
+;;   :summary
+;;   {...}
+;;   :default "value"
+;;  },
+;;  :000001
+;;  { ... },
+;;  ...
+;; }
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset id
+;;   dflt-mp: (map) "Dataset fields and default fill values"
+;;
+;; Output: (string) Filled Dataset ID
+;;
+(define (fill-missing dataset-id dflt-mp)
+  (let (frdce (lambda (lst itm) 
+                (let (dkey (get itm "name")
+                      dval (get itm "default"))
+                  (append (append lst dkey) dval)))
+        fargs (reduce frdce [] (values dflt-mp))
+        _ (log-info fargs))
+    (create-and-wait-dataset {"origin_dataset" dataset-id
+                              "all_fields" false
+                              "new_fields" [{"fields" (flatline "(all-with-defaults @{{fargs}})")}]})))
