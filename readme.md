@@ -15,6 +15,8 @@ By convention, when the artifact is a library, the files are called
 
 ## Examples
 
+- `covariate-shift` Determine if there is a shift in data distribution
+  between two datasets.
 - `model-or-ensemble` Decide whether to use models or ensembles for
   predictions, given an input source.
 - `remove-anomalies` Using Flatline and an anomaly detector, remove

@@ -1,0 +1,164 @@
+;; covariate shift
+;;
+;; Given two datasets (one used for "training" and another from "production")
+;; calculates the phi coefficient between the two datasets
+;; to determine the associated covariate shift
+
+;; with-origin-field
+;;
+;; Adds a new field "Origin" to a dataset
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   value: (string) Value to go in each row of the "Origin" column
+;;
+;; Output: (string) Dataset ID
+
+(define (with-origin-field dataset-id value)
+  (create-and-wait-dataset {"origin_dataset" dataset-id
+                            "new_fields" [{"field" value
+                                           "name"  "Origin"
+                                           "label" "Origin"}]}))
+
+;; train-data, production-data
+;;
+;; Creates new datasets with either "Training" or "Production"
+;; as the values for the new "Origin" field
+
+(define (train-data dataset-id)
+  (with-origin-field dataset-id  "Training"))
+
+(define (production-data dataset-id)
+  (with-origin-field dataset-id "Production"))
+
+;; combined-data
+;;
+;; Combines two datasets into one new dataset
+;;
+;; Inputs:
+;;   training-dataset: (string) Dataset ID for dataset with field "Origin"
+;;                       that holds the values "Training"
+;;   production-dataset: (string)  Dataset ID for dataset with field "Origin"
+;;                      that holds the values "Production"
+;;
+;; Output: (string) Dataset ID for new dataset
+
+(define (combined-data training-dataset production-dataset)
+  (create-and-wait-dataset
+    {"origin_datasets" [(train-data training-dataset)
+                        (production-data production-dataset)]}))
+
+;; sample-dataset
+;;
+;; Samples a dataset using bagging. This lets you split one dataset into two.
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID for the Dataset we want to sample.
+;;   rate: (float) Value between 0 & 1. The size of the bigger sample.
+;;                 e.g. 0.8 -> 80% of original dataset is in the new dataset.
+;;   oob: (boolean) Indicator of whether we want the bagged chunk of data
+;;                  or the out of bag chunk.
+;;                  e.g. if rate = 0.8, bagged = 80% of data.
+;;                  out of bag = remaining 20%
+;;   seed: (string) Any string. Used to make the sampling determistic (repeatable)
+;;
+;; Output: (string) Dataset ID for the new dataset
+
+(define (sample-dataset dataset-id rate oob seed)
+  (create-and-wait-dataset {"sample_rate" rate
+                            "origin_dataset" dataset-id
+                            "out_of_bag" oob
+                            "seed" seed}))
+
+;; split-dataset
+;;
+;; Splits dataset into two new datasets
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID for the dataset we want to split
+;;   rate: (float)  See "sample-dataset"
+;;   seed: (string) See "sample-dataset"
+;;
+;; Output: (list) A list containing two Dataset IDs.
+;;                Corresponds to both pieces of a dataset split.
+
+(define (split-dataset dataset-id rate seed)
+  (list (sample-dataset dataset-id rate false seed)
+        (sample-dataset dataset-id rate true seed)))
+
+
+;; model-evaulation
+;;
+;; Creates an evaluation of the given model against the given dataset.
+;;
+;; Inputs:
+;;  model-id: (string) Model ID
+;;  dataset-id: (string) Dataset ID
+
+(define (model-evaluation model-id dataset-id)
+  (create-and-wait-evaluation {"model" model-id "dataset" dataset-id}))
+
+;; avg-phi
+;;
+;; Gets the property "average_phi" from the given evaluation
+;;
+;; Input: ev-id (string) Evaluation ID
+;; Output: (float) phi-score for evaluation
+
+(define (avg-phi ev-id)
+  (get-in (fetch ev-id) ["result" "model" "average_phi"]))
+
+;; sample-and-score
+;;
+;; Given a dataset with mixed rows labeled "Training" and "Origin"
+;; makes a test/training split on the dataset
+;; creates a model with the training dataset
+;; evaluates the model witht the test dataset
+;; returns the phi score of the evaulation
+;;
+;; Inputs: combined-dataset: (string) Dataset ID
+;;         seed: (string) Determinisitic seed
+;;
+;; Output: (float) phi-score for evaluation
+;;
+
+(define (sample-and-score combined-dataset seed)
+  (let (ids (split-dataset combined-dataset 0.8 seed)
+        model (create-and-wait-model {"dataset" (nth ids 0)
+                                      "objective_field" "Origin"})
+        ev-id (model-evaluation model (nth ids 1)))
+      (avg-phi ev-id)))
+
+;; multi-phis
+;;
+;; Creates a dataset with mixed rows labeled "Training" and "Origin"
+;; runs the `sample-and-score` function `n` times, using a generated seed.
+;;
+;; Inputs:
+;;   n: (integer) Number of times to run the phi-measure function
+;;   training-dataset: (string) Dataset ID for the training data
+;;   production-dataset: (string) Dataset ID for the production data
+;;
+;; Output: (map) Shows average and list of results for the phi-measure function
+;;    e.g., {"average": 0.032 "list": [ -0.1293 0.0983 ... ]}
+
+(define (multi-phis n training-dataset production-dataset)
+  (let (comb-data (combined-data training-dataset production-dataset))
+    (loop (seeds (range 0 n) out [])
+      (if (= [] seeds)
+        {"list" out
+         "average" (/ (reduce + 0 out) (count out))}
+        (recur (tail seeds)
+               (append out (sample-and-score
+                             comb-data
+                             (str "test-" (head seeds)))))))))
+
+(define output (multi-phis n training-dataset production-dataset))
+
+;; EXAMPLE
+;;
+;; (multi-phis 3
+;;    "dataset/56c3af3f7e0a8d6cca01292e" "dataset/574ef59546522f61f2000444")
+;;
+;; -> { :list [0.03824, -0.10747, -0.08768], :average -0.05230 } }
+;;
