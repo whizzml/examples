@@ -10,14 +10,14 @@
 ;;
 (define (extract-meta mpi) 
   (let (mpis (get mpi "summary")
-        mpos (assoc {} "mean" (get mpis "mean")
-                       "median" (get mpis "median")
-                       "minimum" (get mpis "minimum")
-                       "maximum" (get mpis "maximum")))
-    (assoc {} "datatype" (get mpi "datatype") 
-              "name" (get mpi "name")
-              "optype" (get mpi "optype")
-              "summary" mpos)))
+        mpos {"mean" (get mpis "mean")
+              "median" (get mpis "median")
+              "minimum" (get mpis "minimum")
+              "maximum" (get mpis "maximum")})
+    {"datatype" (get mpi "datatype") 
+     "name" (get mpi "name")
+     "optype" (get mpi "optype")
+     "summary" mpos}))
 
 ;; extract-meta-func
 ;;
@@ -106,8 +106,9 @@
                 (let (dkey (get itm "name")
                       dval (get itm "default"))
                   (append (append lst dkey) dval)))
-        fargs (reduce frdce [] (values dflt-mp))
-        _ (log-info fargs))
+        fargs (reduce frdce [] (values dflt-mp)))
+    (log-info fargs)
     (create-and-wait-dataset {"origin_dataset" dataset-id
                               "all_fields" false
                               "new_fields" [{"fields" (flatline "(all-with-defaults @{{fargs}})")}]})))
+
