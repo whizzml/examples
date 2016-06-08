@@ -12,7 +12,8 @@
     {
       "name": "train-exc",
       "type": "list",
-      "description": "Training dataset field exclusion list"
+      "description": "Training dataset field exclusion list",
+      "default":[]
     },
     {
       "name": "prod-dst",
