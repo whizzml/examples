@@ -1,0 +1,5 @@
+;; best-kmeans-evaluations
+;;
+;; Basic script to use the best-kmeans library
+;;
+(define evaluations (evaluate-k-means dataset cluster-args num-seeds k-min k-max clean logf))

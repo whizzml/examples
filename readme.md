@@ -39,6 +39,9 @@ By convention, when the artifact is a library, the files are called
   model.
 - `best-k` Scripts and library implementing Pham-Dimov-Nguyen
   algorithm for choosing the best k in k-means clusters.
+- `seeded-best-k` Scripts and library implementing Pham-Dimov-Nguyen
+  algorithm for choosing the best k in k-means clusters, with
+  user-provided seeds.
 - `anomaly-shift` Calculate the average anomaly between two given
   datasets.
 - `cross-validation` Scripts for performing k-fold crossvalidation.

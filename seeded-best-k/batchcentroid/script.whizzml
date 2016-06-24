@@ -1,0 +1,5 @@
+;; best-kmeans-batchcentroid
+;;
+;; Basic script to use the best-kmeans library
+;;
+(define best-batchcentroid (best-batchcentroid dataset cluster-args num-seeds k-min k-max clean logf))

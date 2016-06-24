@@ -1,0 +1,52 @@
+{
+  "name": "Compute Best K-means Evaluations",
+  "description": "Basic script to use the best-kmeans library",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "imports": ["../best-k-means"],
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "Dataset ID"
+    },
+    {
+      "name": "cluster-args",
+      "type": "map",
+      "description": "Map of args for clustering (excluding dataset and k) for k search",
+      "default": {}
+    },
+    {
+      "name": "k-min",
+      "type": "number",
+      "description": "Minimum value of k for search"
+    },
+    {
+      "name": "k-max",
+      "type": "number",
+      "description": "Maximum value of k for search"
+    },
+    {
+      "name": "num-seeds",
+      "type": "number",
+      "description": "Number of seeds to test for each possible 'k'"
+    },
+    {
+      "name": "clean",
+      "type": "boolean",
+      "description": "Delete intermediate objects created during computation"
+    },
+    {
+      "name": "logf",
+      "type": "boolean",
+      "description": "Generate log entries"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "evaluations",
+      "type": "list",
+      "description": "List of Evaluations"
+    }
+  ]
+}
