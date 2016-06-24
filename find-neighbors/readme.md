@@ -16,3 +16,6 @@ This workflow uses flatline to compute the distance between `p` and
 the centroid datasets (via the `row-distance-squared` flatline
 function) and add an extra column to the dataset, and then creates a
 sample of the result, ordered by the computed distance.
+
+The input instance can be specified using either field identifiers or
+field names.

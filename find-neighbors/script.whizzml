@@ -56,16 +56,27 @@
 
 ;; Final workflow.
 (define (find-neighbors cluster-id instance n)
-  (let (cluster (fetch cluster-id {"limit" -1})
+  (let (cluster (fetch cluster-id)
         fl (distance-flatline cluster instance))
-    (loop (cps (ordered-centroids cluster instance) instances [] m n)
-      (cond (empty? cps) instances
-            (< m 1) instances
-            (let (ds-id (generate-distance-dataset cluster (head cps) fl)
-                  new-instances (fetch-dataset-instances ds-id m))
-              (recur (tail cps)
-                     (concat instances new-instances)
-                     (- m (count new-instances))))))))
+    (iterate (r [] cp (ordered-centroids cluster instance))
+      (if (<= n (count r))
+          (break r)
+          (let (ds-id (generate-distance-dataset cluster cp fl)
+                m (- n (count r)))
+            (concat r (fetch-dataset-instances ds-id m)))))))
+
+;; Utility functions to allow input instance be specified using field
+;; names or ids.
+(define (translate-instance cluster-id instance)
+  (let (fields (get-in (fetch cluster-id) ["clusters" "fields"])
+        find-id (lambda (name)
+                  (loop (ks (keys fields))
+                    (when (empty? ks) (raise-missing name))
+                    (cond (= name (get-in fields [(head ks) "name"])) (head ks)
+                          (= name (head ks)) name
+                          (recur (tail ks))))))
+    (make-map (map find-id (keys instance)) (values instance))))
 
 ;; Inputs and outputs
-(define rows (find-neighbors cluster-id instance n))
+(define rows
+  (find-neighbors cluster-id (translate-instance instance cluster-id) n))
