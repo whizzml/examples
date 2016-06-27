@@ -2,9 +2,9 @@
 
 The `Seeded Best K-Means` library is a collection of WhizzML routines
 that implement K-means clustering using the Pham-Dimov-Nguyen
-algorithm for choosing the best K.  > "Selection of K in K-means
-clustering"<br> > *Proc. IMechE, Part C: J. Mechanical Engineering
-Science*, v.219
+algorithm for choosing the best K.
+> "Selection of K in K-means clustering"<br>
+> *Proc. IMechE, Part C: J. Mechanical Engineering Science*, v.219
 
 ## Components and installation
 
