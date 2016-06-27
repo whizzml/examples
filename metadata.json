@@ -14,6 +14,7 @@
     "smacdown-branin",
     "smacdown-ensemble",
     "best-k",
+    "seeded-best-k",
     "anomaly-shift",
     "cross-validation"
   ]

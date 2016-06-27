@@ -8,11 +8,14 @@ choosing the best K.
 ## Components and installation
 
 This package contains a library, `best-k-means`, that you must install
-first using [this url](./best-k-means), and three scripts to apply the
-algorithm to [clusters](./cluster), [evaluations](./evaluation) and
-[batch centroids](./batchcentroid), which you can install individually
-afterwards.  When importing any of the scripts, `best-k-means` must be
-declared as a dependency.
+first using
+[this url](https://github.com/whizzml/examples/tree/master/best-k/best-k-means),
+and three scripts to apply the algorithm to
+[clusters](https://github.com/whizzml/examples/tree/master/best-k/clusters),
+[evaluations](./evaluation) and
+[batch centroids](https://github.com/whizzml/examples/tree/master/best-k/batchcentroid),
+which you can install individually afterwards.  When importing any of
+the scripts, `Best K-Means` must be declared as a dependency.
 
 ## Routines
 The library is organized into several functions described next.
