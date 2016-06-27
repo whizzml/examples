@@ -159,6 +159,15 @@
               (if logf (log-info "Deleted " id))))))
   cluster-id)
 
+;; check-k-means-inputs
+;;
+;; Helper function to check whether inputs to the best-k algorithms
+;; are within limits.  It will signal an error if they're not.
+(define (check-k-means-inputs num-seeds k-min k-max)
+  (when (or (< k-max k-min) (<= k-min 0))
+    (raise {"message" "k-min has to be positive and less than k-max"}))
+  (when (<= num-seeds 0)
+    (raise {"message" "num-seeds has to be positive"})))
 
 ;; best-cluster
 ;;
@@ -195,6 +204,7 @@
 ;; Output: (list) Evaluations over the range of k
 ;;
 (define (evaluate-k-means dataset cluster-args num-seeds k-min k-max clean logf)
+  (check-k-means-inputs num-seeds k-min k-max)
   (let (clusters (reduce (lambda (rs i)
                            (let (args (assoc cluster-args "cluster_seed" (str i)))
                              (concat rs
@@ -223,6 +233,7 @@
 ;; Output: (list) Best K-means cluster
 ;;
 (define (best-k-means dataset cluster-args num-seeds k-min k-max clean logf)
+  (check-k-means-inputs num-seeds k-min k-max)
   (let (evaluations (evaluate-k-means dataset cluster-args num-seeds k-min k-max false logf)
         _ (if logf (log-info "Evaluations " evaluations))
         besteval (min-key (lambda (x) (get x "fk")) evaluations)
@@ -250,7 +261,15 @@
 ;; Output: (batchcentroid) Created batchcentroid
 ;;
 (define (best-batchcentroid dataset cluster-args num-seeds k-min k-max clean logf)
-  (let (cluster-id (best-k-means dataset cluster-args num-seeds k-min k-max clean logf)
+  (check-k-means-inputs num-seeds k-min k-max)
+  (let (cluster-id (best-k-means
+                    dataset
+                    cluster-args
+                    num-seeds
+                    k-min
+                    k-max
+                    clean
+                    logf)
         batchcentroid-id (create-and-wait-batchcentroid {"cluster" cluster-id
                                                          "dataset" dataset
                                                          "output_dataset" true

@@ -11,7 +11,7 @@ This package contains a library, `best-k-means`, that you must install
 first using
 [this url](https://github.com/whizzml/examples/tree/master/seeded-best-k/best-k-means),
 and three scripts to apply the algorithm to
-[clusters](https://github.com/whizzml/examples/tree/master/seeded-best-k/clusters),
+[clusters](https://github.com/whizzml/examples/tree/master/seeded-best-k/cluster),
 [evaluations](./evaluation) and
 [batch centroids](https://github.com/whizzml/examples/tree/master/seeded-best-k/batchcentroid),
 which you can install individually afterwards.  When importing any of
