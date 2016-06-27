@@ -3,7 +3,7 @@
   "description": "Basic script to use the best-kmeans library",
   "kind": "script",
   "source": "script.whizzml",
-  "imports": ["../best-k-means"],
+  "imports": ["Seeded Best K-Means"],
   "inputs": [
     {
       "name": "dataset",
