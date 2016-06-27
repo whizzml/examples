@@ -152,11 +152,14 @@
 ;;
 (define (clean-clusters evaluations cluster-id logf)
   (for (x evaluations)
-    (let (id (get x "id")
-          _ (if logf (log-info "Testing for deletion " id " " cluster-id)))
-      (if (!= id cluster-id)
-        (prog (delete id)
-              (if logf (log-info "Deleted " id))))))
+    (let (id (get x "id"))
+      (when logf
+        (log-info "Testing for deletion " id " " cluster-id))
+      (when (!= id cluster-id)
+        (try (delete id)
+             (catch e
+               (log-info (str "Error deleting resource " id " ignored"))))
+        (when logf (log-info "Deleted " id)))))
   cluster-id)
 
 ;; check-k-means-inputs
