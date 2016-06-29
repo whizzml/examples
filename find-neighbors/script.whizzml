@@ -79,4 +79,4 @@
 
 ;; Inputs and outputs
 (define rows
-  (find-neighbors cluster-id (translate-instance instance cluster-id) n))
+  (find-neighbors cluster-id (translate-instance cluster-id instance) n))
