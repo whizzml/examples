@@ -1,0 +1,225 @@
+(define IMPORTANCE_INC 1)
+(define IMPORTANCE_DEC -1)
+
+(define (boruta source-url objective max-runs)
+  (let (ds-id
+        (create-and-wait-dataset {"source"
+                                  (create-and-wait-source {"remote"
+                                                           source-url})})
+        ds (fetch ds-id)
+        fields (get ds "fields")
+        field-ids (keys fields)
+        init-rank (reduce (lambda (x y) (assoc x y 0)) {} field-ids))
+    (loop (ids-rank init-rank fields fields ds-id ds-id runs 0)
+      ;; 9. Repeat the procedure until the importance is assigned for all
+      ;; the attributes, or the algorithm has reached the previously set
+      ;; limit of the random forest runs.
+      (if (or (= runs max-runs) (full ids-rank))
+          ids-rank
+          ;; 1. Extend the information system by adding copies of all
+          ;; variables (the information system is always extended by at least
+          ;; 5 shadow attributes, even if the number of attributes in the
+          ;; original set is lower than 5)
+          ;; 2. Shuffle the added attributes to remove their correlations with
+          ;; the response.
+          (let (sh-ds-info (shadow-ds ds-id fields objective)
+                sh-ds-id (head sh-ds-info)
+                sh-ids (head (tail sh-ds-info))
+                fields (nth sh-ds-info 2)
+                ;; 3. Run a random forest classifier on the extended
+                ;; information system and gather the Z scores computed.
+                rf-id (random-forest sh-ds-id objective)
+                ;; 4. Find the maximum Z score among shadow attributes (MZSA),
+                ;; and then assign a hit to every attribute that scored better
+                ;; than MZSA.
+                imps (importances rf-id)
+                max-sh (maximum-shadow-importance imps sh-ids)
+                ;;******* 5. For each attribute with undetermined importance
+                ;; perform a two-sided test of equality with the MZSA.******
+                ;; 6. Deem the attributes which have importance significantly
+                ;; lower than MZSA as ‘unimportant’
+                ;; and permanently remove them from the information system.
+                ;; 7. Deem the attributes which have importance significantly
+                ;; higher than MZSA as ‘important’.
+                ids-rank (rank-field-ids imps sh-ids max-sh)
+                fields (remove-unimportant fields ids-rank))
+            (recur ids-rank fields sh-ds-id (+ runs 1)))))))
+
+(define (full ids-rank)
+  (let (undetermined (filter (lambda (x) (= x 0)) (values ids-rank)))
+    (empty? undetermined)))
+
+(define (remove-unimportant fields ids-rank)
+  (iterate (acc fields id (keys ids-rank))
+    (if (< (get ids-rank id) 0)
+        (dissoc acc id)
+        acc)))
+
+;; filter-map
+;; Filters a map by applying the corresponding filter function to its keys
+;;
+;; Inputs:
+;;   fn: (function) function to be applied to the map keys and/or values
+;;   map: (map) Map to be filtered
+;;
+;; Output: (map) Filtered map
+(define (filter-map fn map)
+    (iterate (out-map {} key (keys map))
+      (if (fn key (get map key))
+          (assoc out-map key (get map key))
+          out-map)))
+
+;; shadow-ds
+;; Extends a dataset adding a shadow field for each field used in input_fields
+;;
+;; Inputs
+;;  ds-id: (dataset-id) Dataset ID
+;;  f-ids: (list) List of field IDs that will be used as input and extended
+;;                with shadow fields
+;;
+;; Output: (list) List of elements [dataset-id shadow-field-ids fields]
+;;   dataset-id: (dataset-id) ID of the dataset with shadow fields
+;;   shadow-fields-ids: (list) List of IDs for the newly added shadow fields
+;;   fields: (map) New fields structure for the fields in the original dataset.
+;;                 This structure is needed to know the IDs in the
+;;                 shadow dataset for the original fields
+;;
+(define (shadow-ds ds-id fields obj-name)
+  (let (f-id-names (reduce (lambda (x y) (assoc x
+                                                y
+                                                (get-in fields [y "name"])))
+                           {}
+                           (keys fields))
+        obj-f (filter-map (lambda (x _) (= (get-in fields
+                                                   [x "name"])
+                                           obj-name))
+                          f-id-names)
+        obj-id (head (keys obj-f))
+        f-id-names (filter-map (lambda (x _) (!= x obj-id)) f-id-names)
+        f-ids (keys f-id-names)
+        input-fields (cons obj-id f-ids)
+        f-names (map (lambda (x) (str "shadow " (get f-id-names x)))
+                     f-ids)
+        flatline-fs (map (lambda (x) [(flatline
+                                        "(weighted-random-value {{x}})")
+                                      (str "shadow " (get f-id-names x))])
+                         f-ids)
+        new-fields (lambda (x) (assoc {} "field" (head x)
+                                         "name" (head (tail x))))
+        sh-ds-id (create-and-wait-dataset {"origin_dataset"
+                                           ds-id
+                                           "input_fields"
+                                           input-fields
+                                           "new_fields"
+                                           (map new-fields flatline-fs)})
+        sh-ds (fetch sh-ds-id)
+        sh-fields (get sh-ds "fields")
+        sh-f-ids (filter (lambda (x) (member? (get-in sh-fields [x "name"])
+                                              f-names))
+                         (keys sh-fields))
+        old-fields (filter-map (lambda (x _) (not (member? (get-in sh-fields
+                                                           [x "name"])
+                                                  f-names)))
+                               sh-fields)
+        )
+    [sh-ds-id sh-f-ids old-fields]))
+
+
+;; random-forest
+;; Create a random forest from the dataset
+;;
+;; Inputs:
+;;   ds-id: (dataset-id) Dataset ID
+;;   obj: (string) Objective field ID
+;; Output: (ensemble-id) Random Forest ID
+(define (random-forest ds-id obj)
+  (create-and-wait-ensemble {"dataset" ds-id
+                             "objective_field" obj
+                             "randomize" true
+                             "sample_rate" 0.8
+                             "seed" "BigML Boruta"}))
+
+;; assoc+
+;;
+;; Adds the value in the key-value pair to the one existing in the accumulator
+;;
+;; Input:
+;;   acc: (map) accumulator map
+;;   key: (string) key to accumulate
+;;   value: (number) value to be added
+(define (assoc+ acc key value)
+  (if (contains? acc key)
+      (assoc acc key (+ (get acc key) value))
+      (assoc acc key value)))
+
+
+;; get-importances
+;;
+;; Selects the field importances in an ensemble
+;;
+;; Inputs:
+;;   ensemble: (ensemble) Ensemble information
+;;
+;; Outputs: list of importances by field name
+
+(define (get-importances ensemble)
+  (let (dist (get ensemble "distributions")
+        imps (map (lambda (x) (get x "importance")) dist)
+        m-num (count imps))
+    (iterate (acc {} m-imps imps)
+      (iterate (m-acc acc imp m-imps)
+        (let (f-id (head imp))
+          (assoc+ m-acc
+                  (head imp)
+                  (/ (head (tail imp)) m-num)))))))
+
+
+;; importances
+;;
+;; Selects the importance information for each of the fields in the ensemble
+;;
+;; Inputs:
+;;   ens-id: (ensemble-id) Ensemble ID
+;;
+;; Output: (map) field-name - importance map
+
+(define (importances ens-id)
+  (let (ens (fetch ens-id))
+    (get-importances ens)))
+
+
+;; maximum-shadow-importance
+;;
+;; Selects the maximum importance for the shadow fields
+;;
+;; Inputs:
+;;   imps: (list) List of field importances
+;;   sh-ids: (list) List of field IDs of the shadow fields
+;;
+;; Output: (number) maximum importance for the fields not in the list
+(define (maximum-shadow-importance imps sh-ids)
+  (iterate (acc 0 imp-k (keys imps))
+    (if (member? imp-k sh-ids)
+      (max [acc (get imps imp-k)])
+      acc)))
+
+;; rank-field-ids
+;;
+;; ranks each field id as important or unimportant
+;;
+;; Inputs:
+;;   imps: (list) List of field ID - importance pairs
+;;   sh-ids: (list) List of shadow IDs to be discarded
+;;   max-sh: (number) Maximum importance of shadow fields
+;;
+;; Output: (map) Field ID - rank map
+
+(define (rank-field-ids imps sh-ids max-sh)
+  (iterate (acc {} imp (keys imps))
+    (if (member? imp sh-ids)
+        acc
+        (if (> (get imps imp) max-sh)
+            (assoc+ acc imp IMPORTANCE_INC)
+            (if (< (get imps imp) max-sh)
+                (assoc+ acc imp IMPORTANCE_DEC)
+                acc)))))

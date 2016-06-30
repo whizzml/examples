@@ -1,0 +1,32 @@
+{
+  "name": "Boruta algorithm",
+  "description": "Finding important fields using the Boruta algorithm",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "source-url",
+          "type": "string",
+          "description": "Select the URL where data is stored"
+      },
+      {
+          "name": "objective",
+          "type": "string",
+          "default": "",
+          "description": "Objective field name"
+      },
+      {
+          "name": "max-runs",
+          "type": "number",
+          "default": 5,
+          "description": "Maximum number of runs"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "importance-output",
+          "type": "map",
+          "description": "Field importance results"
+      }
+  ]
+}
