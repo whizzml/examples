@@ -28,8 +28,8 @@
                         "name" (str name " smacdown itr " itr " test model")}
           mod-fn (lambda (p) (merge p train-params))
           eval-fn (lambda (m) {"model" m "dataset" test})
-          mod-ids (create-and-wait* "ensemble" (map mod-fn params))
-          eval-ids (create-and-wait* "evaluation" (map eval-fn mod-ids))
+          mod-ids (create* "ensemble" (map mod-fn params))
+          eval-ids (create* "evaluation" (map eval-fn mod-ids))
           phi (lambda (ev)
                 (let (metric-value (get-in ev ["result" "model" metric]))
                   (if (not (number? metric-value))
@@ -37,7 +37,7 @@
                             "code" -30})
                     (- 1 metric-value)))))
       (log-info "Evaluation complete.")
-      (map (lambda (eid) (phi (fetch eid))) eval-ids))))
+      (map (lambda (eid) (phi (fetch (wait eid)))) eval-ids))))
 
 ;; Find optimal parameters using SMACdown
 (define (find-optimal-parameters train-params objective-id objective-type)
@@ -53,8 +53,8 @@
         generator (smacdown-ensemble--model-params-generator objective-type)
         output (smacdown-optimize generator eval-fn "smacdown-ensemble"))
      (for (p output)
-      (assoc (dissoc p smacdown--actual)
-        metric (- 1 (get p smacdown--actual))))))
+       (assoc (dissoc p smacdown--actual)
+          metric (- 1 (get p smacdown--actual))))))
 
 ;; Delete resources ignoring errors
 (define (safe-delete id)
@@ -83,13 +83,12 @@
         _ (log-info "Training model on full dataset...")
         mod-prms (merge (get (head params) "parameters")
                         {"objective_field" obj-id "seed" "SMACdown"})
-        full-mod (create-ensemble (assoc mod-prms "dataset" dataset-id))
+        full-mod (create-ensemble dataset-id mod-prms)
         train-id (create-dataset train-params)
         test-id (create-dataset test-params)
-        _ (wait* [train-id test-id])
-        best-mod (create-and-wait-ensemble (assoc mod-prms "dataset" train-id))
-        best-eval (create-evaluation {"model" best-mod "dataset" test-id})
-        _ (wait* [best-eval full-mod]))
+        best-mod (create-ensemble train-id mod-prms)
+        best-eval (create-evaluation best-mod test-id))
+    (wait* [best-eval full-mod])
     (cons (assoc (head params)
                  "full_model" full-mod
                  "model" best-mod
