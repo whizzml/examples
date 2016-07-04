@@ -1,0 +1,37 @@
+{
+  "name": "Items to features",
+  "description": "Adds new features to a dataset based on the items in one of its fields",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "input-dataset",
+      "type": "dataset-id",
+      "description": "The input dataset"
+    },
+    {
+      "name": "items-field",
+      "type": "string",
+      "description": "The name or identifier of the items field from which features are extracted"
+    },
+    {
+      "name": "true-value",
+      "type": "string",
+      "default": "true",
+      "description": "The value to use in the new columns to indicate that the value is present."
+    },
+    {
+      "name": "false-value",
+      "type": "string",
+      "default": "false",
+      "description": "The value to use in the new columns to indicate that the value is present."
+    }
+  ],
+  "outputs": [
+    {
+      "name": "output-dataset",
+      "type": "dataset-id",
+      "description": "The identifier of the generated dataset"
+    }
+  ]
+}

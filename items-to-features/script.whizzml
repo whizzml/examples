@@ -1,0 +1,37 @@
+;; Given a dataset and an items field, add one new feature per item
+;; denoting whether the item is present or not.
+
+;; Find field by either name or id
+(define (find-field fields field)
+  (or (get fields field)
+      (loop (ids (keys fields))
+        (cond (empty? ids)
+              (raise (str "Field not found: " field))
+              (= field (get-in fields [(head ids) "name"]))
+              (get fields (head ids))
+              (recur (tail ids))))))
+
+;; Retrieves the list of items in the given field
+(define (get-items dataset-id field)
+  (let (dataset (fetch (wait dataset-id))
+        field (find-field (get dataset "fields") field)
+        items (map head (get-in field ["summary" "items"] [])))
+    (when (not (= "items" (get field "optype")))
+      (raise (str "Field '" field "' must have type 'items'")))
+    (when (empty? items)
+      (raise (str "The field '" field "' contains no items")))
+    items))
+
+;; Creates the flatline generator for the list of items
+(define (item-flatline field item yes no)
+  (flatline "(if (contains-items? {{field}} {{item}}) {{yes}} {{no}})"))
+
+;; Main workflow function
+(define (generate-dataset dataset-id field yes no)
+  (let (items (get-items dataset-id field)
+        item-reqs (for (i items)
+                    {"field" (item-flatline field i yes no) "name" i}))
+    (create-dataset {"origin_dataset" dataset-id "new_fields" item-reqs})))
+
+(define output-dataset
+  (wait (generate-dataset input-dataset items-field true-value false-value)))
