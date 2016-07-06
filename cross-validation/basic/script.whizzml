@@ -7,7 +7,6 @@
 ;;
 
 ;; The rest of the code will eventually be defined as a library.
-
 (define MODEL_OPTIONS ["balance_objective"
                        "missing_splits"
                        "pruning"
@@ -20,6 +19,16 @@
                                   "randomize"
                                   "number_of_models"
                                   "seed"]))
+(define LOGISTIC_OPTIONS ["balance_fields"
+                          "bias"
+                          "c"
+                          "missing_numerics"
+                          "default_numeric_value"
+                          "eps"
+                          "field_codings"
+                          "normalize"
+                          "regularization"
+                          "seed"])
 (define EVALUATION_OPTIONS ["sample_rate"
                             "out_of_bag"
                             "range"
@@ -188,7 +197,7 @@
        (range 0 (count dataset-ids))))
 
 
-;; filter-map
+;; select-keys
 ;;
 ;; Filters the keys in a map, keeping only the ones that appear in the list.
 ;;
@@ -197,7 +206,7 @@
 ;;   keys-list: (list) List of keys to be kept in the map
 ;; Output: (map) filtered map with only the keys in the keys-list
 ;;
-(define (filter-map map keys-list)
+(define (select-keys map keys-list)
   (reduce (lambda (x y) (let (value (get map y))
                              (cond value (assoc x y value) x)))
           {}
@@ -244,21 +253,28 @@
                               model-options
                               evaluation-options)
   (let (number-of-models (get model-options "number_of_models" 1)
+        regularization (get model-options "regularization")
         k-fold-pairs (pair-k-folds dataset-ids)
-        ensemble-options (filter-map model-options ENSEMBLE_OPTIONS)
-        model-options (filter-map model-options MODEL_OPTIONS)
-        evaluation-options (filter-map evaluation-options EVALUATION_OPTIONS)
+        ensemble-options (select-keys model-options ENSEMBLE_OPTIONS)
+        model-options (select-keys model-options MODEL_OPTIONS)
+        logistic-options (select-keys model-options LOGISTIC_OPTIONS)
+        evaluation-options (select-keys evaluation-options EVALUATION_OPTIONS)
         type (if (> number-of-models 1) "ensemble" "model")
         multidatasets (map (lambda (x) (nth x 1)) k-fold-pairs)
-        models (if (> number-of-models 1)
-                   (create-k-models type
-                                    multidatasets
-                                    objective-name
-                                    ensemble-options)
-                   (create-k-models type
-                                    multidatasets
-                                    objective-name
-                                    model-options))
+        models (cond (> number-of-models 1)
+                     (create-k-models type
+                                      multidatasets
+                                      objective-name
+                                      ensemble-options)
+                     regularization
+                     (create-k-models type
+                                      multidatasets
+                                      objective-name
+                                      logistic-options)
+                     (create-k-models type
+                                      multidatasets
+                                      objective-name
+                                      model-options))
         evaluations (loop (index 0 evaluations [])
                       (if (= index (count dataset-ids))
                           evaluations
@@ -279,6 +295,7 @@
                                                 evaluation-options))))
                           (recur (+ index 1) evaluations)))))
     (wait* evaluations)))
+
 
 ;; Output: (evaluation-id) Average of evaluations results
 ;;

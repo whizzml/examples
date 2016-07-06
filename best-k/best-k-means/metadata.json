@@ -2,5 +2,5 @@
   "name": "Best K-Means",
   "description": "Best K-Means Clustering using the Pham, Dimov, and Nguyen Algorithm",
   "kind": "library",
-  "source_code": "library.json"
+  "source_code": "library.whizzml"
 }

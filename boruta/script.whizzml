@@ -1,6 +1,59 @@
 (define IMPORTANCE_INC 1)
 (define IMPORTANCE_DEC -1)
 
+;; choosable-objective-ids
+;;
+;; List of IDs of the fields in the dataset that can be chosen as objective
+;; field.
+;;
+;; Inputs:
+;;  fields: (map) Fields structure
+;; Output: (list) list of field IDs
+(define (choosable-objective-ids fields)
+  (let (field-val (lambda (fid k) (get-in fields [fid k]))
+        objective-types ["categorical", "numeric"]
+        pref? (lambda (k) (field-val k "preferred"))
+        pred? (lambda (k) (member? (field-val k "optype") objective-types)))
+    (filter (lambda (x) (and (pref? x) (pred? x))) (keys fields))))
+
+
+;; dataset-objective-name?
+;;
+;; Validates that the argument is a valid objective name in the reference
+;; dataset.
+;;
+;; Inputs:
+;;  objective-name: (string) Name of the objective field
+;;  dataset: (map) dataset resource information
+;;
+;; Output: (string) objective-name
+(define (dataset-objective-name? objective-name dataset)
+  (let (fields (get dataset "fields")
+        objective-ids (choosable-objective-ids fields)
+        objective-names (map (lambda (x) (get-in fields [x "name"]))
+                        objective-ids))
+    (if (not (member? objective-name objective-names))
+      (raise {"message" (str "Failed to find the objective name in the dataset"
+                             " choosable fields.")
+              "code" 101})
+      objective-name)))
+
+
+;; get-objective-name
+;;
+;; Returns the name of the field used as objective field
+;;
+;; Inputs:
+;;  dataset: (map) Dataset resource info
+;;  objective-id: (string) ID of the objective field
+;;
+;; Outputs: (string) Name of the objective field
+
+(define (get-objective-name dataset objective-id)
+  (let (fields (get dataset "fields"))
+    (get-in fields [objective-id "name"])))
+
+
 (define (boruta source-url objective max-runs)
   (let (ds-id
         (create-and-wait-dataset {"source"
@@ -9,7 +62,10 @@
         ds (fetch ds-id)
         fields (get ds "fields")
         field-ids (keys fields)
-        init-rank (reduce (lambda (x y) (assoc x y 0)) {} field-ids))
+        init-rank (reduce (lambda (x y) (assoc x y 0)) {} field-ids)
+        objective (if (= objective "")
+                      (get-objective-name ds (dataset-get-objective-id ds))
+                      (dataset-objective-name? objective ds)))
     (loop (ids-rank init-rank fields fields ds-id ds-id runs 0)
       ;; 9. Repeat the procedure until the importance is assigned for all
       ;; the attributes, or the algorithm has reached the previously set
