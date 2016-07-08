@@ -7,7 +7,7 @@
       {
           "name": "dataset-id",
           "type": "dataset-id",
-          "description": "Select the dataset ID to be used"
+          "description": "Dataset to be analyzed"
       },
       {
           "name": "objective",

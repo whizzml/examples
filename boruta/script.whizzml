@@ -11,13 +11,13 @@
 ;; Output: (list) list of field IDs
 (define (choosable-objective-ids fields)
   (let (field-val (lambda (fid k) (get-in fields [fid k]))
-        objective-types ["categorical", "numeric"]
+        objective-types ["categorical" "numeric"]
         pref? (lambda (k) (field-val k "preferred"))
         pred? (lambda (k) (member? (field-val k "optype") objective-types)))
     (filter (lambda (x) (and (pref? x) (pred? x))) (keys fields))))
 
 
-;; dataset-objective-name?
+;; validate-objective-name
 ;;
 ;; Validates that the argument is a valid objective name in the reference
 ;; dataset.
@@ -27,7 +27,7 @@
 ;;  dataset: (map) dataset resource information
 ;;
 ;; Output: (string) objective-name
-(define (dataset-objective-name? objective-name dataset)
+(define (validate-objective-name objective-name dataset)
   (let (fields (get dataset "fields")
         objective-ids (choosable-objective-ids fields)
         objective-names (map (lambda (x) (get-in fields [x "name"]))
@@ -38,20 +38,6 @@
               "code" 101})
       objective-name)))
 
-
-;; get-objective-name
-;;
-;; Returns the name of the field used as objective field
-;;
-;; Inputs:
-;;  dataset: (map) Dataset resource info
-;;  objective-id: (string) ID of the objective field
-;;
-;; Outputs: (string) Name of the objective field
-
-(define (get-objective-name dataset objective-id)
-  (let (fields (get dataset "fields"))
-    (get-in fields [objective-id "name"])))
 
 ;; boruta
 ;;
@@ -78,10 +64,9 @@
                           {}
                           field-ids)
         objective (if (= objective "")
-                      (get-objective-name ds
-                                          (dataset-get-objective-id
-                                           dataset-id))
-                      (dataset-objective-name? objective ds)))
+                      (get-in ori-fields
+                              [(dataset-get-objective-id dataset-id) "name"])
+                      (validate-objective-name objective ds)))
     (loop (f-rank init-rank fields ori-fields ds-id dataset-id runs 0)
       ;; Repeats the procedure until the importance is assigned for all
       ;; the attributes, or the algorithm has reached the previously set
@@ -109,26 +94,24 @@
                 ;; and then assign a hit to every attribute that scored better
                 ;; by more than the min-gain margin or worst by less than the
                 ;; min-gain margin.
-                imps (importances rf-id)
-                _ (log-info "Number of runs: " (+ runs 1))
-                _ (log-info "------------------------------------------------")
+                imps (get-importances (fetch rf-id))
                 max-sh (maximum-shadow-importance imps sh-ids)
-                _ (log-info "Max importance for the shadow fields: " max-sh)
                 f-rank (rank-field-ids imps sh-ids max-sh min-gain)
-                _ (log-info "Important: " (select-by-importance f-rank
-                                                                IMPORTANCE_INC
-                                                                to-names))
-                _ (log-info "Unimportant: " (select-by-importance f-rank
-                                                                  IMPORTANCE_DEC
-                                                                  to-names))
-                _ (log-info "Neutral: " (select-by-importance f-rank
-                                                              0
-                                                              to-names))
-                fields (remove-unimportant fields f-rank)
-                _ (log-info "remaining fields: " (map to-names (keys fields)))
-                _ (log-info "------------------------------------------------"))
+                fields (remove-unimportant fields f-rank))
+            ;; logging each run results
+            (log-info "Number of runs: " (+ runs 1))
+            (log-info "------------------------------------------------")
+            (log-info "Max importance for the shadow fields: " max-sh)
+            (log-info "Important: " (select-by-importance f-rank
+                                                          IMPORTANCE_INC
+                                                          to-names))
+            (log-info "Unimportant: " (select-by-importance f-rank
+                                                            IMPORTANCE_DEC
+                                                            to-names))
+            (log-info "Undecided: " (select-by-importance f-rank 0 to-names))
+            (log-info "remaining fields: " (map to-names (keys fields)))
+            (log-info "------------------------------------------------")
             (recur f-rank fields sh-ds-id (+ runs 1)))))))
-
 
 ;; full
 ;; Checks whether all the fields are marked as important or unimportant
@@ -181,7 +164,7 @@
 ;;   f-names: (list) Fields names
 ;;   objective: (string) objective field name
 ;;
-;; Output:  (map) Map from categories (important, unimportant or neutral) to
+;; Output:  (map) Map from categories (important, unimportant or undecided) to
 ;;                list of field names
 ;;
 (define (group-importance f-rank fields f-names objective)
@@ -190,16 +173,15 @@
                        (keys (filter-map (lambda(x y) (> y 0))
                                          f-rank)))
         important (append important objective)
-        neutral (map to-names
-                     (keys (filter-map (lambda(x y) (= y 0))
-                                       f-rank)))
+        undecided (map to-names
+                       (keys (filter-map (lambda(x y) (= y 0))
+                                         f-rank)))
         unimportant (filter (lambda (x) (not (or (member? x important)
-                                                 (member? x neutral))))
+                                                 (member? x undecided))))
                             f-names))
-    (assoc (assoc {}
-                  "important" important)
-                  "unimportant" unimportant
-                  "neutral" neutral)))
+    {"important" important
+     "unimportant" unimportant
+     "undecided" undecided}))
 
 ;; filter-map
 ;; Filters a map by applying the corresponding filter function to its keys
@@ -232,14 +214,12 @@
 ;;                 shadow dataset for the original fields
 ;;
 (define (shadow-ds ds-id fields obj-name)
-  (let (f-id-names (reduce (lambda (x y) (assoc x
-                                                y
-                                                (get-in fields [y "name"])))
+  (let (f-id-names (reduce (lambda (x y)
+                             (assoc x y (get-in fields [y "name"])))
                            {}
                            (keys fields))
-        obj-f (filter-map (lambda (x _) (= (get-in fields
-                                                   [x "name"])
-                                           obj-name))
+        obj-f (filter-map (lambda (x _)
+                            (= (get-in fields [x "name"]) obj-name))
                           f-id-names)
         obj-id (head (keys obj-f))
         f-id-names (filter-map (lambda (x _) (!= x obj-id)) f-id-names)
@@ -265,14 +245,15 @@
         sh-f-ids (filter (lambda (x) (member? (get-in sh-fields [x "name"])
                                               f-names))
                          (keys sh-fields))
-        old-fields (filter-map (lambda (x _) (not (member? (get-in sh-fields
-                                                           [x "name"])
-                                                  f-names)))
+        old-fields (filter-map (lambda (x _)
+                                 (let (n (get-in sh-fields [x "name"]))
+                                   (not (member? n f-names))))
                                sh-fields))
     [sh-ds-id sh-f-ids old-fields]))
 
 ;; repeat-fields
-;; Repeats the field ID until the number of elements is the one chosen
+;; Cyclically repeats the list of field IDs until it has the desired
+;; number of elements
 ;;
 ;; Inputs:
 ;;   f-ids: (list) List of field IDs
@@ -308,10 +289,7 @@
 ;;   key: (string) key to accumulate
 ;;   value: (number) value to be added
 (define (assoc+ acc key value)
-  (if (contains? acc key)
-      (assoc acc key (+ (get acc key) value))
-      (assoc acc key value)))
-
+  (assoc acc key (+ value (get acc key 0))))
 
 ;; get-importances
 ;;
@@ -328,25 +306,9 @@
         m-num (count imps))
     (iterate (acc {} m-imps imps)
       (iterate (m-acc acc imp m-imps)
-        (let (f-id (head imp))
-          (assoc+ m-acc
-                  (head imp)
-                  (/ (head (tail imp)) m-num)))))))
-
-
-;; importances
-;;
-;; Selects the importance information for each of the fields in the ensemble
-;;
-;; Inputs:
-;;   ens-id: (ensemble-id) Ensemble ID
-;;
-;; Output: (map) field-name - importance map
-
-(define (importances ens-id)
-  (let (ens (fetch ens-id))
-    (get-importances ens)))
-
+        (assoc+ m-acc
+                (head imp)
+                (/ (head (tail imp)) m-num))))))
 
 ;; maximum-shadow-importance
 ;;
@@ -360,7 +322,7 @@
 (define (maximum-shadow-importance imps sh-ids)
   (iterate (acc 0 imp-k (keys imps))
     (if (member? imp-k sh-ids)
-      (max [acc (get imps imp-k)])
+      (max acc (get imps imp-k))
       acc)))
 
 ;; rank-field-ids
