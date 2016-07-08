@@ -1,2 +1,11 @@
 *.swp
 *.swo
+/boruta/test/.bigmler
+/boruta/test/.bigmler_delete
+/boruta/test/.bigmler_delete_dir_stack
+/boruta/test/.bigmler_dir_stack
+/boruta/test/.bigmler_dirs
+/boruta/test/.bigmler_execute
+/boruta/test/.bigmler_execute_dir_stack
+/boruta/test/.bigmler_whizzml
+/boruta/test/.bigmler_whizzml_dir_stack
