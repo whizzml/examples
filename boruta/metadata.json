@@ -1,13 +1,13 @@
 {
   "name": "Boruta algorithm",
-  "description": "Finding important fields using the Boruta algorithm",
+  "description": "Finding important fields using a version of the Boruta algorithm",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
       {
-          "name": "source-url",
-          "type": "string",
-          "description": "Select the URL where data is stored"
+          "name": "dataset-id",
+          "type": "dataset-id",
+          "description": "Select the dataset ID to be used"
       },
       {
           "name": "objective",
@@ -20,6 +20,12 @@
           "type": "number",
           "default": 5,
           "description": "Maximum number of runs"
+      },
+      {
+          "name": "min-gain",
+          "type": "number",
+          "default": 0.05,
+          "description": "Minimum gain for a field to be considered important"
       }
   ],
   "outputs": [
