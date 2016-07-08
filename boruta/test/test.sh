@@ -24,9 +24,7 @@ bigmler execute --scripts .build/scripts --inputs test_inputs.json \
                 --output-dir cmd/results --verbosity $VERBOSITY
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
-declare regex="\[\[\"importance-output\", \{\"unimportant\": \[\],\
- \"important\": \[\"petal length\", \"petal width\", \"species\"],\
- \"undecided\": \[\"sepal width\", \"sepal length\"\]}, \"map\"\]\]"
+declare regex="\[\[\"importance-output\", "
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
