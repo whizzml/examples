@@ -1,0 +1,92 @@
+{
+  "name": "Logistic regression's k-fold cross-validation",
+  "description": "k-fold cross-validation for logistic regressions",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+        "name": "dataset-id",
+        "type": "dataset-id",
+        "description": "Select the dataset for training/test the model"
+    },
+    {
+        "name": "k-folds",
+        "type": "number",
+        "default": 5,
+        "description": "Select the number of folds to split the dataset"
+    },
+    {
+        "name": "objective-id",
+        "type": "string",
+        "default": "",
+        "description": "Objective field ID"
+    },
+    {
+        "name": "balance-fields",
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to scale each numeric field"
+    },
+    {
+        "name": "bias",
+        "type": "number",
+        "default": 1,
+        "description": "Scale of the intercept term"
+    },
+    {
+        "name": "c",
+        "type": "number",
+        "default": 1,
+        "description": "Step of the regularization step"
+    },
+    {
+        "name": "missing-numerics",
+        "type": "boolean",
+        "default": false,
+        "description": "Sets the logistic regression missing_numerics flag"
+    },
+    {
+        "name": "default-numeric-value",
+        "type": "string",
+        "default": "",
+        "description": "Substitutes the missing values in numeric fields by the 'mean', 'median', 'minimum', 'maximum' or 'zero'"
+    },
+    {
+        "name": "eps",
+        "type": "number",
+        "default": 0.00001,
+        "description": "Stopping criteria for solver"
+    },
+    {
+        "name": "field-codings",
+        "type": "list",
+        "default": [],
+        "description": "Coding schemes for categorical fields: 'dummy', 'contrast', or 'other'"
+    },
+    {
+        "name": "normalize",
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to normalize feature vectors"
+    },
+    {
+        "name": "regularization",
+        "type": "string",
+        "default": "l2",
+        "description": "Selects the norm to minimize when regularizing the solution: 'l1' or 'l2'"
+    },
+    {
+        "name": "seed",
+        "type": "string",
+        "default": "cross-validation",
+        "description": "Seed for deterministic samples"
+    }
+  ],
+  "outputs": [
+    {
+        "name": "cross-validation-output",
+        "type": "evaluation-id",
+        "description": "Average of evaluations results"
+    }
+  ]
+}

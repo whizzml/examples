@@ -9,6 +9,10 @@ cross-validation for different resources:
   cross-validation for models.
 - [Ensemble k-fold cross-validation](./ensemble) General k-fold
   cross-validation for ensembles.
+- [Logistic regression k-fold cross-validation](./logistic-regression)
+  General k-fold
+  cross-validation for logistic regressions.
+
 
 
 ## Tests

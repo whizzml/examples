@@ -62,6 +62,22 @@ if [[ " $file_content " =~ $regex ]]
     else
         echo "ensemble KO:\n $file_content"
 fi
+echo "Testing logistic regression script -------------------"
+# running the execution with the given inputs
+bigmler execute --scripts .build/logistic-regression/scripts \
+                --inputs test_inputs.json \
+                --output-dir cmd/results --verbosity $VERBOSITY
+# check the outputs
+declare file="cmd/results/whizzml_results.json"
+declare regex="\"outputs\": \[\[\"cross-validation-output\",\
+ \"evaluation/[a-f0-9]{24}\", \"evaluation\"\]\]"
+declare file_content=$( cat "${file}" )
+if [[ " $file_content " =~ $regex ]]
+    then
+        echo "logistic regression OK"
+    else
+        echo "logistic regression KO:\n $file_content"
+fi
 echo "-------------------------------------------------------"
 # remove the created resources
 bigmler delete --from-dir cmd --output-dir cmd_del --verbosity $VERBOSITY
