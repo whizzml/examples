@@ -1,4 +1,4 @@
-VERBOSITY=0
+VERBOSITY=${VERBOSITY:-0}
 rm -f -R cmd_del
 rm -f -R cmd
 rm -f -R .build
@@ -35,6 +35,6 @@ fi
 # remove the created resources
 bigmler delete --from-dir cmd --output-dir cmd_del --verbosity $VERBOSITY
 bigmler delete --from-dir .build --output-dir cmd_del --verbosity $VERBOSITY
-rm -f -R cmd_del
-rm -f -R cmd
-rm -f -R .build
+rm -f -R test_inputs.json cmd cmd_del
+rm -f -R .build .bigmler*
+
