@@ -45,4 +45,6 @@ By convention, when the artifact is a library, the files are called
 - `anomaly-shift` Calculate the average anomaly between two given
   datasets.
 - `cross-validation` Scripts for performing k-fold crossvalidation.
-- `clean-dataset` Scripts and library for cleaning up a dataset
+- `clean-dataset` Scripts and library for cleaning up a dataset.
+- `boruta` Script for feature selection using the Boruta algorithm.
+
