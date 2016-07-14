@@ -28,9 +28,9 @@
 ;;
 ;; Output: (string) objective-name
 (define (validate-objective-name objective-name dataset)
-  (let (fields (get dataset "fields")
+  (let (fields (get dataset "fields" {})
         objective-ids (choosable-objective-ids fields)
-        objective-names (map (lambda (x) (get-in fields [x "name"]))
+        objective-names (map (lambda (x) (get-in fields [x "name"] false))
                         objective-ids))
     (if (not (member? objective-name objective-names))
       (raise {"message" (str "Failed to find the objective name in the dataset"
@@ -56,16 +56,19 @@
 (define (boruta dataset-id objective max-runs min-gain)
   (let (ds (fetch dataset-id)
         ;; original fields are stored for later use
-        ori-fields (get ds "fields")
+        ori-fields (get ds "fields" {})
         field-ids (keys ori-fields)
-        f-names (map (lambda (x) (get-in ori-fields [x "name"])) field-ids)
+        f-names (map (lambda (x) (get-in ori-fields [x "name"] false))
+                     field-ids)
         init-rank (reduce (lambda (x y) (assoc x (get-in ori-fields
-                                                         [y "name"]) 0))
+                                                         [y "name"]
+                                                         false) 0))
                           {}
                           field-ids)
         objective (if (= objective "")
                       (get-in ori-fields
-                              [(dataset-get-objective-id dataset-id) "name"])
+                              [(dataset-get-objective-id dataset-id) "name"]
+                              false)
                       (validate-objective-name objective ds)))
     (loop (f-rank init-rank fields ori-fields ds-id dataset-id runs 0)
       ;; Repeats the procedure until the importance is assigned for all
@@ -86,7 +89,7 @@
                 sh-ds-id (head sh-ds-info)
                 sh-ids (head (tail sh-ds-info))
                 fields (nth sh-ds-info 2)
-                to-names (lambda (x) (get-in fields [x "name"]))
+                to-names (lambda (x) (get-in fields [x "name"] false))
                 ;; Run a random forest classifier on the extended
                 ;; information system and gather the importances
                 rf-id (random-forest sh-ds-id objective)
@@ -136,7 +139,7 @@
 ;;
 (define (remove-unimportant fields f-rank)
   (iterate (acc fields id (keys f-rank))
-    (if (< (get f-rank id) 0)
+    (if (< (get f-rank id 1) 0)
         (dissoc acc id)
         acc)))
 
@@ -168,7 +171,7 @@
 ;;                list of field names
 ;;
 (define (group-importance f-rank fields f-names objective)
-  (let (to-names (lambda (x) (get-in fields [x "name"]))
+  (let (to-names (lambda (x) (get-in fields [x "name"] false))
         important (map to-names
                        (keys (filter-map (lambda(x y) (> y 0))
                                          f-rank)))
@@ -193,8 +196,8 @@
 ;; Output: (map) Filtered map
 (define (filter-map fn map)
     (iterate (out-map {} key (keys map))
-      (if (fn key (get map key))
-          (assoc out-map key (get map key))
+      (if (fn key (get map key false))
+          (assoc out-map key (get map key false))
           out-map)))
 
 ;; shadow-ds
@@ -215,18 +218,18 @@
 ;;
 (define (shadow-ds ds-id fields obj-name)
   (let (f-id-names (reduce (lambda (x y)
-                             (assoc x y (get-in fields [y "name"])))
+                             (assoc x y (get-in fields [y "name"] false)))
                            {}
                            (keys fields))
         obj-f (filter-map (lambda (x _)
-                            (= (get-in fields [x "name"]) obj-name))
+                            (= (get-in fields [x "name"] false) obj-name))
                           f-id-names)
         obj-id (head (keys obj-f))
         f-id-names (filter-map (lambda (x _) (!= x obj-id)) f-id-names)
         f-ids (keys f-id-names)
         input-fields (cons obj-id f-ids)
         f-ids (repeat-fields f-ids 5)
-        f-names (map (lambda (x) (str "shadow " (get f-id-names x)))
+        f-names (map (lambda (x) (str "shadow " (get f-id-names x false)))
                      f-ids)
         flatline-fs (map (lambda (x) [(flatline
                                         "(weighted-random-value {{x}})")
@@ -241,12 +244,14 @@
                                            "new_fields"
                                            (map new-fields flatline-fs)})
         sh-ds (fetch sh-ds-id)
-        sh-fields (get sh-ds "fields")
-        sh-f-ids (filter (lambda (x) (member? (get-in sh-fields [x "name"])
+        sh-fields (get sh-ds "fields" false)
+        sh-f-ids (filter (lambda (x) (member? (get-in sh-fields
+                                                      [x "name"]
+                                                      false)
                                               f-names))
                          (keys sh-fields))
         old-fields (filter-map (lambda (x _)
-                                 (let (n (get-in sh-fields [x "name"]))
+                                 (let (n (get-in sh-fields [x "name"] false))
                                    (not (member? n f-names))))
                                sh-fields))
     [sh-ds-id sh-f-ids old-fields]))
@@ -301,8 +306,8 @@
 ;; Outputs: list of importances by field name
 
 (define (get-importances ensemble)
-  (let (dist (get ensemble "distributions")
-        imps (map (lambda (x) (get x "importance")) dist)
+  (let (dist (get ensemble "distributions" false)
+        imps (map (lambda (x) (get x "importance" false)) dist)
         m-num (count imps))
     (iterate (acc {} m-imps imps)
       (iterate (m-acc acc imp m-imps)
@@ -322,7 +327,7 @@
 (define (maximum-shadow-importance imps sh-ids)
   (iterate (acc 0 imp-k (keys imps))
     (if (member? imp-k sh-ids)
-      (max acc (get imps imp-k))
+      (max acc (get imps imp-k 0))
       acc)))
 
 ;; rank-field-ids
@@ -344,9 +349,9 @@
   (iterate (acc {} imp (keys imps))
     (if (member? imp sh-ids)
         acc
-        (if (> (get imps imp) (+ max-sh min-gain))
+        (if (> (get imps imp 0) (+ max-sh min-gain))
             (assoc+ acc imp IMPORTANCE_INC)
-            (if (< (get imps imp) (- max-sh min-gain))
+            (if (< (get imps imp 0) (- max-sh min-gain))
                 (assoc+ acc imp IMPORTANCE_DEC)
                 (assoc+ acc imp 0))))))
 

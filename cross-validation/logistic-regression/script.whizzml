@@ -56,10 +56,10 @@
   (resource-ID-ok? dataset-id "dataset")
   (integer-ok? k-folds 2 false)
   (let (dataset (fetch dataset-id)
-        dataset-name (get dataset "name"))
+        dataset-name (get dataset "name" false))
     (dataset-objective-id? objective-id dataset)
     (let (k-fold-datasets (create-k-folds dataset-id k-folds)
-         objective-name (get-objective-name dataset objective-id)
+         objective-name (get-objective-name dataset objective-id false)
          evaluations (create-k-evaluations k-fold-datasets
                                            objective-name
                                            dataset-name
@@ -115,7 +115,7 @@
 ;;  fields: (map) Fields structure
 ;; Output: (list) list of field IDs
 (define (choosable-objective-ids fields)
-  (let (field-val (lambda (fid k) (get-in fields [fid k]))
+  (let (field-val (lambda (fid k) (get-in fields [fid k] false))
         objective-types ["categorical", "numeric"]
         pref? (lambda (k) (field-val k "preferred"))
         pred? (lambda (k) (member? (field-val k "optype") objective-types)))
@@ -131,7 +131,7 @@
 ;;  objective-id: (string) ID of the objective field
 ;;  dataset: (map) dataset resource information
 (define (dataset-objective-id? objective-id dataset)
-  (let (fields (get dataset "fields")
+  (let (fields (get dataset "fields" {})
         objective-ids (choosable-objective-ids fields))
     (when (not (member? objective-id objective-ids))
       (raise {"message" (str "Failed to find the objective ID in the dataset"
@@ -149,8 +149,8 @@
 ;; Outputs: (string) Name of the objective field
 
 (define (get-objective-name dataset objective-id)
-  (let (fields (get dataset "fields"))
-    (get-in fields [objective-id "name"])))
+  (let (fields (get dataset "fields" {}))
+    (get-in fields [objective-id "name"] false)))
 
 
 ;; create-k-folds
@@ -200,7 +200,7 @@
 ;; Output: (map) filtered map with only the keys in the keys-list
 ;;
 (define (select-keys map keys-list)
-  (reduce (lambda (x y) (let (value (get map y))
+  (reduce (lambda (x y) (let (value (get map y false))
                              (cond value (assoc x y value) x)))
           {}
           keys-list))
@@ -246,7 +246,7 @@
                               model-options
                               evaluation-options)
   (let (number-of-models (get model-options "number_of_models" 1)
-        regularization (get model-options "regularization")
+        regularization (get model-options "regularization" false)
         k-fold-pairs (pair-k-folds dataset-ids)
         ensemble-options (select-keys model-options ENSEMBLE_OPTIONS)
         model-options (select-keys model-options MODEL_OPTIONS)
@@ -288,7 +288,6 @@
                                                 evaluation-options))))
                           (recur (+ index 1) evaluations)))))
     (wait* evaluations)))
-
 ;; Script
 
 ;;get_logistic_options
