@@ -67,7 +67,7 @@
         dataset-name (get dataset "name" false))
     (dataset-objective-id? objective-id dataset)
     (let (k-fold-datasets (create-k-folds dataset-id k-folds)
-         objective-name (get-objective-name dataset objective-id false)
+         objective-name (get-objective-name dataset objective-id)
          evaluations (create-k-evaluations k-fold-datasets
                                            objective-name
                                            dataset-name
