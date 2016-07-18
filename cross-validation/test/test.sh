@@ -62,7 +62,7 @@ if [[ " $file_content " =~ $regex ]]
     else
         echo "ensemble KO:\n $file_content"
 fi
-echo "Testing logistic regression script -------------------"
+echo "Testing logistic regression script --------------------"
 # running the execution with the given inputs
 bigmler execute --scripts .build/logistic-regression/scripts \
                 --inputs test_inputs.json \

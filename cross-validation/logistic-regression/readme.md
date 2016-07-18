@@ -37,7 +37,7 @@ The **inputs** for the script are:
 * `seed`: (string) Seed used in random samplings (optional,
                    default="cross-validation")
 
-as you can see, most of the inputs are optional. They default to the defaults
+As you can see, most of the inputs are optional. They default to the defaults
 in the platform. The `objective-id` will also be inferred from the one in
 the dataset if it is not provided.
 

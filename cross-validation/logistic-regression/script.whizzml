@@ -36,8 +36,8 @@
 ;; Inputs:
 ;;   dataset-id: (string) Dataset ID
 ;;   k-folds: (integer) Number of folds
-;;   model-options: (map) options to use in model/ensemble
-;;   evaluation-options: (map) options to use in evaluation creation
+;;   model-options: (map) Options to use in model/ensemble
+;;   evaluation-options: (map) Options to use in evaluation creation
 ;;
 ;; Output: (map) Average of evaluations results
 ;;
@@ -53,11 +53,11 @@
                           objective-id
                           model-options
                           evaluation-options)
-  (resource-ID-ok? dataset-id "dataset")
-  (integer-ok? k-folds 2 false)
+  (check-resource-id dataset-id "dataset")
+  (check-integer k-folds 2 false)
   (let (dataset (fetch dataset-id)
         dataset-name (get dataset "name" false))
-    (dataset-objective-id? objective-id dataset)
+    (check-dataset-objective-id objective-id dataset)
     (let (k-fold-datasets (create-k-folds dataset-id k-folds)
          objective-name (get-objective-name dataset objective-id)
          evaluations (create-k-evaluations k-fold-datasets
@@ -67,33 +67,38 @@
                                            evaluation-options))
      (create-and-wait-evaluation {"evaluations" evaluations}))))
 
-;; resource-ID-ok?
+;; check-resource-id
 ;;
 ;; Validates that the argument is a resource ID and its type. Raises an error
 ;; if otherwise.
 ;;
 ;; Inputs:
 ;;   resource-id: (string) Resource ID
-;;   type: (string) type of resource
-(define (resource-ID-ok? resource-id type)
+;;   type: (string) Type of resource
+;;
+;; Output: (string) Checked resource ID
+(define (check-resource-id resource-id type)
   (when (not (string? resource-id))
     (raise {"message" (str "Resource ID string expected. Found "
                            resource-id " instead.")
             "code" 101}))
   (when (not (= (resource-type resource-id) type))
     (raise {"message" (str "Failed to find a correct " type " ID.")
-            "code" 102})))
+            "code" 102}))
+  resource-id)
 
 
-;; integer-ok?
+;; check-integer
 ;;
 ;; Validates that the argument is an integer. Raises error if otherwise.
 ;;
 ;; Inputs:
-;;  value: (number) integer to be checked
-;;  minimum: (number) minimum value (false if not set)
-;;  maximum: (number) maximum value (false if not set)
-(define (integer-ok? value minimum maximum)
+;;  value: (number) Integer to be checked
+;;  minimum: (number) Minimum value (false if not set)
+;;  maximum: (number) Maximum value (false if not set)
+;;
+;; Output: (number) Checked integer
+(define (check-integer value minimum maximum)
   (when (not (integer? value))
     (raise {"message" (str "Integer value expected. Found " value " instead.")
             "code" 103}))
@@ -104,7 +109,8 @@
   (when (and maximum (> value maximum))
     (raise {"message" (str "Maximum accepted value is " maximum ". " value
                            " found.")
-            "code" 105})))
+            "code" 105}))
+  value)
 
 ;; choosable-objective-ids
 ;;
@@ -122,15 +128,17 @@
     (filter (lambda (x) (and (pref? x) (pred? x))) (keys fields))))
 
 
-;; dataset-objective-id?
+;; check-dataset-objective-id
 ;;
 ;; Validates that the argument is a valid objective id in the reference
 ;; dataset.
 ;;
 ;; Inputs:
 ;;  objective-id: (string) ID of the objective field
-;;  dataset: (map) dataset resource information
-(define (dataset-objective-id? objective-id dataset)
+;;  dataset: (map) Dataset resource information
+;;
+;; Output: (string) Checked objective field ID
+(define (check-dataset-objective-id objective-id dataset)
   (let (fields (get dataset "fields" {})
         objective-ids (choosable-objective-ids fields))
     (when (not (member? objective-id objective-ids))
@@ -288,6 +296,7 @@
                                                 evaluation-options))))
                           (recur (+ index 1) evaluations)))))
     (wait* evaluations)))
+
 ;; Script
 
 ;;get_logistic_options
@@ -320,20 +329,18 @@
                               normalize
                               regularization
                               seed)
-  (let (options {}
-        options (assoc options "balance_fields" balance-fields)
-        options (assoc options "bias" bias)
-        options (assoc options "c" c)
-        options (assoc options "missing_numerics" missing-numerics)
-        options (assoc options "default_numeric_value" default-numeric-value)
-        options (assoc options "eps" eps)
-        options (assoc options "field_codings" field-codings)
-        options (assoc options "normalize" normalize)
-        options (assoc options "regularization" regularization)
-        options (when (not (empty? seed))
-                      (assoc options "seed" seed)))
-    options))
-
+  (let (options {"balance_fields" balance-fields
+                 "bias" bias
+                 "c" c
+                 "missing_numerics" missing-numerics
+                 "default_numeric_value" default-numeric-value
+                 "eps" eps
+                 "field_codings" field-codings
+                 "normalize" normalize
+                 "regularization" regularization})
+    (if (empty? seed)
+        options
+        (assoc options "seed" seed))))
 
 ;; logistic-cross-validation
 ;;
