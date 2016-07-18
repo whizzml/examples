@@ -80,7 +80,7 @@ if [[ " $file_content " =~ $regex ]]
 fi
 echo "-------------------------------------------------------"
 # remove the created resources
-#bigmler delete --from-dir cmd --output-dir cmd_del --verbosity $VERBOSITY
-#bigmler delete --from-dir .build --output-dir cmd_del --verbosity $VERBOSITY
-#rm -f -R test_inputs.json cmd cmd_del
-#rm -f -R .build .bigmler*
+bigmler delete --from-dir cmd --output-dir cmd_del --verbosity $VERBOSITY
+bigmler delete --from-dir .build --output-dir cmd_del --verbosity $VERBOSITY
+rm -f -R test_inputs.json cmd cmd_del
+rm -f -R .build .bigmler*
