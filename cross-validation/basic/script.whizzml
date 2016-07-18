@@ -180,12 +180,12 @@
 ;; Output: (list) List of dataset IDs
 ;;
 (define (create-k-folds dataset-id k-folds)
-  (let (k-fold-fn (lambda (x) (create-dataset
-                               {"origin_dataset" dataset-id
-                                "row_offset" x
-                                "row_step" k-folds
-                                "new_fields" [{"name" "k_fold"
-                                               "field" (str x)}]}))
+  (let (k-fold-fn (lambda (x)
+                    (create-dataset {"origin_dataset" dataset-id
+                                     "row_offset" x
+                                     "row_step" k-folds
+                                     "new_fields" [{"name" "k_fold"
+                                                    "field" (str x)}]}))
         dataset-ids (map k-fold-fn (range 0 k-folds)))
     (wait* dataset-ids)))
 
@@ -200,9 +200,10 @@
 ;; Output: (list) List of pairs [hold-out dataset, multidataset with the rest]
 ;;
 (define (pair-k-folds dataset-ids)
-  (map (lambda(x) (list (nth dataset-ids x)
-                        (concat (take x dataset-ids)
-                                (drop (+ x 1) dataset-ids))))
+  (map (lambda(x)
+         [(nth dataset-ids x)
+          (concat (take x dataset-ids)
+          (drop (+ x 1) dataset-ids))])
        (range 0 (count dataset-ids))))
 
 
@@ -217,7 +218,7 @@
 ;;
 (define (select-keys map keys-list)
   (reduce (lambda (x y) (let (value (get map y false))
-                             (cond value (assoc x y value) x)))
+                          (cond value (assoc x y value) x)))
           {}
           keys-list))
 
@@ -235,12 +236,12 @@
 ;; Output: (list) model IDs
 ;;
 (define (create-k-models type multidatasets objective-name model-options)
-  (let (models (map (lambda (x) (create type
-                                    (merge {"datasets" x
-                                            "objective_field"
-                                            objective-name}
-                                            model-options)))
-                           multidatasets))
+  (let (models (map (lambda (x)
+                      (create type
+                              (merge {"datasets" x
+                                      "objective_field" objective-name}
+                                     model-options)))
+                     multidatasets))
     (wait* models)))
 
 ;; create-k-evaluations
@@ -269,7 +270,7 @@
         logistic-options (select-keys model-options LOGISTIC_OPTIONS)
         evaluation-options (select-keys evaluation-options EVALUATION_OPTIONS)
         type (if (> number-of-models 1) "ensemble" "model")
-        multidatasets (map (lambda (x) (nth x 1)) k-fold-pairs)
+        multidatasets (map last k-fold-pairs)
         models (cond (> number-of-models 1)
                      (create-k-models type
                                       multidatasets
@@ -284,27 +285,14 @@
                                       multidatasets
                                       objective-name
                                       model-options))
-        evaluations (loop (index 0 evaluations [])
-                      (if (= index (count dataset-ids))
-                          evaluations
-                          (let (name (str (+ index 1)
-                                          "-fold Evaluation "
-                                          dataset-name)
-                                evaluations
-                                (append evaluations
-                                        (create-evaluation
-                                         (merge (assoc {}
-                                                       type
-                                                       (nth models index)
-                                                       "dataset"
-                                                       (nth dataset-ids
-                                                            index)
-                                                       "name"
-                                                       name)
-                                                evaluation-options))))
-                          (recur (+ index 1) evaluations)))))
+        evaluations (iterate (es []
+                              id dataset-ids
+                              mid models
+                              idx (range 1 (+ 1 (count dataset-ids))))
+                      (let (name (str idx "-fold evaluation " dataset-name)
+                            opts (assoc evaluation-options "name" name))
+                       (append es (create-evaluation id mid opts)))))
     (wait* evaluations)))
-
 
 
 ;; Output: (evaluation-id) Average of evaluations results
