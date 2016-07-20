@@ -1,0 +1,38 @@
+{
+  "name": "Boruta Feature Selection",
+  "description": "Finding important fields using a version of the Boruta Feature Selection algorithm",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "dataset-id",
+          "type": "dataset-id",
+          "description": "Dataset to be analyzed"
+      },
+      {
+          "name": "objective",
+          "type": "string",
+          "default": "",
+          "description": "Objective field name"
+      },
+      {
+          "name": "max-runs",
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of runs"
+      },
+      {
+          "name": "min-gain",
+          "type": "number",
+          "default": 0.01,
+          "description": "Minimum gain for a field to be considered important"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "importance-output",
+          "type": "map",
+          "description": "Field importance results"
+      }
+  ]
+}

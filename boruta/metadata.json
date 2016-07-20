@@ -1,0 +1,6 @@
+{
+  "name": "Boruta feature selection",
+  "description": "A collection of whizzml scripts performing Boruta feature selection",
+  "kind": "package",
+  "components": ["1-click-boruta", "boruta"]
+}

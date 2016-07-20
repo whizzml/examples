@@ -1,0 +1,386 @@
+;; This will eventually be packed into a library
+
+(define IMPORTANCE_INC 1)
+(define IMPORTANCE_DEC -1)
+
+;; choosable-objective-ids
+;;
+;; List of IDs of the fields in the dataset that can be chosen as objective
+;; field.
+;;
+;; Inputs:
+;;  fields: (map) Fields structure
+;; Output: (list) list of field IDs
+(define (choosable-objective-ids fields)
+  (let (field-val (lambda (fid k) (get-in fields [fid k]))
+        objective-types ["categorical" "numeric"]
+        pref? (lambda (k) (field-val k "preferred"))
+        pred? (lambda (k) (member? (field-val k "optype") objective-types)))
+    (filter (lambda (x) (and (pref? x) (pred? x))) (keys fields))))
+
+
+;; validate-objective-name
+;;
+;; Validates that the argument is a valid objective name in the reference
+;; dataset.
+;;
+;; Inputs:
+;;  objective-name: (string) Name of the objective field
+;;  dataset: (map) dataset resource information
+;;
+;; Output: (string) objective-name
+(define (validate-objective-name objective-name dataset)
+  (let (fields (get dataset "fields" {})
+        objective-ids (choosable-objective-ids fields)
+        objective-names (map (lambda (x) (get-in fields [x "name"] false))
+                        objective-ids))
+    (if (not (member? objective-name objective-names))
+      (raise {"message" (str "Failed to find the objective name in the dataset"
+                             " choosable fields.")
+              "code" 101})
+      objective-name)))
+
+
+;; boruta
+;;
+;; Marks fields as important, unimportant or neutral according to their
+;; importance compared to shadow fields (copy fields using random values)
+;;
+;; Inputs:
+;;   dataset-id: (dataset-id) ID of the origin dataset
+;;   objective: (string) Name of the objective field
+;;   max-runs: (integer) Maximum number of iterations
+;;   min-gain: (number) Increment to define the interval of minimum gain
+;;                      around the maximum importance of shadow fields
+;;
+;; Output: (map) Map of important fields and unimportant fields
+
+(define (boruta dataset-id objective max-runs min-gain)
+  (let (ds (fetch dataset-id)
+        ;; original fields are stored for later use
+        ori-fields (get ds "fields" {})
+        field-ids (keys ori-fields)
+        f-names (map (lambda (x) (get-in ori-fields [x "name"] false))
+                     field-ids)
+        init-rank (reduce (lambda (x y) (assoc x (get-in ori-fields
+                                                         [y "name"]
+                                                         false) 0))
+                          {}
+                          field-ids)
+        objective (if (= objective "")
+                      (get-in ori-fields
+                              [(dataset-get-objective-id dataset-id) "name"]
+                              false)
+                      (validate-objective-name objective ds)))
+    (loop (f-rank init-rank fields ori-fields ds-id dataset-id runs 0)
+      ;; Repeats the procedure until the importance is assigned for all
+      ;; the attributes, or the algorithm has reached the previously set
+      ;; limit of the random forest runs.
+      (if (or (= runs max-runs) (full f-rank))
+          ;; as runs go by, the fields structure is modified and unimportant
+          ;; fields are removed. Thus we need f-names to contain the original
+          ;; list of names to know which are unimportant
+          (group-importance f-rank fields f-names objective)
+          ;; Loop body: Extends the information system by adding copies of all
+          ;; variables (the information system is always extended by at least
+          ;; 5 shadow attributes, even if the number of attributes in the
+          ;; original set is lower than 5)
+          ;; Shuffle the added attributes to remove their correlations with
+          ;; the response.
+          (let (sh-ds-info (shadow-ds ds-id fields objective)
+                sh-ds-id (head sh-ds-info)
+                sh-ids (head (tail sh-ds-info))
+                fields (nth sh-ds-info 2)
+                to-names (lambda (x) (get-in fields [x "name"] false))
+                ;; Run a random forest classifier on the extended
+                ;; information system and gather the importances
+                rf-id (random-forest sh-ds-id objective runs)
+                ;; Find the maximum importance among shadow attributes,
+                ;; and then assign a hit to every attribute that scored better
+                ;; by more than the min-gain margin or worst by less than the
+                ;; min-gain margin.
+                imps (get-importances (fetch rf-id))
+                max-sh (maximum-shadow-importance imps sh-ids)
+                field-ids (filter (lambda (x) (!= objective (to-names x)))
+                                  (keys fields))
+                f-rank (rank-field-ids imps field-ids max-sh min-gain)
+                fields (remove-unimportant fields f-rank))
+            ;; logging each run results
+            (log-info "Number of runs: " (+ runs 1))
+            (log-info "------------------------------------------------")
+            (log-info "Max importance for the shadow fields: " max-sh)
+            (log-info "Important: " (select-by-importance f-rank
+                                                          IMPORTANCE_INC
+                                                          to-names))
+            (log-info "Unimportant: " (select-by-importance f-rank
+                                                            IMPORTANCE_DEC
+                                                            to-names))
+            (log-info "Undecided: " (select-by-importance f-rank 0 to-names))
+            (log-info "remaining fields: " (map to-names (keys fields)))
+            (log-info "------------------------------------------------")
+            (recur f-rank fields sh-ds-id (+ runs 1)))))))
+
+;; full
+;; Checks whether all the fields are marked as important or unimportant
+;;
+;; Inputs:
+;;   f-rank: (map) Map from field ID to imporance flag
+;;
+;; Output: (boolean) True if all the fields are classified
+;;
+(define (full f-rank)
+  (let (undetermined (filter (lambda (x) (= x 0)) (values f-rank)))
+    (empty? undetermined)))
+
+;; remove-unimportant
+;; Removes the fields marked as unimportant
+;;
+;; Inputs:
+;;   fields: (map) Fields information structure
+;;   f-rank: (map) Map from field ID to importance flag
+;;
+;; Output: (map) Fields information structure without unimportant fields
+;;
+(define (remove-unimportant fields f-rank)
+  (iterate (acc fields id (keys f-rank))
+    (if (< (get f-rank id 1) 0)
+        (dissoc acc id)
+        acc)))
+
+;; select-by-importance
+;;
+;; Filters the fields according to their importance flag
+;;
+;; Inputs:
+;;   f-map: (map) Map from field ID to importance flag
+;;   score: (integer) Importance flag value
+;;   to-names-fn: (function) Function to transform IDs to field names
+;;
+;; Output: (list) List of field names
+(define (select-by-importance f-map score to-names-fn)
+  (let (selected (filter-map (lambda (x y) (= y score)) f-map))
+    (map to-names-fn (keys selected))))
+
+;; group-importance
+;;
+;; Groups the fields according to their importance
+;;
+;; Inputs:
+;;   f-rank: (map) Map from field ID to importance flag
+;;   fields: (map) Fields information structure
+;;   f-names: (list) Fields names
+;;   objective: (string) objective field name
+;;
+;; Output:  (map) Map from categories (important, unimportant or undecided) to
+;;                list of field names
+;;
+(define (group-importance f-rank fields f-names objective)
+  (let (to-names (lambda (x) (get-in fields [x "name"] false))
+        important (map to-names
+                       (keys (filter-map (lambda(x y) (> y 0))
+                                         f-rank)))
+        important (append important objective)
+        undecided (map to-names
+                       (keys (filter-map (lambda(x y) (= y 0))
+                                         f-rank)))
+        unimportant (filter (lambda (x) (not (or (member? x important)
+                                                 (member? x undecided))))
+                            f-names))
+    {"important" important
+     "unimportant" unimportant
+     "undecided" undecided}))
+
+;; filter-map
+;; Filters a map by applying the corresponding filter function to its keys
+;;
+;; Inputs:
+;;   fn: (function) function to be applied to the map keys and/or values
+;;   map: (map) Map to be filtered
+;;
+;; Output: (map) Filtered map
+(define (filter-map fn map)
+    (iterate (out-map {} key (keys map))
+      (if (fn key (get map key false))
+          (assoc out-map key (get map key false))
+          out-map)))
+
+;; shadow-ds
+;; Extends a dataset adding a shadow field for each field used in input_fields.
+;; If the number of shadow fields is less than 5, fields are repeated.
+;;
+;; Inputs
+;;  ds-id: (dataset-id) Dataset ID
+;;  f-ids: (list) List of field IDs that will be used as input and extended
+;;                with shadow fields
+;;
+;; Output: (list) List of elements [dataset-id shadow-field-ids fields]
+;;   dataset-id: (dataset-id) ID of the dataset with shadow fields
+;;   shadow-fields-ids: (list) List of IDs for the newly added shadow fields
+;;   fields: (map) New fields structure for the fields in the original dataset.
+;;                 This structure is needed to know the IDs in the
+;;                 shadow dataset for the original fields
+;;
+(define (shadow-ds ds-id fields obj-name)
+  (let (f-id-names (reduce (lambda (x y)
+                             (assoc x y (get-in fields [y "name"] false)))
+                           {}
+                           (keys fields))
+        obj-f (filter-map (lambda (x _)
+                            (= (get-in fields [x "name"] false) obj-name))
+                          f-id-names)
+        obj-id (head (keys obj-f))
+        f-id-names (filter-map (lambda (x _) (!= x obj-id)) f-id-names)
+        f-ids (keys f-id-names)
+        input-fields (cons obj-id f-ids)
+        f-ids (repeat-fields f-ids 5)
+        f-names (map (lambda (x) (str "shadow " (get f-id-names x false)))
+                     f-ids)
+        flatline-fs (map (lambda (x) [(flatline
+                                        "(weighted-random-value {{x}})")
+                                      (str "shadow " (get f-id-names x))])
+                         f-ids)
+        new-fields (lambda (x) (assoc {} "field" (head x)
+                                         "name" (head (tail x))))
+        sh-ds-id (create-and-wait-dataset {"origin_dataset"
+                                           ds-id
+                                           "input_fields"
+                                           input-fields
+                                           "new_fields"
+                                           (map new-fields flatline-fs)})
+        sh-ds (fetch sh-ds-id)
+        sh-fields (get sh-ds "fields" false)
+        sh-f-ids (filter (lambda (x) (member? (get-in sh-fields
+                                                      [x "name"]
+                                                      false)
+                                              f-names))
+                         (keys sh-fields))
+        old-fields (filter-map (lambda (x _)
+                                 (let (n (get-in sh-fields [x "name"] false))
+                                   (not (member? n f-names))))
+                               sh-fields))
+    [sh-ds-id sh-f-ids old-fields]))
+
+;; repeat-fields
+;; Cyclically repeats the list of field IDs until it has the desired
+;; number of elements
+;;
+;; Inputs:
+;;   f-ids: (list) List of field IDs
+;;   min-count: (integer) Minimum number of field IDs
+;;
+;; Output: (list) List of field IDs
+(define (repeat-fields f-ids min-count)
+  (if (< (count f-ids) min-count)
+      (repeat-fields (append f-ids (nth f-ids (rem min-count (count f-ids))))
+                     min-count)
+      f-ids))
+
+;; random-forest
+;; Create a random forest from the dataset
+;;
+;; Inputs:
+;;   ds-id: (dataset-id) Dataset ID
+;;   obj: (string) Objective field ID
+;;   run: (integer) Number of run (to change the seed)
+;; Output: (ensemble-id) Random Forest ID
+(define (random-forest ds-id obj run)
+  (create-and-wait-ensemble {"dataset" ds-id
+                             "objective_field" obj
+                             "randomize" true
+                             "sample_rate" 0.8
+                             "seed" (str "BigML Boruta" run)}))
+
+;; assoc+
+;;
+;; Adds the value in the key-value pair to the one existing in the accumulator
+;;
+;; Input:
+;;   acc: (map) accumulator map
+;;   key: (string) key to accumulate
+;;   value: (number) value to be added
+(define (assoc+ acc key value)
+  (assoc acc key (+ value (get acc key 0))))
+
+;; get-importances
+;;
+;; Selects the field importances in an ensemble
+;;
+;; Inputs:
+;;   ensemble: (ensemble) Ensemble information
+;;
+;; Outputs: list of importances by field name
+
+(define (get-importances ensemble)
+  (let (dist (get ensemble "distributions" false)
+        imps (map (lambda (x) (get x "importance" false)) dist)
+        m-num (count imps))
+    (iterate (acc {} m-imps imps)
+      (iterate (m-acc acc imp m-imps)
+        (assoc+ m-acc
+                (head imp)
+                (/ (head (tail imp)) m-num))))))
+
+;; maximum-shadow-importance
+;;
+;; Selects the maximum importance for the shadow fields
+;;
+;; Inputs:
+;;   imps: (list) List of field importances
+;;   sh-ids: (list) List of field IDs of the shadow fields
+;;
+;; Output: (number) maximum importance for the fields not in the list
+(define (maximum-shadow-importance imps sh-ids)
+  (iterate (acc 0 imp-k (keys imps))
+    (if (member? imp-k sh-ids)
+      (max acc (get imps imp-k 0))
+      acc)))
+
+;; rank-field-ids
+;;
+;; ranks each field id as important or unimportant. The min-gain
+;; argument is used to set a range around the maximum shadow importance
+;; where the field cannot be ranked as important or unimportant.
+;;
+;; Inputs:
+;;   imps: (list) List of field ID - importance pairs
+;;   field-ids: (list) List of original IDs to be checked against the random
+;;                     forest importance list.
+;;   max-sh: (number) Maximum importance of shadow fields
+;;   min-gain: (number) Interval of minimum gain over the shadow fields
+;;                      importance
+;;
+;; Output: (map) Field ID - rank map
+
+(define (rank-field-ids imps field-ids max-sh min-gain)
+  (iterate (acc {} field-id field-ids)
+    (if (> (get imps field-id 0) (+ max-sh min-gain))
+        (assoc+ acc field-id IMPORTANCE_INC)
+        (if (< (get imps field-id 0) (- max-sh min-gain))
+            (assoc+ acc field-id IMPORTANCE_DEC)
+            (assoc+ acc field-id 0)))))
+
+
+;; Script
+
+;; boruta-feature-select
+;;
+;; Creates a new dataset from the one given as argument by finding
+;; out the unimportant fields using the boruta algorithm and removing
+;; them
+;;
+;; Inputs:
+;;   dataset-id: (dataset-id) ID of the origin dataset
+;;   objective: (string) Name of the objective field
+;;   max-runs: (integer) Maximum number of iterations
+;;   min-gain: (number) Increment to define the interval of minimum gain
+;;                      around the maximum importance of shadow fields
+;;
+;; Output: (dataset-id) ID of the filtered dataset
+
+(define (boruta-feature-select dataset-id)
+  (let (fields-rank (boruta dataset-id "" 10 0.01)
+        exclude-fields (get fields-rank "unimportant"))
+    (create "dataset" {"origin_dataset" dataset-id
+                       "excluded_fields" exclude-fields})))
+
+(define feature-selected-dataset (boruta-feature-select dataset-id))
