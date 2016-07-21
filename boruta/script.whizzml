@@ -12,7 +12,7 @@
 ;;  fields: (map) Fields structure
 ;; Output: (list) list of field IDs
 (define (choosable-objective-ids fields)
-  (let (field-val (lambda (fid k) (get-in fields [fid k]))
+  (let (field-val (lambda (fid k) (fields [fid k]))
         objective-types ["categorical" "numeric"]
         pref? (lambda (k) (field-val k "preferred"))
         pred? (lambda (k) (member? (field-val k "optype") objective-types)))
@@ -30,9 +30,9 @@
 ;;
 ;; Output: (string) objective-name
 (define (validate-objective-name objective-name dataset)
-  (let (fields (get dataset "fields" {})
+  (let (fields (dataset "fields" {})
         objective-ids (choosable-objective-ids fields)
-        objective-names (map (lambda (x) (get-in fields [x "name"] false))
+        objective-names (map (lambda (x) (fields [x "name"] false))
                         objective-ids))
     (if (not (member? objective-name objective-names))
       (raise {"message" (str "Failed to find the objective name in the dataset"
@@ -58,19 +58,16 @@
 (define (boruta dataset-id objective max-runs min-gain)
   (let (ds (fetch dataset-id)
         ;; original fields are stored for later use
-        ori-fields (get ds "fields" {})
+        ori-fields (ds "fields" {})
         field-ids (keys ori-fields)
-        f-names (map (lambda (x) (get-in ori-fields [x "name"] false))
+        f-names (map (lambda (x) (ori-fields [x "name"] false))
                      field-ids)
-        init-rank (reduce (lambda (x y) (assoc x (get-in ori-fields
-                                                         [y "name"]
-                                                         false) 0))
-                          {}
-                          field-ids)
+        init-rank (iterate (r {} id field-ids)
+                    (assoc r (ori-fields [id "name"] false) 0))
         objective (if (= objective "")
-                      (get-in ori-fields
-                              [(dataset-get-objective-id dataset-id) "name"]
-                              false)
+                      (ori-fields
+                       [(dataset-get-objective-id dataset-id) "name"]
+                       false)
                       (validate-objective-name objective ds)))
     (loop (f-rank init-rank fields ori-fields ds-id dataset-id runs 0)
       ;; Repeats the procedure until the importance is assigned for all
@@ -88,10 +85,10 @@
           ;; Shuffle the added attributes to remove their correlations with
           ;; the response.
           (let (sh-ds-info (shadow-ds ds-id fields objective)
-                sh-ds-id (head sh-ds-info)
-                sh-ids (head (tail sh-ds-info))
-                fields (nth sh-ds-info 2)
-                to-names (lambda (x) (get-in fields [x "name"] false))
+                sh-ds-id (sh-ds-info 0)
+                sh-ids (sh-ds-info 1)
+                fields (sh-ds-info 2)
+                to-name (lambda (x) (fields [x "name"] false))
                 ;; Run a random forest classifier on the extended
                 ;; information system and gather the importances
                 rf-id (random-forest sh-ds-id objective runs)
@@ -101,7 +98,7 @@
                 ;; min-gain margin.
                 imps (get-importances (fetch rf-id))
                 max-sh (maximum-shadow-importance imps sh-ids)
-                field-ids (filter (lambda (x) (!= objective (to-names x)))
+                field-ids (filter (lambda (x) (!= objective (to-name x)))
                                   (keys fields))
                 f-rank (rank-field-ids imps field-ids max-sh min-gain)
                 fields (remove-unimportant fields f-rank))
@@ -111,12 +108,12 @@
             (log-info "Max importance for the shadow fields: " max-sh)
             (log-info "Important: " (select-by-importance f-rank
                                                           IMPORTANCE_INC
-                                                          to-names))
+                                                          to-name))
             (log-info "Unimportant: " (select-by-importance f-rank
                                                             IMPORTANCE_DEC
-                                                            to-names))
-            (log-info "Undecided: " (select-by-importance f-rank 0 to-names))
-            (log-info "remaining fields: " (map to-names (keys fields)))
+                                                            to-name))
+            (log-info "Undecided: " (select-by-importance f-rank 0 to-name))
+            (log-info "remaining fields: " (map to-name (keys fields)))
             (log-info "------------------------------------------------")
             (recur f-rank fields sh-ds-id (+ runs 1)))))))
 
@@ -129,7 +126,7 @@
 ;; Output: (boolean) True if all the fields are classified
 ;;
 (define (full f-rank)
-  (let (undetermined (filter (lambda (x) (= x 0)) (values f-rank)))
+  (let (undetermined (filter zero? (values f-rank)))
     (empty? undetermined)))
 
 ;; remove-unimportant
@@ -143,7 +140,7 @@
 ;;
 (define (remove-unimportant fields f-rank)
   (iterate (acc fields id (keys f-rank))
-    (if (< (get f-rank id 1) 0)
+    (if (negative? (f-rank id 0))
         (dissoc acc id)
         acc)))
 
@@ -154,12 +151,12 @@
 ;; Inputs:
 ;;   f-map: (map) Map from field ID to importance flag
 ;;   score: (integer) Importance flag value
-;;   to-names-fn: (function) Function to transform IDs to field names
+;;   to-name-fn: (function) Function to transform IDs to field names
 ;;
 ;; Output: (list) List of field names
-(define (select-by-importance f-map score to-names-fn)
+(define (select-by-importance f-map score to-name-fn)
   (let (selected (filter-map (lambda (x y) (= y score)) f-map))
-    (map to-names-fn (keys selected))))
+    (map to-name-fn (keys selected))))
 
 ;; group-importance
 ;;
@@ -175,16 +172,15 @@
 ;;                list of field names
 ;;
 (define (group-importance f-rank fields f-names objective)
-  (let (to-names (lambda (x) (get-in fields [x "name"] false))
-        important (map to-names
-                       (keys (filter-map (lambda(x y) (> y 0))
-                                         f-rank)))
+  (let (to-name (lambda (x) (fields [x "name"] false))
+        important (iterate (r [] k (keys f-rank))
+                    (if (positive? (f-rank k)) (append r (to-name k)) r))
         important (append important objective)
-        undecided (map to-names
-                       (keys (filter-map (lambda(x y) (= y 0))
-                                         f-rank)))
-        unimportant (filter (lambda (x) (not (or (member? x important)
-                                                 (member? x undecided))))
+        undecided (iterate (r [] k (keys f-rank))
+                    (if (zero? (f-rank k)) (append r (to-name k)) r))
+        unimportant (filter (lambda (x)
+                              (not (or (member? x important)
+                                       (member? x undecided))))
                             f-names))
     {"important" important
      "unimportant" unimportant
@@ -195,13 +191,13 @@
 ;;
 ;; Inputs:
 ;;   fn: (function) function to be applied to the map keys and/or values
-;;   map: (map) Map to be filtered
+;;   a-map: (map) Map to be filtered
 ;;
 ;; Output: (map) Filtered map
-(define (filter-map fn map)
-    (iterate (out-map {} key (keys map))
-      (if (fn key (get map key false))
-          (assoc out-map key (get map key false))
+(define (filter-map fn a-map)
+    (iterate (out-map {} key (keys a-map))
+      (if (fn key (a-map key false))
+          (assoc out-map key (a-map key false))
           out-map)))
 
 ;; shadow-ds
@@ -222,40 +218,32 @@
 ;;
 (define (shadow-ds ds-id fields obj-name)
   (let (f-id-names (reduce (lambda (x y)
-                             (assoc x y (get-in fields [y "name"] false)))
+                             (assoc x y (fields [y "name"] false)))
                            {}
                            (keys fields))
         obj-f (filter-map (lambda (x _)
-                            (= (get-in fields [x "name"] false) obj-name))
+                            (= (fields [x "name"] false) obj-name))
                           f-id-names)
         obj-id (head (keys obj-f))
         f-id-names (filter-map (lambda (x _) (!= x obj-id)) f-id-names)
         f-ids (keys f-id-names)
         input-fields (cons obj-id f-ids)
         f-ids (repeat-fields f-ids 5)
-        f-names (map (lambda (x) (str "shadow " (get f-id-names x false)))
+        f-names (map (lambda (x) (str "shadow " (f-id-names x false)))
                      f-ids)
-        flatline-fs (map (lambda (x) [(flatline
-                                        "(weighted-random-value {{x}})")
-                                      (str "shadow " (get f-id-names x))])
-                         f-ids)
-        new-fields (lambda (x) (assoc {} "field" (head x)
-                                         "name" (head (tail x))))
-        sh-ds-id (create-and-wait-dataset {"origin_dataset"
-                                           ds-id
-                                           "input_fields"
-                                           input-fields
-                                           "new_fields"
-                                           (map new-fields flatline-fs)})
+        new-fields (for (id f-ids)
+                     {"field" (flatline "(weighted-random-value {{id}})")
+                      "name" (str "shadow " (f-id-names id))})
+        sh-ds-id (create-and-wait-dataset {"origin_dataset" ds-id
+                                           "input_fields" input-fields
+                                           "new_fields" new-fields})
         sh-ds (fetch sh-ds-id)
-        sh-fields (get sh-ds "fields" false)
-        sh-f-ids (filter (lambda (x) (member? (get-in sh-fields
-                                                      [x "name"]
-                                                      false)
-                                              f-names))
+        sh-fields (sh-ds "fields" false)
+        sh-f-ids (filter (lambda (x)
+                           (member? (sh-fields [x "name"] false) f-names))
                          (keys sh-fields))
         old-fields (filter-map (lambda (x _)
-                                 (let (n (get-in sh-fields [x "name"] false))
+                                 (let (n (sh-fields [x "name"] false))
                                    (not (member? n f-names))))
                                sh-fields))
     [sh-ds-id sh-f-ids old-fields]))
@@ -299,7 +287,7 @@
 ;;   key: (string) key to accumulate
 ;;   value: (number) value to be added
 (define (assoc+ acc key value)
-  (assoc acc key (+ value (get acc key 0))))
+  (assoc acc key (+ value (acc key 0))))
 
 ;; get-importances
 ;;
@@ -311,14 +299,14 @@
 ;; Outputs: list of importances by field name
 
 (define (get-importances ensemble)
-  (let (dist (get ensemble "distributions" false)
-        imps (map (lambda (x) (get x "importance" false)) dist)
+  (let (dist (ensemble "distributions" false)
+        imps (map (lambda (x) (x "importance" false)) dist)
         m-num (count imps))
     (iterate (acc {} m-imps imps)
       (iterate (m-acc acc imp m-imps)
         (assoc+ m-acc
-                (head imp)
-                (/ (head (tail imp)) m-num))))))
+                (imp 0)
+                (/ (imp 1) m-num))))))
 
 ;; maximum-shadow-importance
 ;;
@@ -332,7 +320,7 @@
 (define (maximum-shadow-importance imps sh-ids)
   (iterate (acc 0 imp-k (keys imps))
     (if (member? imp-k sh-ids)
-      (max acc (get imps imp-k 0))
+      (max acc (imps imp-k 0))
       acc)))
 
 ;; rank-field-ids
@@ -353,9 +341,9 @@
 
 (define (rank-field-ids imps field-ids max-sh min-gain)
   (iterate (acc {} field-id field-ids)
-    (if (> (get imps field-id 0) (+ max-sh min-gain))
+    (if (> (imps field-id 0) (+ max-sh min-gain))
         (assoc+ acc field-id IMPORTANCE_INC)
-        (if (< (get imps field-id 0) (- max-sh min-gain))
+        (if (< (imps field-id 0) (- max-sh min-gain))
             (assoc+ acc field-id IMPORTANCE_DEC)
             (assoc+ acc field-id 0)))))
 
@@ -379,8 +367,11 @@
 
 (define (boruta-feature-select dataset-id)
   (let (fields-rank (boruta dataset-id "" 10 0.01)
-        exclude-fields (get fields-rank "unimportant"))
+        ds (fetch dataset-id)
+        name (ds "name")
+        exclude-fields (fields-rank "unimportant"))
     (create "dataset" {"origin_dataset" dataset-id
-                       "excluded_fields" exclude-fields})))
+                       "excluded_fields" exclude-fields
+                       "name" (str name " - feature selected")})))
 
 (define feature-selected-dataset (boruta-feature-select dataset-id))

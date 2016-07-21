@@ -1,14 +1,43 @@
-# Boruta Feature Selection
+# Boruta algorithm
 
-In this package you'll find two scripts implementing Boruta Feature Selection:
+In this package you'll find a script implementing feature selection using
+a version of the
+[Boruta algorithm](https://www.jstatsoft.org/article/view/v036i11/v36i11.pdf)
+to detect important and unimportant fields in your dataset. The algorithm:
 
-- [Boruta 1-click Feature Selection](./1-click-boruta)
-  Starting from a dataset, creates a new one removing the unimportant features
-  according to the Boruta Feature Selection algorithm.
-- [Boruta Feature Selection](./boruta)  General Boruta Feature Selection
-  algorithm to rank fields from a dataset into three categories: important,
-  unimportant and undecided.
+- Retrieves the dataset information.
+- Creates a new extended dataset. In the new dataset, each field has a
+  corresponding shadow field which has the same type but contains a random
+  sample of the values contained in the original one.
+- Creates a random forest from the extended dataset
+- Extracts the maximum of the importances for the shadow fields
+- Uses this maximum plus (minus) a minimum gain as threshold. Any of the
+  original fields scoring less than the minimal threshold are considered
+  unimportant and fields scoring more than the maximum threshold are
+  considered important.
+- Fields marked as unimportant are removed from the list of fields to be used
+  as input fields for new datasets
+- The procedure is repeated, and a new extended dataset is created with
+  the remaining fields. The process stops when it reaches the user-given number
+  of runs or when all the original fields in the dataset are marked as
+  important or unimportant.
+- When iteration stops, a new dataset is created where unimportant fields have
+  been removed.
 
+The **inputs** for the script are:
+
+* `dataset-id`: (dataset-id) Dataset ID for the original data
+
+# Using the Boruta 1-click Feature Selection script
+
+One example using the `dataset/577ef0da7e0a8d4c6900c581` dataset would be
+
+```
+(boruta-feature-select "dataset/577ef0da7e0a8d4c6900c581")
+```
+
+The **output** of the script is stored in `feature-selected-dataset` as a
+dataset ID.
 
 ## Tests
 
