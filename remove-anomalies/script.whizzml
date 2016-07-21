@@ -2,8 +2,7 @@
 
 ;; Given an anomaly resource, get the list of its top_anomaly row numbers
 (define (anomalous-rows a)
-  (map (lambda (x) (get x "row_number"))
-       (get-in a ["model" "top_anomalies"])))
+  (map (lambda (x) (x "row_number")) (a ["model" "top_anomalies"])))
 
 ;; Given a list of row numbers, generate a flatline expression
 ;; that discards those rows.

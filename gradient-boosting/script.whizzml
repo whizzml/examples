@@ -42,7 +42,7 @@
 
 ;; Helper methods to get dataset attributes
 (define (get-fields dataset)
-  (get (fetch dataset {"limit" -1}) "fields"))
+  ((fetch dataset) "fields"))
 
 (define (get-id dataset name)
   (id-from-fields (get-fields dataset) name))
@@ -50,13 +50,13 @@
 (define (id-from-fields fields name)
   (loop (ids (keys fields) vs (values fields))
     (cond (empty? ids) false
-          (= name (get (head vs) "name")) (head ids)
+          (= name ((head vs) "name" false)) (head ids)
           (recur (tail ids) (tail vs)))))
 
 (define (default-inputs dataset-id obj-id)
-  (let (fields-structure (get (fetch dataset-id {"limit" -1}) "fields")
+  (let (fields-structure ((fetch dataset-id) "fields")
         fids (keys fields-structure)
-        field-val (lambda (fid k) (get-in fields-structure [fid k])))
+        field-val (lambda (fid k) (fields-structure [fid k])))
     (filter (lambda (k) (and (field-val k "preferred") (not (= obj-id k))))
             fids)))
 
@@ -76,7 +76,7 @@
 ;; the same fields to learn at each iteration.
 (define (get-inputs fields)
   (let (not-generated? (lambda (astr) (not (contains-string? boost-id astr)))
-        is-input? (lambda (fid) (not-generated? (get (get fields fid) "name"))))
+        is-input? (lambda (fid) (not-generated? ((fields fid) "name"))))
     (filter is-input? (keys fields))))
 
 ;; Get the objective field ids for the given iteration
@@ -87,8 +87,8 @@
 ;; Get the total number of classes for the problem from the field
 ;; descriptor
 (define (get-num-classes dataset obj-id)
-  (let (obj (get (get-fields dataset) obj-id))
-    (count (get-in obj ["summary" "categories"]))))
+  (let (obj ((get-fields dataset) obj-id))
+    (count (obj ["summary" "categories"] []))))
 
 ;; Create in-sample and out-of-sample data for the current iteration
 (define (bootstrap dataset iteration)
@@ -109,15 +109,15 @@
   (let (fs (get-fields dataset)
         gnames (grad-names nclasses iteration)
         gfs (map (lambda (name) (id-from-fields fs name)) gnames)
-        get-sum (lambda (fid) (get-in (get fs fid) ["summary" "sum_squares"])))
+        get-sum (lambda (fid) (fs [fid "summary" "sum_squares"] 0)))
     (reduce + 0 (map get-sum gfs))))
 
 ;; Create the ground truth "matrix" from the original objective field
 ;; - that is, turn each objective field value into a one-hot vector.
 (define (add-truth dataset input-ids obj-id)
-  (let (obj (get (get-fields dataset) obj-id)
-        oname (get obj "name")
-        cats (map (lambda (c) (head c)) (get-in obj ["summary" "categories"]))
+  (let (obj ((get-fields dataset) obj-id)
+        oname (obj "name")
+        cats (map (lambda (c) (head c)) (obj ["summary" "categories"] []))
         ncls (count cats)
         fexp (lambda (c) (flatline "(if (= (f {{obj-id}}) {{c}}) 1.0 0.0)"))
         truth-exprs (map fexp cats)
@@ -165,7 +165,7 @@
                    "name" name
                    "prediction_name" (head names)}
               bp (create-and-wait-batchprediction req)
-              new-ds (get (fetch bp {"limit" -1}) "output_dataset_resource"))
+              new-ds ((fetch bp) "output_dataset_resource"))
           (update-and-wait (wait new-ds) {"name" name})
           (recur new-ds (tail mids) (tail names)))))))
 
@@ -221,7 +221,7 @@
   (let (obj-id (if (empty? obj-id)
                    (dataset-get-objective-id dataset-id)
                    obj-id)
-        otype (get-in (fetch ds-id {"limit" -1}) ["fields" obj-id "optype"]))
+        otype ((fetch ds-id) ["fields" obj-id "optype"]))
     (when (not (= "categorical" otype))
       (raise (str "The dataset's objective field must be categorical, "
                   "but is " otype)))

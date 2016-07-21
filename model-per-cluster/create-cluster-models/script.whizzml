@@ -27,10 +27,10 @@
 (define (create-evaluations ds-ids)
   (let (mds (map evaluate-model-on-dataset ds-ids))
     (for (md mds)
-      (let (mid (get md "model")
-            eid (get md "evaluation"))
+      (let (mid (md "model")
+            eid (md "evaluation"))
         (wait eid)
-        (delete* [mid (get md "training") (get md "test")])
+        (delete* [mid (md "training") (md "test")])
         (fetch eid)))))
 
 (define (create-centroid-datasets cluster-id centroid-ids)
@@ -41,8 +41,8 @@
   (create* "model" (for (id dataset-ids) {"dataset" id})))
 
 (define (centroids-prop cluster prop)
-  (let (cs (get-in cluster ["clusters" "clusters"]))
-    (map (lambda (c) (get c prop)) cs)))
+  (let (cs (cluster ["clusters" "clusters"]))
+    (map (lambda (c) (c prop)) cs)))
 
 ;; Given a dataset id, creates a cluster and models for each of the
 ;; resulting centroid datasets.  Returns the cluster-id, a map from
@@ -51,7 +51,7 @@
 (define (make-cluster-models ds-id)
   (let (cluster-id (create-and-wait-cluster {"dataset" ds-id})
         cluster (fetch cluster-id)
-        cid (get cluster "resource")
+        cid (cluster "resource")
         cids (centroids-prop cluster "id")
         cnames (centroids-prop cluster "name")
         ds-ids (create-centroid-datasets cid cids)

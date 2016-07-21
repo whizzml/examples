@@ -106,7 +106,7 @@
 ;; Output: (float) phi-score for evaluation
 
 (define (avg-phi ev-id)
-  (get-in (fetch ev-id) ["result" "model" "average_phi"]))
+  ((fetch ev-id) ["result" "model" "average_phi"] 0))
 
 ;; sample-and-score
 ;;

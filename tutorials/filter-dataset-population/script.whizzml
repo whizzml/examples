@@ -9,7 +9,7 @@
 ;; Output: (integer) number of rows with missing data
 
 (define (missing-count field-name fields)
-  (get-in fields [field-name "summary" "missing_count"]))
+  (fields [field-name "summary" "missing_count"] 0))
 
 ;; present-percent
 ;;
@@ -23,7 +23,7 @@
 ;; Output: (float) between 0 & 1
 
 (define (present-percent data field-name total-rows)
-  (let (fields (get data "fields"))
+  (let (fields (data "fields"))
     (- 1 (/ (missing-count field-name fields) total-rows))))
 
 ;; excluded-fields
@@ -40,8 +40,8 @@
 
 (define (excluded-fields dataset-id threshold)
   (let (data (fetch dataset-id)
-        all-field-names (get data "input_fields")
-        total-rows (get data "rows"))
+        all-field-names (data "input_fields")
+        total-rows (data "rows"))
     (filter (lambda (field-name)
               (> threshold (present-percent data field-name total-rows)))
             all-field-names)))

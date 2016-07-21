@@ -50,9 +50,9 @@
 
 (define (avg-anomaly evdst-id)
   (let (evdst (fetch evdst-id)
-        score-field (get-in evdst ["objective_field" "id"])
-        sum (get-in evdst ["fields" score-field "summary" "sum"])
-        population (get-in evdst ["fields" score-field "summary" "population"]))
+        score-field (evdst ["objective_field" "id"])
+        sum (evdst ["fields" score-field "summary" "sum"])
+        population (evdst ["fields" score-field "summary" "population"]))
     (/ sum population)))
 
 ;; anomaly-measure
@@ -77,7 +77,7 @@
         anomaly (create-and-wait-anomaly {"dataset" traino-dst
                                           "excluded_fields" train-exc})
         ev-id (anomaly-evaluation anomaly prodo-dst)
-        evdst-id (get-in (fetch ev-id) ["output_dataset_resource"])
+        evdst-id ((fetch ev-id) ["output_dataset_resource"])
         score (avg-anomaly (wait evdst-id)))
       (if clean
         (prog (delete evdst-id)

@@ -5,7 +5,7 @@
 ;; Execution parsing
 
 (define (get-output exec n)
-  (nth (nth (get-in exec ["execution" "outputs"]) n) 1))
+  (((exec ["execution" "outputs"]) n) 1))
 
 (define (get-cluster-id exec) (get-output exec 1))
 (define (get-models exec) (get-output exec 2))
@@ -21,7 +21,7 @@
   (let (pid (create-and-wait-centroid {"cluster" cluster-id
                                        "input_data" input-data})
         pred (fetch pid))
-    (get pred "centroid_id")))
+    (pred "centroid_id")))
 
 (define (predict-by-cluster exec-id input-data)
   (let (exec (fetch exec-id)
@@ -30,7 +30,7 @@
         model-id (get-model exec centroid-id)
         pred (fetch (create-and-wait-prediction {"model" model-id
                                         "input_data" input-data})))
-    {"prediction" (get pred "prediction")
+    {"prediction" (pred "prediction" false)
      "model" model-id
      "centroid" centroid-id}))
 
@@ -44,7 +44,7 @@
 
 
 (define (batchprediction-dataset bp-id)
-  (get (fetch bp-id) "output_dataset_resource"))
+  ((fetch bp-id) "output_dataset_resource"))
 
 (define (split-by-clusters ds-id cluster-id centroid-names)
   (let (bc (create-and-wait-batchcentroid {"cluster" cluster-id

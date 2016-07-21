@@ -31,17 +31,18 @@
                                "dataset" ds-id}))
 
 (define (quality-measure ev-id)
-  (or (get-in (fetch ev-id) ["result" "model" "average_f_measure"])
-      (get-in (fetch ev-id) ["result" "model" "r_squared"])
-      (raise "The models couldn't be evaluated")))
+  (let (ev (fetch ev-id))
+    (or (ev ["result" "model" "average_f_measure"] false)
+        (ev ["result" "model" "r_squared"] false)
+        (raise "The models couldn't be evaluated"))))
 
 ;; Function encapsulating the full workflow
 (define (model-or-ensemble src-id)
   (let (ds-id (create-and-wait-dataset {"source" src-id})
                                           ;; ^ full dataset
         ids (split-dataset ds-id 0.8)     ;; split it 80/20
-        train-id (nth ids 0)              ;; the 80% for training
-        test-id (nth ids 1)               ;; and 20% for evaluations
+        train-id (ids 0)                  ;; the 80% for training
+        test-id (ids 1)                   ;; and 20% for evaluations
         m-id (make-model train-id)        ;; create a model
         e-id (make-ensemble train-id 15)  ;; and an ensemble
         m-f (quality-measure (evaluate-model m-id test-id)) ;; evaluate

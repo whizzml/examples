@@ -3,8 +3,8 @@
 
 ;; Get feature names given ids
 (define (feature-names dataset-id ids)
-  (let (fields (get (fetch dataset-id) "fields"))
-    (map (lambda (id) (get-in fields [id "name"])) ids)))
+  (let (fields ((fetch dataset-id) "fields"))
+    (map (lambda (id) (fields [id "name"])) ids)))
 
 ;; Create a dataset sample
 (define (sample-dataset ds-id rate oob)
@@ -21,10 +21,9 @@
 ;; Get the default set of input fields for this dataset (all preferred
 ;; fields minus the objective field).
 (define (default-inputs dataset-id obj-id)
-  (let (fields-structure (get (fetch dataset-id) "fields")
-        fids (keys fields-structure)
-        field-val (lambda (fid k) (get-in fields-structure [fid k])))
-    (filter (lambda (k) (and (field-val k "preferred") (not (= obj-id k))))
+  (let (fields-structure ((fetch dataset-id) "fields")
+        fids (keys fields-structure))
+    (filter (lambda (k) (and (fields [k "preferred"] false) (not (= obj-id k))))
             fids)))
 
 ;; Make a list of models using the given dataset, objective field and
@@ -46,10 +45,10 @@
         make-req (lambda (mid) (assoc eval-req "model" mid))
         all-reqs (map make-req model-ids)
         evs (map fetch (create-and-wait* "evaluation" all-reqs))
-        vs (map (lambda (ev) (get-in ev ["result" "model" "average_phi"])) evs)
+        vs (map (lambda (ev) (ev ["result" "model" "average_phi"] 0)) evs)
         value-map (make-map potentials vs)
         max-val (get-max vs)
-        choose-best (lambda (id) (if (= max-val (get value-map id)) id false)))
+        choose-best (lambda (id) (and (= max-val (value-map id)) id)))
     (some choose-best potentials)))
 
 ;; Retrieves and checks whether the objective field of the given
@@ -58,7 +57,7 @@
   (let (obj-id (if (empty? obj-id)
                    (dataset-get-objective-id dataset-id)
                    obj-id)
-        otype (get-in (fetch ds-id) ["fields" obj-id "optype"]))
+        otype ((fetch ds-id) ["fields" obj-id "optype"] "missing"))
     (when (not (= "categorical" otype))
       (raise (str "The dataset's objective field must be categorical, "
                   "but is " otype)))

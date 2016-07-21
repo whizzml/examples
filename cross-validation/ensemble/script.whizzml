@@ -56,7 +56,7 @@
   (check-resource-id dataset-id "dataset")
   (check-integer k-folds 2 false)
   (let (dataset (fetch dataset-id)
-        dataset-name (get dataset "name" false))
+        dataset-name (dataset "name" false))
     (check-dataset-objective-id objective-id dataset)
     (let (k-fold-datasets (create-k-folds dataset-id k-folds)
          objective-name (get-objective-name dataset objective-id)
@@ -121,7 +121,7 @@
 ;;  fields: (map) Fields structure
 ;; Output: (list) list of field IDs
 (define (choosable-objective-ids fields)
-  (let (field-val (lambda (fid k) (get-in fields [fid k] false))
+  (let (field-val (lambda (fid k) (fields [fid k] false))
         objective-types ["categorical", "numeric"]
         pref? (lambda (k) (field-val k "preferred"))
         pred? (lambda (k) (member? (field-val k "optype") objective-types)))
@@ -139,7 +139,7 @@
 ;;
 ;; Output: (string) Checked objective field ID
 (define (check-dataset-objective-id objective-id dataset)
-  (let (fields (get dataset "fields" {})
+  (let (fields (dataset "fields" {})
         objective-ids (choosable-objective-ids fields))
     (when (not (member? objective-id objective-ids))
       (raise {"message" (str "Failed to find the objective ID in the dataset"
@@ -157,8 +157,7 @@
 ;; Outputs: (string) Name of the objective field
 
 (define (get-objective-name dataset objective-id)
-  (let (fields (get dataset "fields" {}))
-    (get-in fields [objective-id "name"] false)))
+  (fields ["fields" objective-id "name"] false))
 
 
 ;; create-k-folds
@@ -209,7 +208,7 @@
 ;; Output: (map) filtered map with only the keys in the keys-list
 ;;
 (define (select-keys map keys-list)
-  (reduce (lambda (x y) (let (value (get map y false))
+  (reduce (lambda (x y) (let (value (map y false))
                           (cond value (assoc x y value) x)))
           {}
           keys-list))
@@ -254,8 +253,8 @@
                               dataset-name
                               model-options
                               evaluation-options)
-  (let (number-of-models (get model-options "number_of_models" 1)
-        regularization (get model-options "regularization" false)
+  (let (number-of-models (model-options "number_of_models" 1)
+        regularization (model-options "regularization" false)
         k-fold-pairs (pair-k-folds dataset-ids)
         ensemble-options (select-keys model-options ENSEMBLE_OPTIONS)
         model-options (select-keys model-options MODEL_OPTIONS)

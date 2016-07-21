@@ -4,25 +4,25 @@
 ;; Helper function that returns the list of effective (no-summary)
 ;; fields in a cluster
 (define (cluster-fields cluster)
-  (let (m (get-in cluster ["clusters" "fields"]))
-    (iterate (r {} k (keys (get cluster "scales")))
-      (if (contains? m k) (assoc r k (get m k)) r))))
+  (let (m (cluster ["clusters" "fields"] {}))
+    (iterate (r {} k (keys (cluster "scales")))
+      (if (contains? m k) (assoc r k (m k)) r))))
 
 ;; Given a cluster and an instance with the same fields as its dataset,
 ;; order the cluster's centroids by increasing distance to the instance.
 (define (ordered-centroids cluster instance)
   (let (descs (cluster-fields cluster)
-        weights (get cluster "scales")
+        weights (cluster "scales" [])
         cs (map (lambda (cn)
-                  (let (c (get cn "center")
+                  (let (c (cn "center")
                         d (handle (lambda (e)
                                     (log-error "Could not compute distance "
                                                "between " c " and " instance)
                                     (log-error e))
                             (row-distance-squared descs weights c instance)))
-                    (assoc c "distance" (or d -1) "id" (get cn "id"))))
-                (get-in cluster ["clusters" "clusters"]))
-        cs (filter (lambda (c) (positive? (get c "distance"))) cs))
+                    (assoc c "distance" (or d -1) "id" (cn "id"))))
+                (cluster ["clusters" "clusters"]))
+        cs (filter (lambda (c) (positive? (c "distance" 0))) cs))
     (sort-by-key "distance" cs)))
 
 ;; Auxiliary function for error signaling.
@@ -33,9 +33,9 @@
 ;; new field with the distance of each row to the given one.
 (define (distance-flatline cluster instance)
   (let (ids (keys (cluster-fields cluster))
-        ps (map (lambda (id) (or (get instance id) (raise-missing id))) ids)
-        scales (get cluster "scales")
-        ws (map (lambda (id) (get scales id 1)) ids))
+        ps (map (lambda (id) (or (instance id false) (raise-missing id))) ids)
+        scales (cluster "scales" {})
+        ws (map (lambda (id) (scales id 1)) ids))
     (flatline "(row-distance-squared (list @{{ps}})"
               "                      (fields @{{ids}})"
               "                      (list @{{ws}}))")))
@@ -45,9 +45,9 @@
 ;; dataset that extend's the centroid dataset with a distance
 ;; column.
 (define (generate-distance-dataset cluster cent fl)
-  (let (cluster-id (get cluster "resource")
-        id (or (get cent "id") (raise (str "No id in " cent)))
-        ds-id (get-in cluster ["cluster_datasets" id])
+  (let (cluster-id (cluster "resource")
+        id (or (cent "id" false) (raise (str "No id in " cent)))
+        ds-id (cluster ["cluster_datasets" id] false)
         ds-id (if (or (not ds-id) (empty? ds-id))
                   (create-and-wait-dataset {"cluster" cluster-id "centroid" id})
                   (str "dataset/" ds-id)))
@@ -63,7 +63,7 @@
         sample (fetch sample-id {"row_order_by" obj-id
                                  "rows" n
                                  "mode" "linear"})
-        rows (get-in sample ["sample" "rows"] []))
+        rows (sample ["sample" "rows"] []))
     (delete sample-id)
     rows))
 
@@ -81,11 +81,11 @@
 ;; Utility functions to allow input instance be specified using field
 ;; names or ids.
 (define (translate-instance cluster-id instance)
-  (let (fields (get-in (fetch cluster-id) ["clusters" "fields"])
+  (let (fields ((fetch cluster-id) ["clusters" "fields"])
         find-id (lambda (name)
                   (loop (ks (keys fields))
                     (when (empty? ks) (raise-missing name))
-                    (cond (= name (get-in fields [(head ks) "name"])) (head ks)
+                    (cond (= name (fields [(head ks) "name"] false)) (head ks)
                           (= name (head ks)) name
                           (recur (tail ks))))))
     (make-map (map find-id (keys instance)) (values instance))))

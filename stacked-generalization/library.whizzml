@@ -23,7 +23,7 @@
 
 ;; Extract for a batchpredction its associated dataset of results
 (define (batch-dataset id)
-  (wait (get (fetch id) "output_dataset_resource")))
+  (wait ((fetch id) "output_dataset_resource")))
 
 ;; Create a batchprediction for the given model and datasets,
 ;; with a map of additional options and using defaults appropriate
@@ -38,7 +38,7 @@
 
 ;; Auxiliary function extracting the model_inputs of a model
 (define (model-inputs mod-id)
-  (get (fetch mod-id) "input_fields"))
+  ((fetch mod-id) "input_fields"))
 
 ;; Auxiliary function to create the set of stack models
 (define (create-stack-models train-id)
@@ -89,7 +89,7 @@
                                                    "input_data" input-data}))
                    models)
         preds (map (lambda (p)
-                     (head (values (get (fetch p) "prediction"))))
+                     (head (values ((fetch p) "prediction"))))
                    preds)
         meta-input (make-map (model-inputs meta-model) preds))
    (create-prediction {"model" meta-model "input_data" meta-input})))
