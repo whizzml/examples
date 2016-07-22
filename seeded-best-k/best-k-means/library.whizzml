@@ -22,7 +22,7 @@
 ;; Output: (list) Cluster metadata of created clusters
 ;;
 (define (generate-clusters dataset cluster-args k-min k-max)
-  (let (dname (get (fetch dataset) "name")
+  (let (dname ((fetch dataset) "name" "")
         fargs (lambda (k)
                 (assoc cluster-args "dataset" dataset
                                     "k" k
@@ -42,7 +42,7 @@
 ;; Output: (list) Cluster IDs of clusters
 ;;
 (define (extract-cluster-ids clusters)
-  (map (lambda (x) (get x "resource")) clusters))
+  (map (lambda (x) (x "resource")) clusters))
 
 
 ;; extract-eval-data
@@ -58,17 +58,17 @@
 ;; (define id (nth ids i))
 ;; (define cid (fetch id))
 ;;
-;; (get cid "k")
+;; (cid "k" 0)
 ;; id
-;; (get-in cid ["clusters" "within_ss"])
-;; (count (get cid "input_fields"))
+;; (cid ["clusters" "within_ss"] false)
+;; (count (cid "input_fields" []))
 ;;
 (define (extract-eval-data cluster)
-  (let (id (get cluster "resource")
-        k (get cluster "k")
-        n (count (get cluster "input_fields"))
-        within_ss (get-in cluster ["clusters" "within_ss"])
-        total_ss (get-in cluster ["clusters" "total_ss"]))
+  (let (id (cluster "resource")
+        k (cluster "k" 0)
+        n (count (cluster "input_fields" []))
+        within_ss (cluster ["clusters" "within_ss"] false)
+        total_ss (cluster ["clusters" "total_ss"] false))
     {"id" id "k" k "n" n "within_ss" within_ss "total_ss" total_ss}))
 
 
@@ -123,7 +123,7 @@
 ;;
 (define (evaluate-clusters clusters)
   (let (cmdata (map extract-eval-data clusters)
-        n (get (nth cmdata 0) "n")
+        n ((cmdata 0) "n" false)
         fe (evaluation-func n))
     (loop (in cmdata
            out []
@@ -132,9 +132,11 @@
          out
          (let (ck (head in)
                ckr (tail in)
-               k (get ck "k")
-               within_ss (get ck "within_ss")
-               within_ssz (if (<= k 2) (get ck "total_ss") (get ckz "within_ss"))
+               k (ck "k" false)
+               within_ss (ck "within_ss" false)
+               within_ssz (if (<= k 2)
+                              (ck "total_ss" false)
+                              (ckz "within_ss" false))
                cko (assoc ck "fk" (fe k within_ss within_ssz)))
            (recur ckr (append out cko) ck))))))
 
@@ -152,7 +154,7 @@
 ;;
 (define (clean-clusters evaluations cluster-id logf)
   (for (x evaluations)
-    (let (id (get x "id"))
+    (let (id (x "id"))
       (when logf
         (log-info "Testing for deletion " id " " cluster-id))
       (when (!= id cluster-id)
@@ -184,7 +186,7 @@
 ;; Output: (cluster) Created cluster
 ;;
 (define (best-cluster dataset cluster-args k)
-  (let (dname (get (fetch dataset) "name")
+  (let (dname ((fetch dataset) "name" "")
         ckargs (assoc cluster-args "dataset" dataset
                                    "k" k
                                    "name" (str dname " - cluster (k=" k ")")))
@@ -239,9 +241,9 @@
   (check-k-means-inputs num-seeds k-min k-max)
   (let (evaluations (evaluate-k-means dataset cluster-args num-seeds k-min k-max false logf)
         _ (if logf (log-info "Evaluations " evaluations))
-        besteval (min-key (lambda (x) (get x "fk")) evaluations)
+        besteval (min-key (lambda (x) (x "fk" 0)) evaluations)
         _ (if logf (log-info "Best " besteval))
-        cluster-id (get besteval "id"))
+        cluster-id (besteval "id"))
     (when clean
       (clean-clusters evaluations cluster-id logf))
     cluster-id))

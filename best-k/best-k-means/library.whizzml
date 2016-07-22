@@ -132,9 +132,11 @@
          out
          (let (ck (head in)
                ckr (tail in)
-               k (ck "k")
-               within_ss (ck "within_ss")
-               within_ssz (if (<= k 2) (ck "total_ss") (ckz "within_ss"))
+               k (ck "k" 0)
+               within_ss (ck "within_ss" false)
+               within_ssz (if (<= k 2)
+                              (ck "total_ss" false)
+                              (ckz "within_ss" false))
                cko (assoc ck "fk" (fe k within_ss within_ssz)))
            (recur ckr (append out cko) ck))))))
 
