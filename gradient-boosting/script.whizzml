@@ -76,7 +76,7 @@
 ;; the same fields to learn at each iteration.
 (define (get-inputs fields)
   (let (not-generated? (lambda (astr) (not (contains-string? boost-id astr)))
-        is-input? (lambda (fid) (not-generated? ((fields fid) "name"))))
+        is-input? (lambda (fid) (not-generated? (fields [fid "name"]))))
     (filter is-input? (keys fields))))
 
 ;; Get the objective field ids for the given iteration
