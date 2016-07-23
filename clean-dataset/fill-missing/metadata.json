@@ -2,7 +2,7 @@
   "name": "Fill Missing Values in Dataset",
   "description": "Basic script to use the clean-data library to fill missing values in a dataset",
   "kind": "script",
-  "source": "script.whizzml",
+  "source_code": "script.whizzml",
   "imports": ["../clean-data"],
   "inputs": [
     {
@@ -25,4 +25,3 @@
     }
   ]
 }
-

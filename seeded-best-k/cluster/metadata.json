@@ -3,7 +3,7 @@
   "description": "Basic script to use the best-kmeans library to find the optimal clustering",
   "kind": "script",
   "source_code": "script.whizzml",
-  "imports": ["Seeded Best K-Means"],
+  "imports": ["../best-k-means"],
   "inputs": [
     {
       "name": "dataset",

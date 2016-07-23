@@ -2,8 +2,8 @@
   "name": "Compute Best K-means Batchcentroid",
   "description": "Basic script to use the best-kmeans library",
   "kind": "script",
-  "source": "script.whizzml",
-  "imports": ["Seeded Best K-Means"],
+  "source_code": "script.whizzml",
+  "imports": ["../best-k-means"],
   "inputs": [
     {
       "name": "dataset",

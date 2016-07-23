@@ -2,7 +2,7 @@
   "name": "Generate Configuration Map",
   "description": "Basic script to generate a configuration map template from a dataset",
   "kind": "script",
-  "source": "script.whizzml",
+  "source_code": "script.whizzml",
   "imports": ["../clean-data"],
   "inputs": [
     {
@@ -19,4 +19,3 @@
     }
   ]
 }
-
