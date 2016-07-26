@@ -19,7 +19,7 @@
       "name": "metric",
       "type": "string",
       "default": "average_phi",
-      "description": "Evaluation metric that we want to optimize.  It must be a number"
+      "description": "Evaluation metric that we want to optimize: one of average_recall, average_phi, accuracy, average_precision, or average_f_measure."
     },
     {
       "name": "delete-resources",
