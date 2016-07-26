@@ -157,7 +157,7 @@
 ;; Outputs: (string) Name of the objective field
 
 (define (get-objective-name dataset objective-id)
-  (fields ["fields" objective-id "name"] false))
+  (dataset ["fields" objective-id "name"] false))
 
 
 ;; create-k-folds
