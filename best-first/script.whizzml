@@ -21,8 +21,8 @@
 ;; Get the default set of input fields for this dataset (all preferred
 ;; fields minus the objective field).
 (define (default-inputs dataset-id obj-id)
-  (let (fields-structure ((fetch dataset-id) "fields")
-        fids (keys fields-structure))
+  (let (fields ((fetch dataset-id) "fields")
+        fids (keys fields))
     (filter (lambda (k) (and (fields [k "preferred"] false) (not (= obj-id k))))
             fids)))
 
