@@ -84,7 +84,8 @@
           ;; original set is lower than 5)
           ;; Shuffle the added attributes to remove their correlations with
           ;; the response.
-          (let (sh-ds-info (shadow-ds ds-id fields objective)
+          (let (fields (filter-map (lambda (_ y) (y "preferred" true)) fields)
+                sh-ds-info (shadow-ds ds-id fields objective)
                 sh-ds-id (sh-ds-info 0)
                 sh-ids (sh-ds-info 1)
                 fields (sh-ds-info 2)
@@ -275,6 +276,7 @@
   (create-and-wait-ensemble {"dataset" ds-id
                              "objective_field" obj
                              "randomize" true
+                             "random_candidate_ratio" 0.33
                              "sample_rate" 0.8
                              "seed" (str "BigML Boruta" run)}))
 
@@ -369,9 +371,12 @@
   (let (fields-rank (boruta dataset-id "" 10 0.01)
         ds (fetch dataset-id)
         name (ds "name")
-        exclude-fields (fields-rank "unimportant"))
-    (create "dataset" {"origin_dataset" dataset-id
-                       "excluded_fields" exclude-fields
-                       "name" (str name " - feature selected")})))
+        exclude-fields (fields-rank "unimportant")
+        args {"origin_dataset" dataset-id
+              "name" (str name " - feature selected")}
+        args (if (empty? exclude-fields)
+                 args
+                 (assoc args "excluded_fields" exclude-fields)))
+    (create "dataset" args)))
 
 (define feature-selected-dataset (boruta-feature-select dataset-id))
