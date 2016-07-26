@@ -12,6 +12,7 @@
     {
       "name": "n",
       "type": "number",
+      "default": 3,
       "description": "The number of features to select"
     },
     {
