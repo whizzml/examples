@@ -199,7 +199,7 @@
        (range 0 (count dataset-ids))))
 
 
-;; select-keys
+;; select-map-keys
 ;;
 ;; Filters the keys in a map, keeping only the ones that appear in the list.
 ;;
@@ -208,8 +208,8 @@
 ;;   keys-list: (list) List of keys to be kept in the map
 ;; Output: (map) filtered map with only the keys in the keys-list
 ;;
-(define (select-keys map keys-list)
-  (reduce (lambda (x y) (let (value (map y false))
+(define (select-map-keys map keys-list)
+  (reduce (lambda (x y) (let (value (a-map y false))
                           (cond value (assoc x y value) x)))
           {}
           keys-list))
@@ -257,10 +257,11 @@
   (let (number-of-models (model-options "number_of_models" 1)
         regularization (model-options "regularization" false)
         k-fold-pairs (pair-k-folds dataset-ids)
-        ensemble-options (select-keys model-options ENSEMBLE_OPTIONS)
-        model-options (select-keys model-options MODEL_OPTIONS)
-        logistic-options (select-keys model-options LOGISTIC_OPTIONS)
-        evaluation-options (select-keys evaluation-options EVALUATION_OPTIONS)
+        ensemble-options (select-map-keys model-options ENSEMBLE_OPTIONS)
+        model-options (select-map-keys model-options MODEL_OPTIONS)
+        logistic-options (select-map-keys model-options LOGISTIC_OPTIONS)
+        evaluation-options (select-map-keys evaluation-options
+                                            EVALUATION_OPTIONS)
         type (if (> number-of-models 1) "ensemble" "model")
         multidatasets (map last k-fold-pairs)
         models (cond (> number-of-models 1)
