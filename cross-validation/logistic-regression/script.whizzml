@@ -311,14 +311,16 @@
                  "bias" bias
                  "c" c
                  "missing_numerics" missing-numerics
-                 "default_numeric_value" default-numeric-value
                  "eps" eps
                  "field_codings" field-codings
                  "normalize" normalize
-                 "regularization" regularization})
-    (if (empty? seed)
+                 "regularization" regularization}
+        options (if (empty? seed)
+                    options
+                   (assoc options "seed" seed)))
+    (if (empty? default-numeric-value)
         options
-        (assoc options "seed" seed))))
+        (assoc options "default_numeric_value" default-numeric-value))))
 
 ;; logistic-cross-validation
 ;;
