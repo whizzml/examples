@@ -261,7 +261,7 @@
         evaluation-options (select-map-keys evaluation-options
                                             EVALUATION_OPTIONS)
         multidatasets (map last k-fold-pairs)
-        models  (create-k-models "logistic"
+        models  (create-k-models "logisticregression"
                                   multidatasets
                                   objective-name
                                   logistic-options)
