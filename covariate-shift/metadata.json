@@ -1,7 +1,7 @@
 {
     "name": "Covariate Shift",
     "description": "Indicates whether there is a data distribution shift between two datasets. Tries to predict whether a data point came from a 'Training' dataset or 'Production' dataset.",
-    "resource": "script",
+    "kind": "script",
     "source_code": "script.whizzml",
     "inputs": [
         {
