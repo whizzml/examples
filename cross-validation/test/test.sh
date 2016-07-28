@@ -47,9 +47,10 @@ declare regex="\"outputs\": \[\[\"cross-validation-output\",\
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        echo "model OK"
+        log "model OK"
     else
         echo "model KO:\n $file_content"
+        exit 1
 fi
 log "Testing ensemble script -------------------------------"
 # running the execution with the given inputs
