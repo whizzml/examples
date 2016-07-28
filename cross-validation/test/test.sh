@@ -1,14 +1,18 @@
-VERBOSITY=${VERBOSITY:-0}
+#!/bin/bash
+
+source ../../test-utils.sh
+
 rm -f -R cmd_del
 rm -f -R cmd
 rm -f -R .build
-echo "-------------------------------------------------------"
-echo "Test for cross-validation"
-bigmler whizzml --package-dir ../ --output-dir ./.build --verbosity $VERBOSITY
+
+log "-------------------------------------------------------"
+log "Test for cross-validation"
+run_bigmler whizzml --package-dir ../ --output-dir ./.build
 # creating the resources needed to run the test
-bigmler --train s3://bigml-public/csv/iris.csv --no-model \
-        --project "Whizzml examples tests" --output-dir cmd/pre_test \
-        --verbosity $VERBOSITY
+run_bigmler --train s3://bigml-public/csv/iris.csv --no-model \
+            --project "Whizzml examples tests" --output-dir cmd/pre_test
+
 # building the inputs for the test
 prefix='[["dataset-id", "'
 suffix='"]]'
@@ -17,10 +21,10 @@ cat cmd/pre_test/dataset | while read dataset
 do
 echo "$prefix$dataset$suffix" > "test_inputs.json"
 done
-echo "Testing basic script ----------------------------------"
+log "Testing basic script ----------------------------------"
 # running the execution with the given inputs
-bigmler execute --scripts .build/basic/scripts --inputs test_inputs.json \
-                --output-dir cmd/results --verbosity $VERBOSITY
+run_bigmler execute --scripts .build/basic/scripts --inputs test_inputs.json \
+                    --output-dir cmd/results
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
 declare regex="\"outputs\": \[\[\"cross-validation-output\",\
@@ -32,10 +36,10 @@ if [[ " $file_content " =~ $regex ]]
     else
         echo "basic KO:\n $file_content"
 fi
-echo "Testing model script ----------------------------------"
+log "Testing model script ----------------------------------"
 # running the execution with the given inputs
-bigmler execute --scripts .build/model/scripts --inputs test_inputs.json \
-                --output-dir cmd/results --verbosity $VERBOSITY
+run_bigmler execute --scripts .build/model/scripts --inputs test_inputs.json \
+                    --output-dir cmd/results
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
 declare regex="\"outputs\": \[\[\"cross-validation-output\",\
@@ -47,10 +51,11 @@ if [[ " $file_content " =~ $regex ]]
     else
         echo "model KO:\n $file_content"
 fi
-echo "Testing ensemble script -------------------------------"
+log "Testing ensemble script -------------------------------"
 # running the execution with the given inputs
-bigmler execute --scripts .build/ensemble/scripts --inputs test_inputs.json \
-                --output-dir cmd/results --verbosity $VERBOSITY
+run_bigmler execute --scripts .build/ensemble/scripts \
+                    --inputs test_inputs.json \
+                    --output-dir cmd/results
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
 declare regex="\"outputs\": \[\[\"cross-validation-output\",\
@@ -58,15 +63,15 @@ declare regex="\"outputs\": \[\[\"cross-validation-output\",\
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        echo "ensemble OK"
+        log "ensemble OK"
     else
         echo "ensemble KO:\n $file_content"
+        exit 1
 fi
-echo "Testing logistic regression script --------------------"
+log "Testing logistic regression script --------------------"
 # running the execution with the given inputs
-bigmler execute --scripts .build/logistic-regression/scripts \
-                --inputs test_inputs.json \
-                --output-dir cmd/results --verbosity $VERBOSITY
+run_bigmler execute --scripts .build/logistic-regression/scripts \
+                    --inputs test_inputs.json  --output-dir cmd/results
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
 declare regex="\"outputs\": \[\[\"cross-validation-output\",\
@@ -74,13 +79,14 @@ declare regex="\"outputs\": \[\[\"cross-validation-output\",\
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        echo "logistic regression OK"
+        log "logistic regression OK"
     else
         echo "logistic regression KO:\n $file_content"
+        exit 1
 fi
-echo "-------------------------------------------------------"
+log "-------------------------------------------------------"
 # remove the created resources
-bigmler delete --from-dir cmd --output-dir cmd_del --verbosity $VERBOSITY
-bigmler delete --from-dir .build --output-dir cmd_del --verbosity $VERBOSITY
+run_bigmler delete --from-dir cmd --output-dir cmd_del
+run_bigmler delete --from-dir .build --output-dir cmd_del
 rm -f -R test_inputs.json cmd cmd_del
 rm -f -R .build .bigmler*

@@ -1,5 +1,7 @@
 {
     "name": "Model or ensemble",
+    "kind": "script",
+    "source_code": "model-or-ensemble.whizzml",
     "description": "Select the best option for modeling a source: a model or an ensemble?",
     "inputs": [
         {

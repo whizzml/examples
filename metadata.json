@@ -3,7 +3,7 @@
   "description": "A collection of whizzml scripts and libraries maintained by BigML",
   "kind": "package",
   "components": [
-    "covariate-shift"
+    "covariate-shift",
     "model-or-ensemble",
     "remove-anomalies",
     "find-neighbors",

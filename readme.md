@@ -48,3 +48,39 @@ By convention, when the artifact is a library, the files are called
 - `clean-dataset` Scripts and library for cleaning up a dataset.
 - `boruta` Script for feature selection using the Boruta algorithm.
 
+
+## Compiling packages and running tests
+
+The [makefile](makefile) at the top level provides targets to register
+packages and run tests (when they're available).  It needs a working
+installation of [bigmler](https://bigml.com/tools/bigmler). Just type
+
+```shell
+make help
+```
+
+for a list of possibilities, including:
+
+- `tests` to run all available test scripts (which live in the `test`
+  subdirectory of some packages), which typically use bigmler.
+
+- `compile` to use bigmler to register in BigML the resources
+  associated with one or more packages in the repository.
+
+- `clean` to delete resources and outputs (both remote and local)
+  created by `compile`.
+
+- `distcheck` combines most of the above to check that all the scripts
+  in the repository are working: this target should build cleanly
+  before merging into
+
+The verbosity of the tests output can be controlled with the variable
+`VERBOSITY`, which runs from 0 (the default, mostly silent) to 2.
+E.g.:
+
+```shell
+make tests VERBOSITY=1
+```
+
+If you write your own test scripts, include
+[test-utils.sh](test-utils.sh) for shared utilities.
