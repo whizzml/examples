@@ -17,6 +17,7 @@
     "seeded-best-k",
     "anomaly-shift",
     "cross-validation",
-    "boruta"
+    "boruta",
+    "cluster-classification"
   ]
 }

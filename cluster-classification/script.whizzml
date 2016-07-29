@@ -9,8 +9,8 @@
 
 (define (label-by-cluster cl-id) 
   (let (cl (fetch cl-id)
-        cl-ds (get cl "dataset")
-        cl-fields (get cl "input_fields"))
+        cl-ds (cl "dataset")
+        cl-fields (cl "input_fields"))
     (create-and-wait-batchcentroid
      {"cluster" cl-id 
       "dataset" cl-ds 
@@ -40,10 +40,10 @@
 ;; field ids and average importances
 
 (define (make-importance-map en-id ids)
-  (let (models (get-in (fetch en-id) ["models"])
+  (let (models ((fetch en-id) ["models"])
         len-models (count models)
         imp-lst (map (lambda (md-id) 
-                       (get-in (fetch md-id) ["model" "importance"])) 
+                       ((fetch md-id) ["model" "importance"])) 
                      models)
         imp-map (map list-to-map imp-lst)
         imp-sum (reduce (lambda (x y) (merge-with + x y)) {} imp-map))
@@ -63,11 +63,11 @@
         labeled (bc "output_dataset_resource")
         new-ids (butlast ((fetch labeled) "input_fields"))
         cl-en (create-and-wait-ensemble labeled {"randomize" true})
-        ds-fields (get (fetch labeled) "fields")
+        ds-fields ((fetch labeled) "fields")
         imp-map (make-importance-map cl-en new-ids)
         name-map (make-map new-ids 
                            (map (lambda (x) 
-                                  (get-in ds-fields [x "name"])) 
+                                  (ds-fields [x "name"])) 
                                 new-ids))
         id-map (make-map new-ids old-ids)       
         total-map (map (lambda (x) 

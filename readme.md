@@ -47,6 +47,8 @@ By convention, when the artifact is a library, the files are called
 - `cross-validation` Scripts for performing k-fold crossvalidation.
 - `clean-dataset` Scripts and library for cleaning up a dataset.
 - `boruta` Script for feature selection using the Boruta algorithm.
+- `cluster-classification` Script that determines which input fields
+  are most important for differentiating between clusters
 
 
 ## Compiling packages and running tests
