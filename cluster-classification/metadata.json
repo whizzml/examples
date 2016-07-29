@@ -1,0 +1,20 @@
+{
+  "name": "Cluster Classification",
+  "description": "Find the global field importance across a cluster",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "cluster-id",
+          "type": "cluster-id",
+          "description": "Cluster to be analyzed"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "importance-list",
+          "type": "list",
+          "description": "Field importance results"
+      }
+  ]
+}
