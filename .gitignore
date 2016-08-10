@@ -12,3 +12,4 @@
 */test/test_inputs.json
 /.bigmler_*
 *~
+.bigmler_build
