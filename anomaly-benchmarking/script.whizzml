@@ -1,0 +1,277 @@
+;; Two-to-Binary
+
+;; Given a field with two classes, generates a flatline command that
+;; categorizes datapoints as "anomalous" or "normal"
+
+(define (two-class-filter id anomalous)
+  (flatline "(if (matches? (field {{id}}) {{anomalous}}) \"anomalous\" \"normal\")"))
+
+;; Given a dataset with an objective field with two classes, adds on a
+;; new field "binary" with values "anomalous" and "normal" based on
+;; the original classes
+
+(define (two-to-binary ds)
+  (let (my-ds (fetch ds)
+       field-id (get-in my-ds ["objective_field" "id"])
+       anomalous (head 
+                   (head (get-in my-ds 
+                                 ["fields" 
+                                  field-id 
+                                  "summary" 
+                                  "categories"]))))
+    (create-dataset {"origin_dataset" ds
+                     "new_fields" [{"field" (two-class-filter 
+                                             field-id 
+                                             anomalous)
+                                    "name" "binary"}]})))
+
+;; Multi-to-Binary
+
+;; Creating the Evaluation 
+;; (mostly from jao's
+;;  model-per-cluster/create-cluster-models)
+
+;; Samples a dataset with a given rate (between 0 and 1) and getting
+;; the sampled rows (oob = false) or the complementary ones (oob = true),
+;; using a fixed seed.
+
+(define (sample-dataset ds-id rate oob)
+  (create-dataset {"sample_rate" rate
+                   "origin_dataset"  ds-id
+                   "out_of_bag" oob
+                   "seed" "whizzml-example"}))
+
+;; Creates a model with 80% of the input dataset, evaluates it
+;; with the remaining 20%. Returns the evaluation id.
+
+(define (evaluate-model-on-dataset ds-id)
+  (let (training-id (sample-dataset ds-id 0.8 false)
+        test-id (sample-dataset ds-id 0.8 true)
+        model-id (create-model {"dataset" training-id "randomize" true})
+        ev-id (create-and-wait-evaluation {"model" model-id "dataset" test-id}))
+     ev-id))
+
+;; Graphs
+ 
+;; Given an evaluation id, takes the confustion matrix of the model
+;; result and represents it as a complete graph as outlined in
+;; http://www.outlier-analytics.org/odd13kdd/papers/emmott,das,dietterich,fern,wong.pdf,
+;; section 3.2. Each node is a class of the confusion matrix, and each
+;; edge (between nodes j and k) is weighted by summing the value of
+;; cell [j k] and cell [k j].
+
+;; The returned graph is a map with keys "nodes" and "edges". These
+;; are lists of node maps and edge maps, respectively. Node maps have
+;; keys "id" and "name", the class name given in the confusion
+;; matrix. Edge maps have keys "ends", a duple of the node ids the
+;; edge connects, and "weight", its weight calculated from the
+;; confusion matrix.
+
+;;Given a confusion matrix and two nodes, returns the weighted edge.
+
+(define (make-edge matrix two-nodes)
+  (let (node1 (head two-nodes)
+        node2 (last two-nodes)
+        weight12 (nth (nth matrix node1) node2)
+        weight21 (nth (nth matrix node2) node1))
+   (make-map ["ends" "weight"] [[node1 node2] (+ weight12 weight21)]) ))
+
+;; Given a confusion matrix, returns a list of all the properly
+;; weighted edges.
+
+(define (create-edges matrix)
+  (let (count (count matrix))
+    (map (lambda (x) (map (lambda (y) 
+                                  (make-edge matrix [x, y])) 
+                          (range (+ x 1) count))) (range 0 (- count 1)))))
+              
+;; Given a nested list, returns its contents as a single flat
+;; list. Uses recursion in ways bad for big sequences, but works for
+;; our meager needs
+
+(define (flatten flat-list list-of-lists)
+  (if (empty? list-of-lists)
+    flat-list
+    (let (element (head list-of-lists)
+          rest (tail list-of-lists))
+      (if (list? element)
+        (if (some list? element)
+            (flatten (concat flat-list (flatten [] element)) rest)
+            (flatten (concat flat-list element) rest))
+        (flatten (append flat-list element) rest)))))
+
+;; Given an evaluation, returns a graph based on its confusion matrix.
+
+(define (make-graph eval)
+  (let (my-result (get (fetch eval) "result")
+        my-matrix (get-in my-result ["model" "confusion_matrix"])
+        my-classes (get my-result "class_names")
+        nodes (map (lambda (x) (make-map ["id" "name"] [x (nth my-classes x)])) (range (count my-classes)))
+        edges (flatten [] (create-edges my-matrix)))
+    (make-map ["nodes" "edges"] [nodes edges])))        
+
+;; Given a list of node maps and two keys of those maps, returns a map
+;; between those keys. This is useful later when looking up colors or
+;; names by id.
+
+(define (mapify nodes state1 state2)
+  (let (ids (map (lambda (x) (str (get x state1))) nodes)
+        states (map (lambda (x) (get x state2)) nodes))
+    (make-map ids states)))
+
+;; Maximum Spanning Tree
+
+;; Given a graph as structured above, returns a list of edges that
+;; comprise the maximum spanning tree of the graph. It uses a form of
+;; Kruskal's algorithm
+;; (https://en.wikipedia.org/wiki/Kruskal%27s_algorithm) for finding a
+;; minimum spanning tree. Cycles are accounted for with the subgraphs
+;; map: each node starts with the parent -1, and this is updated as
+;; edges are added to the span tree.
+
+(define (max-span-tree graph)
+  (let (edges (get graph "edges")
+        nodes (get graph "nodes")
+        sorted (reverse (sort-by-key "weight" edges))
+        find-subgraph (lambda (node-id subgraphs)
+                        (let (parent (get subgraphs (str node-id)))
+                          (if (= parent -1)
+                            node-id
+                            (find-subgraph parent subgraphs)))))
+    (loop (span-edges [] 
+           subgraphs (make-map (map (lambda (x) (str (get x "id"))) nodes) 
+                              (repeat (count nodes) -1)) 
+           list-of-edges sorted) 
+      (cond (= (count span-edges) (- (count nodes) 1)) span-edges
+            (empty? list-of-edges) "Graph is disconnected"
+            (let (edge (head list-of-edges)
+                  rest (tail list-of-edges)
+                  ends (get edge "ends")
+                  subgraph1 (find-subgraph (head ends) subgraphs)
+                  subgraph2 (find-subgraph (last ends) subgraphs))
+              (if (= subgraph1 subgraph2)
+                (recur span-edges subgraphs rest)
+                (recur (append span-edges edge) 
+                       (assoc subgraphs (str subgraph1) subgraph2)
+                       rest)))))))
+
+;;Two-Coloring
+
+;; Given a node id and a spanning tree, returns that node's neighbors
+;; as a list of the node ids
+
+(define (find-neighbors node span-tree)
+  (let (end-list (map (lambda (x) (get x "ends")) span-tree)
+        ends-with-node (filter (lambda (x) (member? node x)) end-list))
+    (filter (lambda (x) (not (= x node))) (flatten [] ends-with-node)))) 
+
+;; Given a list of nodes, a node id, and a color ("normal" or
+;; "anomalous"), returns the list with the color of the node changed
+
+(define (color-a-node nodes node color)
+  (let (old-node (head (filter (lambda (x) (= node (get x "id"))) nodes))
+        all-other-nodes (filter (lambda (x) (not (= old-node x))) nodes)
+        new-node (assoc old-node "color" color))
+    (append all-other-nodes new-node)))
+
+;; Given a graph and a spanning tree, returns a graph where the nodes
+;; have a new attribute "color", either normal or anomalous. No two
+;; touching nodes have the same color.
+
+(define (two-color graph span-tree)
+  (let (old-nodes (map (lambda (x) (assoc x "color" "none")) 
+                    (get graph "nodes"))
+        edges (get graph "edges")
+        uncolored? (lambda (id color-map) (= (color-map (str id)) "none"))
+        color-lots (lambda (nodes list-of-ids color) 
+                     (reduce (lambda (x y) (color-a-node x y color))
+                             nodes list-of-ids))
+        new-color (lambda (color) (if (= color "normal") 
+                                      "anomalous" "normal")))
+    (loop (queue [0] nodes (color-a-node old-nodes 0 "normal"))
+      (if (empty? queue)
+          (make-map ["nodes" "edges"] [nodes edges])
+          (let (node (head queue)
+                rest (tail queue)
+                node-color (mapify nodes "id" "color")
+                neighbors (filter (lambda (x) (uncolored? x node-color)) 
+                                  (find-neighbors node span-tree))
+                colored-nodes (color-lots nodes neighbors 
+                                         (new-color (node-color (str node))))
+                new-queue (concat rest neighbors))
+            (recur new-queue colored-nodes))))))
+
+;; Creating the new dataset
+
+;; Given a field id and a map of class names to colors, returns a
+;; flatline expression that returns a color based on the class in the
+;; given field.
+
+(define (color-filter field-id color-map)
+  (let (classes (keys color-map)
+        one-line (lambda (class color) 
+                   (flatline "(matches? (field {{field-id}}) {{class}}) {{color}}"))
+        conditions (reduce (lambda (x y) 
+                       (join " " [x (one-line y (color-map y))])) 
+                     "" (keys color-map)))
+    (join " " ["(cond" conditions ")"])))
+
+;; Given a dataset with a multivariate objective field, returns an
+;; extended dataset with a new field "binary", which can be either
+;; "normal" or "anomalous", determined by the two-colored graph of the
+;; confusion matrix
+
+(define (multi-to-binary ds)
+  (let (my-eval (evaluate-model-on-dataset ds)
+       my-graph (make-graph my-eval)
+       my-span-tree (max-span-tree my-graph)
+       colored-graph (two-color my-graph my-span-tree)
+       field-id (get (fetch ds) "objective_field")
+       color-map (mapify (get colored-graph "nodes") "name" "color"))
+    (create-dataset {"origin_dataset" ds
+                     "new_fields" [{
+                       "field" (color-filter (get field-id "id") color-map)
+                       "name" "binary"}]})))
+
+;; Numeric-to-Binary
+
+;; Given a field id for a numeric field and a median value, returns a
+;; flatline command that categorizes datapoints above the median as
+;; "anomalous" and below as "normal"
+
+(define (median-filter id median)
+  (flatline "(if (> (field {{id}}) {{median}}) \"anomalous\" \"normal\")"))
+
+;; Given a dataset with a numeric objective field, returns an extended
+;; dataset with a new field "binary" with values "anomalous" and
+;; "normal" based on whether the value of the objective field is above
+;; or below the median
+
+(define (numeric-to-binary ds)
+  (let (my-ds (fetch ds)
+        field-id (get-in my-ds ["objective_field" "id"])
+        median (get-in my-ds ["fields" field-id "summary" "median"]))
+    (create-dataset {"origin_dataset" ds
+                     "new_fields" [{
+                       "field" (median-filter field-id median)
+                       "name" "binary"}]})))
+
+;; Given a dataset, determines which function to use and returns the
+;; appropriate extended dataset
+
+(define (make-binary ds)
+  (let (my-ds (fetch ds)
+        field-id (get-in my-ds ["objective_field" "id"])
+        my-optype (get-in my-ds ["fields" field-id "optype"]))
+    (if (= my-optype "categorical")
+      (let (classes (count (get-in my-ds 
+                                 ["fields" 
+                                  field-id 
+                                  "summary" 
+                                  "categories"])))
+        (if (= classes 2)
+          (two-to-binary ds)
+          (multi-to-binary ds)))
+      (numeric-to-binary ds))))                                
+
+(define binary-dataset (make-binary dataset-id))
