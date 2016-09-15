@@ -1,7 +1,7 @@
 # Making a Dataset Binary
 
 This script takes any dataset and returns it extended by a new field,
-"binary". "Binary" takes the values "normal" or "anomalous" following
+"Is Anomaly?". "Is Anomaly?" takes the values "normal" or "anomalous" following
 the procedure laid out in the ODD paper
 http://www.outlier-analytics.org/odd13kdd/papers/emmott,das,dietterich,fern,wong.pdf.
 
@@ -33,6 +33,6 @@ Given a dataset id, it:
 
   - Two-colors that graph with "normal" and "anomalous".
 
-  - Returns an extended dataset with the new field "binary",
+  - Returns an extended dataset with the new field "Is Anomaly?",
     determined by the coloring of the class in the old objective
     field.

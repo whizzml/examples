@@ -48,8 +48,10 @@ By convention, when the artifact is a library, the files are called
 - `clean-dataset` Scripts and library for cleaning up a dataset.
 - `boruta` Script for feature selection using the Boruta algorithm.
 - `cluster-classification` Script that determines which input fields
-  are most important for differentiating between clusters
-
+  are most important for differentiating between clusters.
+- `anomaly-benchmarking` Script that takes any dataset (classification
+  or regression) and turns it into a binary classification problem
+  with the two classes "normal" and "anomalous".
 
 ## Compiling packages and running tests
 

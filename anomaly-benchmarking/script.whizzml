@@ -7,7 +7,7 @@
   (flatline "(if (matches? (field {{id}}) {{anomalous}}) \"anomalous\" \"normal\")"))
 
 ;; Given a dataset with an objective field with two classes, adds on a
-;; new field "binary" with values "anomalous" and "normal" based on
+;; new field "Is Anomoly?" with values "anomalous" and "normal" based on
 ;; the original classes
 
 (define (two-to-binary ds)
@@ -23,7 +23,7 @@
                      "new_fields" [{"field" (two-class-filter 
                                              field-id 
                                              anomalous)
-                                    "name" "binary"}]})))
+                                    "name" "Is Anomaly?"}]})))
 
 ;; Multi-to-Binary
 
@@ -86,8 +86,7 @@
                           (range (+ x 1) count))) (range 0 (- count 1)))))
               
 ;; Given a nested list, returns its contents as a single flat
-;; list. Uses recursion in ways bad for big sequences, but works for
-;; our meager needs
+;; list.
 
 (define (flatten flat-list list-of-lists)
   (if (empty? list-of-lists)
@@ -217,9 +216,9 @@
     (join " " ["(cond" conditions ")"])))
 
 ;; Given a dataset with a multivariate objective field, returns an
-;; extended dataset with a new field "binary", which can be either
-;; "normal" or "anomalous", determined by the two-colored graph of the
-;; confusion matrix
+;; extended dataset with a new field "Is Anomaly?", which can be
+;; either "normal" or "anomalous", determined by the two-colored graph
+;; of the confusion matrix
 
 (define (multi-to-binary ds)
   (let (my-eval (evaluate-model-on-dataset ds)
@@ -227,11 +226,11 @@
        my-span-tree (max-span-tree my-graph)
        colored-graph (two-color my-graph my-span-tree)
        field-id (get (fetch ds) "objective_field")
-       color-map (mapify (get colored-graph "nodes") "name" "color"))
+       color-map (mapify (get colored-graph "nodes") "name" "color")
+       filter (color-filter (get field-id "id") color-map))
     (create-dataset {"origin_dataset" ds
-                     "new_fields" [{
-                       "field" (color-filter (get field-id "id") color-map)
-                       "name" "binary"}]})))
+                     "new_fields" [{"field" filter
+                                    "name" "Is Anomaly?"}]})))
 
 ;; Numeric-to-Binary
 
@@ -250,11 +249,11 @@
 (define (numeric-to-binary ds)
   (let (my-ds (fetch ds)
         field-id (get-in my-ds ["objective_field" "id"])
-        median (get-in my-ds ["fields" field-id "summary" "median"]))
+        median (get-in my-ds ["fields" field-id "summary" "median"])
+        filter (median-filter field-id median))
     (create-dataset {"origin_dataset" ds
-                     "new_fields" [{
-                       "field" (median-filter field-id median)
-                       "name" "binary"}]})))
+                     "new_fields" [{"field" filter
+                                    "name" "Is Anomaly?"}]})))
 
 ;; Given a dataset, determines which function to use and returns the
 ;; appropriate extended dataset

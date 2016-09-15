@@ -18,6 +18,7 @@
     "anomaly-shift",
     "cross-validation",
     "boruta",
-    "cluster-classification"
+    "cluster-classification",
+    "anomaly-benchmarking"
   ]
 }
