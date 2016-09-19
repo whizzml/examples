@@ -1,7 +1,7 @@
 {
   "name": "Single predictions with cluster models",
   "description": "Perform a single prediction using cluster models",
-  "resource": "script",
+  "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
     {

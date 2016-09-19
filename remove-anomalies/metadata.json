@@ -1,7 +1,7 @@
 {
   "name": "Remove Anomalies",
   "description": "Remove the top n anomalies from a dataset",
-  "resource": "script",
+  "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
     {
