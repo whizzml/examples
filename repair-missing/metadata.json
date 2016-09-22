@@ -1,0 +1,25 @@
+{
+  "name": "Auto-complete Missing Fields",
+  "description": "Use dataset information to fill in missing values for numeric or categorical fields which have at least one value missing.  For numeric fields, we learn a random forest to predict a probable field value given the information that is present.  For categorical fields we add an explict 'missing' category to the field.  In both cases, we also add a binary column indicating whether the value was missing in the original dataset or not.",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "dataset-id",
+          "type": "dataset-id",
+          "description": "Dataset to be completed"
+      },
+      {
+          "name": "objective-field-id",
+          "type": "string",
+          "description": "Objective field of the input dataset, or null to choose the default objective"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "completed-dataset",
+          "type": "dataset-id",
+          "description": "Dataset with completed columns added"
+      }
+  ]
+}

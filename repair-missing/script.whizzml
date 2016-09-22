@@ -1,0 +1,192 @@
+;; This is a hack:  Field IDs are not conserved at batch prediction time, so
+;; we need to make sure that all of the fields have assigned IDs exactly as
+;; batch prediction will assign them (which essentially amounts to putting
+;; generated fields at the end).  To do this, we make a dummy model, do a dummy
+;; batch prediction, then remove the dummy column.
+(define (flatten-dataset dataset-id)
+  (let (fds ((fetch dataset-id) "fields"))
+    (if (some (lambda (fid) (= ((fds fid) "optype") "datetime")) (keys fds))
+      (let (_ (log-info "Generated fields detected.  Flattening dataset...")
+            mod-id (create-model dataset-id)
+            bp (create-batchprediction {"dataset" dataset-id
+                                        "all_fields" true
+                                        "output_dataset" true
+                                        "model" (wait mod-id)
+                                        "prediction_name" "__bmldummy"})
+            pred-ds ((fetch (wait bp)) "output_dataset_resource")
+            new_fields ((fetch (wait pred-ds)) "fields")
+            pred_fid (id-from-fields new_fields "__bmldummy")
+            final-ds (wait (create-dataset {"origin_dataset" pred-ds
+                                            "excluded_fields" [pred_fid]})))
+        (delete* [mod-id pred-ds bp])
+        final-ds)
+      dataset-id)))
+
+;; Helper function to get the ID of a field given its name
+(define (id-from-fields fields name)
+  (loop (ids (keys fields) vs (values fields))
+    (cond (empty? ids) false
+          (= name ((head vs) "name" false)) (head ids)
+          (recur (tail ids) (tail vs)))))
+
+;; Resolve the objective field ID given the input.  Choose the default
+;; if it's empty but we still want to use an objective.
+(define (get-objective use-objective dataset-id input)
+  (let (fds ((fetch dataset-id) "fields"))
+    (cond (not use-objective) false
+          (empty? input) (dataset-get-objective-id dataset-id)
+          (contains? fds input) input
+          (let (oid (id-from-fields fds input))
+            (if oid
+              oid
+              (raise (str "Objective field '" input "' not found!")))))))
+
+;; Find fields that are missing data.  As a bonus, we'll find
+;; non-preferred fields and exclude them later.
+(define (get-bad-fields fds objective-field)
+  (let (exclude? (lambda (fid) (not (or ((fds fid) "preferred")
+                                        (= fid objective-field))))
+        to-exclude (sort (filter exclude? (keys fds)))
+        repair? (lambda (fid) (and (> (((fds fid) "summary") "missing_count") 0)
+                                   (not (member? fid to-exclude))))
+        to-repair (sort (filter repair? (keys fds))))
+    [to-repair to-exclude]))
+
+;; Compose a dataset containing only rows for which the specified
+;; field ID isn't missing
+(define (filter-missing dataset-id field-id)
+  (let (fexpr (str "(not (missing \"" field-id "\"))"))
+    (create-dataset {"origin_dataset" dataset-id "lisp_filter" fexpr})))
+
+;; Create a model with the given dataset for the given field ID if it
+;; is a modelable type, else return the empty string as a dummy
+;; resource ID.
+(define (make-model ds-name train-ds fid fdesc obj-id)
+  (if (member? (fdesc "optype") ["numeric" "categorical"])
+    (create-ensemble {"dataset" train-ds
+                      "excluded_fields" (if obj-id [obj-id] [])
+                      "objective_field" fid
+                      "randomize" true
+                      "name" (str ds-name " - " fid)})
+    ""))
+
+;; Iterate through the map of models and make a prediction for each of
+;; the modeled fields, adding columns to the end of the dataset.
+;; Ignores keys mapped to the empty string, which denotes an
+;; unmodelable items or text field
+(define (dataset-with-predictions dataset-id model-map)
+  (log-info "Predicting output for " (count model-map) " fields...")
+  (loop (ds dataset-id fids (sort (keys model-map)))
+    (when (not (empty? fids))
+      (log-info "Making predictions for field " (head fids)))
+    (if (empty? fids)
+      ds
+      (if (empty? (model-map (head fids)))
+        (recur ds (tail fids))
+        (let (fname (str (head fids) "_pred")
+              bp (create-batchprediction {"dataset" ds
+                                          "all_fields" true
+                                          "output_dataset" true
+                                          "ensemble" (model-map (head fids))
+                                          "prediction_name" fname})
+              ods (wait ((fetch (wait bp)) "output_dataset_resource")))
+          (delete bp)
+          (when (not (= (head fids) (head (sort (keys model-map))))) (delete ds))
+          (recur ods (tail fids)))))))
+
+
+;; Compose Flatline expressions for choosing the value from a
+;; predicted field if the value in the original field is missing, or,
+;; in the case of text/items fields, replace with the empty string.
+(define (missing-exprs fid fdesc)
+  (let (pred (str fid "_pred")
+        expr (if (member? (fdesc "optype") ["numeric" "categorical"])
+               (flatline "(if (missing? {{fid}}) (f {{pred}}) (f {{fid}}))")
+               (flatline "(if (missing? {{fid}}) \"\" (f {{fid}}))")))
+     [expr (flatline "(if (missing? {{fid}}) true false)")]))
+
+;; Create names for the added fields, one each for the field with the
+;; missing values replaced by predictions, and the binary "was
+;; missing" column.
+(define (missing-names fdesc)
+  [(str (fdesc "name") " - Completed") (str (fdesc "name") " - Missing")])
+
+;; This function iterates through the fields with missing data, using
+;; flatline to choose the field value if there is one and the value
+;; predicted by the model if there isn't.  We also add a boolean
+;; column specifying which value was chosen.  It also moves the
+;; objective field to the end of the dataset if it exists (when making
+;; a batch prediction, for example, there might not be an objective
+;; field present).
+(define (choose-fields original-name dataset-id processor)
+  (log-info "Filling missing values with predictions in " dataset-id)
+  (let (fds ((fetch dataset-id) "fields")
+        oid (processor "objective_field")
+        oexpr (flatline "(f {{oid}})")
+        fids (sort (keys (processor "model_map")))
+        fdescs (map fds fids)
+        obj-present? (and oid (contains? fds oid))
+        ;; If the objective field is present, move it to the end
+        names (apply concat (map missing-names fdescs))
+        names (if obj-present? (append names ((fds oid) "name")) names)
+        exprs (apply concat (map missing-exprs fids fdescs))
+        exprs (if obj-present? (append exprs oexpr) exprs)
+        fs (map (lambda (n e) {"name" n "field" e}) names exprs)
+        temp-ids (lambda (fid) [fid (id-from-fields fds (str fid "_pred"))])
+        exids (concat (if obj-present? [oid] [])
+                      (processor "excluded_fields")
+                      (apply concat (map temp-ids fids)))
+        new-ds (create-dataset {"origin_dataset" dataset-id
+                                "name" (str original-name  " - Completed")
+                                "all_but" (filter identity exids)
+                                "new_fields" fs}))
+    (log-info "Creating completed fields...")
+    (wait new-ds)))
+
+;; Learn a structure that contains information for "repairing"
+;; datasets with missing values: For each column that is missing
+;; values, we create a model for that field, using all values to
+;; predict it except the objective.  The returned structure has the
+;; fields of the original dataset, the specified objective, a map from
+;; field ids to model ids contain the predictors learned, and a list
+;; of fields to be excluded (mostly non-preferred fields.  The
+;; structure can be passed to `repair-dataset` to fill in the missing
+;; values for another dataset.
+(define (learn-processor dataset-id objective-field use-objective)
+  (let (ofid (get-objective use-objective dataset-id objective-field)
+        dname ((fetch dataset-id) "name")
+        _  (log-info "Objective field is " ofid)
+        dsid (flatten-dataset dataset-id)
+        ods (fetch dsid)
+        fds (ods "fields")
+        [to-repair to-exclude] (get-bad-fields fds ofid)
+        fdescs (map fds to-repair)
+        _ (log-info "Fields to complete: " to-repair)
+        dss (map (lambda (fid) (filter-missing dsid fid)) to-repair)
+        make-mod (lambda (ds fid fdesc) (make-model dname ds fid fdesc ofid))
+        _ (log-info "Creating filtered datasets...")
+        models (map make-mod dss to-repair fdescs)
+        _ (wait* (filter (lambda (id) (not (empty? id))) models))
+        _ (log-info "Modeling missing values..."))
+    (delete* dss)
+    (when (not (= dsid dataset-id)) (delete dsid))
+    {"fields" fds
+     "objective_field" ofid
+     "model_map" (make-map to-repair models)
+     "excluded_fields" to-exclude}))
+
+;; Use the processor from `learn-processor` to "repair" a dataset:
+;; Make predictions for the columns that may have missing values, then
+;; use a flatline expression to fill in the missing values with
+;; predicitons.  Also eliminate non-preferred fields.
+(define (repair-dataset dataset-id processor)
+  (let (dsid (flatten-dataset dataset-id)
+        predset (dataset-with-predictions dsid (processor "model_map"))
+        outset (choose-fields ((fetch dsid) "name") predset processor))
+    (when (not (= dsid dataset-id)) (delete dsid))
+    (delete predset)
+    outset))
+
+;; (define processor (learn-processor dataset-id objective-field use-objective))
+
+;; (define repaired-dataset (repair-dataset dataset-id processor))
