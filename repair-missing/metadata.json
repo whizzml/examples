@@ -14,7 +14,7 @@
           "type": "string",
           "default": "",
           "description": "Objective field of the input dataset, or the empty string to choose the default objective.  If use-objective is true, this field is excluded from the missing field models and placed at the end of the output dataset."
-      }
+      },
       {
           "name": "use-objective",
           "type": "boolean",
@@ -27,7 +27,7 @@
           "name": "repaired-dataset",
           "type": "dataset-id",
           "description": "Dataset with completed columns added"
-      }
+      },
       {
           "name": "processor",
           "type": "map",
