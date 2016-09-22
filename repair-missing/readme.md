@@ -27,7 +27,7 @@ is missing).
 An additional binary column is generated for each field that required
 completing, describing whether or not the field was missing in the
 original column.  This is useful in the case where data is missing for
-a reaason that may have relevant semantics (such as a doctor deciding not to
+a reason that may have relevant semantics (such as a doctor deciding not to
 administer a specific medical test).
 
 For "text" or "items" fields, we replace missing values with the empty
@@ -35,7 +35,7 @@ string.  As text and items fields essentially comprise a set of binary
 features, the empty string gives a sensible replacement for those
 features.  We also generate the "was missing" column in this case.
 
-Datetime fields are not imputed directly, but their constituient
+Datetime fields are not imputed directly, but their constituent
 fields are.
 
 ## Tests
