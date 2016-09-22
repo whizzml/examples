@@ -187,6 +187,6 @@
     (delete predset)
     outset))
 
-;; (define processor (learn-processor dataset-id objective-field use-objective))
+(define processor (learn-processor dataset-id objective-field use-objective))
 
-;; (define repaired-dataset (repair-dataset dataset-id processor))
+(define repaired-dataset (repair-dataset dataset-id processor))
