@@ -48,6 +48,7 @@
                                         (= fid objective-field))))
         to-exclude (sort (filter exclude? (keys fds)))
         repair? (lambda (fid) (and (> (((fds fid) "summary") "missing_count") 0)
+                                   (not (= fid objective-field))
                                    (not (member? fid to-exclude))))
         to-repair (sort (filter repair? (keys fds))))
     [to-repair to-exclude]))
