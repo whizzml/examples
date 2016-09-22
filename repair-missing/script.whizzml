@@ -170,8 +170,7 @@
         _ (log-info "Modeling missing values..."))
     (delete* dss)
     (when (not (= dsid dataset-id)) (delete dsid))
-    {"fields" fds
-     "objective_field" ofid
+    {"objective_field" ofid
      "model_map" (make-map to-repair models)
      "excluded_fields" to-exclude}))
 
@@ -182,7 +181,7 @@
 (define (repair-dataset dataset-id processor)
   (let (dsid (flatten-dataset dataset-id)
         predset (dataset-with-predictions dsid (processor "model_map"))
-        outset (choose-fields ((fetch dsid) "name") predset processor))
+        outset (choose-fields ((fetch dataset-id) "name") predset processor))
     (when (not (= dsid dataset-id)) (delete dsid))
     (delete predset)
     outset))
