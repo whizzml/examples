@@ -58,5 +58,8 @@ script
 ```
 bash
 cd test
-./test.sh
+VERBOSITY=0 ./test.sh
 ```
+
+Note that changing the value of `VERBOSITY` to either 1 or 2 will give
+you increasing levels of output as the tests are running.
