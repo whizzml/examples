@@ -24,10 +24,7 @@
 
 ;; Helper function to get the ID of a field given its name
 (define (id-from-fields fields name)
-  (loop (ids (keys fields) vs (values fields))
-    (cond (empty? ids) false
-          (= name ((head vs) "name" false)) (head ids)
-          (recur (tail ids) (tail vs)))))
+  (some (lambda (fid) (when (= ((fields fid) "name") name) fid)) (keys fields)))
 
 ;; Resolve the objective field ID given the input.  Choose the default
 ;; if it's empty but we still want to use an objective.

@@ -31,7 +31,7 @@
       {
           "name": "processor",
           "type": "map",
-          "description": "A collection of information about the repair process, including the models learned to replace missing data.  Can be to complete future datasets of the same format."
+          "description": "A collection of information about the repair process, including the models learned to replace missing data.  Can be used to complete future datasets of the same format."
       }
   ]
 }
