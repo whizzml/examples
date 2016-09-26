@@ -1,27 +1,3 @@
-;; This is a hack:  Field IDs are not conserved at batch prediction time, so
-;; we need to make sure that all of the fields have assigned IDs exactly as
-;; batch prediction will assign them (which essentially amounts to putting
-;; generated fields at the end).  To do this, we make a dummy model, do a dummy
-;; batch prediction, then remove the dummy column.
-(define (flatten-dataset dataset-id)
-  (let (fds ((fetch dataset-id) "fields"))
-    (if (some (lambda (fid) (= ((fds fid) "optype") "datetime")) (keys fds))
-      (let (_ (log-info "Generated fields detected.  Flattening dataset...")
-            mod-id (create-model dataset-id)
-            bp (create-batchprediction {"dataset" dataset-id
-                                        "all_fields" true
-                                        "output_dataset" true
-                                        "model" (wait mod-id)
-                                        "prediction_name" "__bmldummy"})
-            pred-ds ((fetch (wait bp)) "output_dataset_resource")
-            new_fields ((fetch (wait pred-ds)) "fields")
-            pred_fid (id-from-fields new_fields "__bmldummy")
-            final-ds (wait (create-dataset {"origin_dataset" pred-ds
-                                            "excluded_fields" [pred_fid]})))
-        (delete* [mod-id pred-ds bp])
-        final-ds)
-      dataset-id)))
-
 ;; Helper function to get the ID of a field given its name
 (define (id-from-fields fields name)
   (some (lambda (fid) (when (= ((fields fid) "name") name) fid)) (keys fields)))
@@ -152,22 +128,20 @@
 ;; values for another dataset.
 (define (learn-processor dataset-id objective-field use-objective)
   (let (ofid (get-objective use-objective dataset-id objective-field)
-        dname ((fetch dataset-id) "name")
+        ods (fetch dataset-id)
+        dname (ods "name")
         _  (log-info "Objective field is " ofid)
-        dsid (flatten-dataset dataset-id)
-        ods (fetch dsid)
         fds (ods "fields")
         [to-repair to-exclude] (get-bad-fields fds ofid)
         fdescs (map fds to-repair)
         _ (log-info "Fields to complete: " to-repair)
-        dss (map (lambda (fid) (filter-missing dsid fid)) to-repair)
+        dss (map (lambda (fid) (filter-missing dataset-id fid)) to-repair)
         make-mod (lambda (ds fid fdesc) (make-model dname ds fid fdesc ofid))
         _ (log-info "Creating filtered datasets...")
         models (map make-mod dss to-repair fdescs)
         _ (wait* (filter (lambda (id) (not (empty? id))) models))
         _ (log-info "Modeling missing values..."))
     (delete* dss)
-    (when (not (= dsid dataset-id)) (delete dsid))
     {"objective_field" ofid
      "model_map" (make-map to-repair models)
      "excluded_fields" to-exclude}))
@@ -177,10 +151,8 @@
 ;; use a flatline expression to fill in the missing values with
 ;; predicitons.  Also eliminate non-preferred fields.
 (define (repair-dataset dataset-id processor)
-  (let (dsid (flatten-dataset dataset-id)
-        predset (dataset-with-predictions dsid (processor "model_map"))
+  (let (predset (dataset-with-predictions dataset-id (processor "model_map"))
         outset (choose-fields ((fetch dataset-id) "name") predset processor))
-    (when (not (= dsid dataset-id)) (delete dsid))
     (delete predset)
     outset))
 
