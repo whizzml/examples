@@ -1,15 +1,15 @@
 # Dataset Repair
 
 The idea behind this script is to take a dataset as input and return a
-"clean" dataset with no missing value (except possibly in the
-objective) and no non-preferred fields.
+"clean" dataset with no missing values (except possibly in the
+objective) and only "preferred" fields.
 
 The script "completes" missing fields by using predictive models to
 impute value where they are missing.  The result is a dataset with the
 columns containing missing values replaced by columns with the missing
 values imputed.  In addition, for each completed column, we add a
 binary column indicating whether or not the value was missing in the
-original dataset.  We also remove non-preferred columns.
+original dataset.  Finally, we also remove non-preferred columns.
 
 ## Some Details
 
@@ -21,8 +21,8 @@ all rows except those missing the target field value.
 
 After training, we make predictions for all rows using the learned
 model.  A flatline expression is then used to select between the
-original field value (if present) or the prediction (if the original
-is missing).
+original field value (if present) or the prediction (if the value in
+the original field is missing).
 
 An additional binary column is generated for each field that required
 completing, describing whether or not the field was missing in the
