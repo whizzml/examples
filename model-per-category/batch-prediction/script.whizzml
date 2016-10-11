@@ -1,0 +1,64 @@
+;; Find field
+(define (find-field-id fields field)
+  (or (fields field false)
+      (loop (ids (keys fields))
+        (cond (empty? ids) false
+              (= field (fields [(head ids) "name"] "")) (head ids)
+              (recur (tail ids))))))
+
+
+;; Extracts the result of the given execution, signaling an
+;; error if it's not of the expected kind.
+(define (exec-result eid)
+  (let (res ((fetch eid) ["execution" "result"] {}))
+    (for (k ["models" "missings-model" "categories" "field-id" "field-name"])
+      (when (not (contains? res k))
+        (raise (str "Invalid execution: Missing field " k " in result"))))
+    res))
+
+;; Given a parent dataset, a field and one of its categories,
+;; create a new dataset containing only the instances of the parent
+;; that have the given given category.
+(define (category-dataset dataset field category)
+  (let (fltr (flatline "(= (f {{field}}) {{category}})"))
+    (create-dataset dataset {"lisp_filter" fltr})))
+
+;; Create a dataset for missing values of field
+(define (missings-dataset dataset field)
+  (let (missings ((fetch dataset) ["fields" field "summary" "missing_count"] 0))
+    (when (positive? missings)
+      (create-dataset dataset {"lisp_filter"
+                               (flatline "(missing? {{field}})")}))))
+
+;; Delete resources ignoring errors
+(define (safe-delete id)
+  (try (delete id)
+       (catch e (log-info (str "Error deleting resource " id " ignored")))))
+
+;; Final workflow
+(define (predict-by-category eid dataset del?)
+  (let (res (exec-result eid)
+        fds ((fetch dataset) "fields")
+        fid (or (find-field-id fds (res "field-name"))
+                (find-field-id fds (res "field-id"))
+                (raise (str "The input dataset does not contain "
+                            (res "field-name"))))
+        ds (for (c (res "categories")) (category-dataset dataset fid c))
+        mm (res "missings-model")
+        md (when mm (missings-dataset dataset fid))
+        ds (if (and mm md) (cons md ds) ds)
+        ms (if (and mm md) (cons mm (res "models")) (res "models"))
+        bps (map (lambda (d m)
+                   (create-batchprediction d m {"output_dataset" true
+                                                "all_fields" true
+                                                "confidence" true}))
+                 ds ms)
+        bds (map (lambda (bp)
+                   ((fetch (wait bp)) "output_dataset_resource"))
+                 bps)
+        pds (create-and-wait-dataset {"origin_datasets" (wait* bds)}))
+     (when del? (map safe-delete (concat bps bds ds)))
+     pds))
+
+(define result
+  (predict-by-category execution-id dataset-id clean-up?))

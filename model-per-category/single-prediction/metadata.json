@@ -1,0 +1,25 @@
+{
+  "name": "Single predictions with per-category models",
+  "description": "Perform a single prediction using category models",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "execution-id",
+      "type": "execution-id",
+      "description": "The execution of `Create category models` that created the per category models needed for making these predictions."
+    },
+    {
+      "name": "input",
+      "type": "map",
+      "description": "A map describing the fields of the new instance for which we want to make a prediction"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "prediction",
+      "type": "map",
+      "description": "The resulting prediction object"
+    }
+  ]
+}

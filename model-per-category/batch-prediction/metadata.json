@@ -1,0 +1,31 @@
+{
+  "name": "Batch predictions with category models",
+  "description": "Perform a batch prediction using per-category models",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "execution-id",
+      "type": "execution-id",
+      "description": "The execution of `Create category models` that created the per category models needed for making these predictions."
+    },
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "A dataset to perform predictions over each of its rows"
+    },
+    {
+      "name": "clean-up?",
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to clean up intermediate resources"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": "dataset-id",
+      "description": "The resulting prediction dataset"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "Create category models",
+  "description": "Generate a set of models from a dataset, one per each category in a given field",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "The data to model"
+    },
+    {
+      "name": "field",
+      "type": "string",
+      "description": "The name or id of the categorical field used to split the input data"
+    },
+    {
+      "name": "objective",
+      "type": "string",
+      "default": "",
+      "description": "The objective name or id, or blank to use the dataset's default"
+    },
+    {
+      "name": "model-kind",
+      "type": "string",
+      "default": "model",
+      "description": "The kind of ML model to create: model, ensemble or logisticregression"
+    },
+    {
+      "name": "model-parameters",
+      "type": "map",
+      "default": {},
+      "description": "Additional parameters to use when creating models"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": "map",
+      "description": "A map with categories, datasets and models, as lists"
+    }
+  ]
+}

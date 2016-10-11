@@ -1,0 +1,25 @@
+;; Extracts the result of the given execution, signaling an
+;; error if it's not of the expected kind.
+(define (exec-result eid)
+  (let (res ((fetch eid) ["execution" "result"] {}))
+    (for (k ["models" "missings-model" "categories" "field-id" "field-name"])
+      (when (not (contains? res k))
+        (raise (str "Invalid execution: Missing field " k " in result"))))
+    res))
+
+;; Final workflow
+(define (predict-by-category eid input)
+  (let (res (exec-result eid)
+        cat (or (input (res "field-id") false) (input (res "field-name") ""))
+        models (make-map (cons "" (res "categories"))
+                         (cons (res "missings-model") (res "models")))
+        model (or (models cat false)
+                  (raise (if (empty? cat)
+                          (str "Invalid category " cat)
+                          "Missing category"))))
+    (log-info "Creating prediction for "
+              (if (empty? cat) "missing category" (str "'" cat "'"))
+              " using " model)
+    (create-and-wait-prediction {"model" model "input_data" input})))
+
+(define prediction (predict-by-category execution-id input))

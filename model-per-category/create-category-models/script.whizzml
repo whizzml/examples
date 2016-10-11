@@ -1,0 +1,59 @@
+;; Given a dataset, a field and a model kind, splits the dataset
+;; per category and uses the results to creates models of the given
+;; kind.
+
+;; Find field by either name or id
+(define (find-field* fields field)
+  (or (fields field false)
+      (loop (ids (keys fields))
+        (cond (empty? ids)
+              (raise (str "Field not found: " field))
+              (= field (fields [(head ids) "name"] ""))
+              [(fields (head ids)) (head ids)]
+              (recur (tail ids))))))
+
+;; Given a dataset and a categorical field id or name, find
+;; the associated list of categories and the missing count.
+(define (categories dataset-id field-id)
+  (let ([f id] (find-field* ((fetch dataset-id) "fields") field-id))
+    (when (not (= "categorical" (f "optype")))
+      (raise (str "Field '" field "' is not categorical")))
+    (let (cs (map head (f ["summary" "categories"] [])))
+      (when (empty? cs)
+        (raise (str "Field '" field "' does not contain any category")))
+      [cs (f ["summary" "missing_count"] 0) id (f "name")])))
+
+;; Given a parent dataset, a field and one of its categories,
+;; create a new dataset containing only the instances of the parent
+;; that have the given given category.
+(define (category-dataset origin-id field category)
+  (let (fltr (flatline "(= (f {{field}}) {{category}})"))
+    (create-dataset origin-id {"lisp_filter" fltr})))
+
+;; Create a dataset and a model for missing values of field
+(define (missings-resources dataset missings field kind params)
+  (if (positive? missings)
+    (let (fl (flatline "(missing? {{field}})")
+          ds (create-dataset dataset {"lisp_filter" fl}))
+      [ds (wait (create kind ds params))])
+    [false false]))
+
+;; Final workflow
+(define (model-by-categories dataset field objective kind parameters)
+  (let ([cs missings id name] (categories dataset field)
+        ds (for (c cs) (category-dataset dataset field c))
+        ps (if (empty? objective)
+             parameters
+             (assoc parameters "objective_field" objective))
+        ms (for (d ds) (create kind d ps))
+        [md mm] (missings-resources dataset missings field kind ps))
+    {"categories" cs
+     "datasets" ds
+     "field-id" id
+     "field-name" name
+     "models" (wait* ms)
+     "missings-dataset" md
+     "missings-model" mm}))
+
+(define result
+  (model-by-categories dataset field objective model-kind model-parameters))

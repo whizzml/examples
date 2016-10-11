@@ -1,0 +1,10 @@
+{
+  "name": "Model by categories",
+  "description": "Scripts library to model data split by a categorical field and make predictions using the resulting per-category models",
+  "kind": "package",
+  "components":[
+    "create-category-models",
+    "single-prediction",
+    "batch-prediction"
+  ]
+}
