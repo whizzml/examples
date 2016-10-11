@@ -1,4 +1,4 @@
-# Modeling and prediction per cluster
+# Modeling and prediction per category
 
 With the [create-category-models script](create-category-models),
 given an input dataset and one of its categorical fields, you'll
