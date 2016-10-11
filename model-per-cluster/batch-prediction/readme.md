@@ -1,4 +1,4 @@
-# Single predictions with cluster models
+# Batch predictions with cluster models
 
 This script uses the
 [Use cluster models](../use-cluster-models/readme.md) to create batch

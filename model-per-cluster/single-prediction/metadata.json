@@ -3,6 +3,7 @@
   "description": "Perform a single prediction using cluster models",
   "kind": "script",
   "source_code": "script.whizzml",
+  "imports": ["../use-cluster-models"],
   "inputs": [
     {
       "name": "execution-id",

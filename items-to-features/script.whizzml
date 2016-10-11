@@ -2,7 +2,10 @@
 ;; denoting whether the item is present or not.
 
 ;; Find field by either name or id
-(define (find-field fields field)
+(define (find-field* fields field)
+  ;; When find-field enters the stdlib, this can be replaced by:
+  ; (or (find-field fields field)
+  ;     (raise (str "Field not found: " field)))
   (or (fields field false)
       (loop (ids (keys fields))
         (cond (empty? ids) (raise (str "Field not found: " field))
@@ -12,7 +15,7 @@
 ;; Retrieves the list of items in the given field
 (define (get-items dataset-id field)
   (let (dataset (fetch (wait dataset-id))
-        field (find-field (dataset "fields") field)
+        field (find-field* (dataset "fields") field)
         items (map head (field ["summary" "items"] [])))
     (when (not (= "items" (field "optype" false)))
       (raise (str "Field '" field "' must have type 'items'")))

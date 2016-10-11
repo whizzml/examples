@@ -31,7 +31,7 @@ repository and, at its top level, issue the command:
 
 That will create for you all three scripts.
 
-## How to install
+### Using the web UI
 
 - Install the `create-category-models` script, using
   [this url](./create-category-models).

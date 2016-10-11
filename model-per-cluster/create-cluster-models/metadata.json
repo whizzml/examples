@@ -4,6 +4,7 @@
   "Generate a cluster and a set of models from its centroid datasets",
   "kind": "script",
   "source_code": "script.whizzml",
+  "imports": ["../use-cluster-models"],
   "inputs": [
     {
       "name": "source-id",

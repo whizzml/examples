@@ -24,11 +24,23 @@ make predictions.
 
 ## How to install
 
+### Using bigmler
+
+If you have bigmler installed in your system, just checkout this
+repository and, at its top level, issue the command:
+
+        make compile PKG_DIR=model-per-cluster
+
+That will create for you all necessary libraries and the three
+scripts.
+
+### Using the web UI
+
 - Install the `create-cluster-models` script, using
   [this url](./create-cluster-models).
 - Install the `use-cluster-models` library, using
   [this url](./use-cluster-models).
 - Install [single-prediction](./single-prediction), with the previous
-  library as (its only) dependency.
+  library as its only dependency.
 - Install [batch-prediction](./batch-prediction), with the previous
-  library as (its only) dependency.
+  library as its only dependency.
