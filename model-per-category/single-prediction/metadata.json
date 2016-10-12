@@ -5,7 +5,7 @@
   "source_code": "script.whizzml",
   "inputs": [
     {
-      "name": "execution-id",
+      "name": "execution",
       "type": "execution-id",
       "description": "The execution of `Create category models` that created the per category models needed for making these predictions."
     },

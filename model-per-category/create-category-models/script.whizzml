@@ -4,7 +4,7 @@
 
 ;; Find field by either name or id
 (define (find-field* fields field)
-  (or (fields field false)
+  (or (when (contains? fields field) [(fields field) field])
       (loop (ids (keys fields))
         (cond (empty? ids)
               (raise (str "Field not found: " field))

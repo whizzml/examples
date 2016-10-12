@@ -22,4 +22,4 @@
               " using " model)
     (create-and-wait-prediction {"model" model "input_data" input})))
 
-(define prediction (predict-by-category execution-id input))
+(define prediction (predict-by-category execution input))

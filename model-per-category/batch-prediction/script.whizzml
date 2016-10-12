@@ -60,5 +60,4 @@
      (when del? (map safe-delete (concat bps bds ds)))
      pds))
 
-(define result
-  (predict-by-category execution-id dataset-id clean-up?))
+(define result (predict-by-category execution dataset clean-up?))
