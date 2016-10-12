@@ -1,5 +1,9 @@
 # Modeling and prediction per category
 
+These scripts allow selecting the field to be used as the first split
+(or *root split*) when modeling and predicting with any supervised
+algorithm in BigML.
+
 With the [create-category-models script](create-category-models),
 given an input dataset and one of its categorical fields, you'll
 generate a new dataset for each of the categories in the given field,
