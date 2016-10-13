@@ -9,7 +9,7 @@ last_result=""
 
 function cleanup {
   [ -d $outdir ] && \
-      run_bigmler delete --from-dir $outdir --output-dir $outdir_del >/dev/null
+      run_bigmler delete --from-dir $outdir --output-dir $outdir_del
   rm -f -R $outdir_del $outdir .bigmler*
 }
 

@@ -37,6 +37,8 @@ By convention, when the artifact is a library, the files are called
 - `model-per-cluster` Scripts and library to model data after
   clustering and make predictions using the resulting per-cluster
   model.
+- `model-per-category` Scripts to model and predict from an input
+  dataset with a hand-picked root node field.
 - `best-k` Scripts and library implementing Pham-Dimov-Nguyen
   algorithm for choosing the best k in k-means clusters.
 - `seeded-best-k` Scripts and library implementing Pham-Dimov-Nguyen

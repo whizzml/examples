@@ -11,6 +11,7 @@
     "best-first",
     "gradient-boosting",
     "model-per-cluster",
+    "model-per-category",
     "smacdown-branin",
     "smacdown-ensemble",
     "best-k",
