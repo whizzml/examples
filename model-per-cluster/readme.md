@@ -31,8 +31,8 @@ repository and, at its top level, issue the command:
 
         make compile PKG_DIR=model-per-cluster
 
-That will create for you all necessary libraries and the three
-scripts.
+That will create all necessary libraries and the three scripts for
+you.
 
 ### Using the web UI
 

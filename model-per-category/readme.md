@@ -37,7 +37,7 @@ repository and, at its top level, issue the command:
 
         make compile PKG_DIR=model-per-category
 
-That will create for you all three scripts.
+That will create all three scripts for you.
 
 ### Using the web UI
 
