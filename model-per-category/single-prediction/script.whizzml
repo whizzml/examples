@@ -1,22 +1,32 @@
 ;; Extracts the result of the given execution, signaling an
 ;; error if it's not of the expected kind.
 (define (exec-result eid)
-  (let (res ((fetch eid) ["execution" "result"] {}))
-    (for (k ["models" "missings-model" "categories" "field-id" "field-name"])
+  (let (res ((fetch eid) ["execution" "result"] {})
+        ks (if (res "binary" false)
+             ["category"]
+             ["categories" "missings-model"]))
+    (for (k (concat ["models" "field-id" "field-name" "kind"] ks))
       (when (not (contains? res k))
         (raise (str "Invalid execution: Missing field " k " in result"))))
     res))
+
+;; Find the model to use from execution result
+(define (find-model cat res)
+  (if (res "binary")
+    (let ([m nm] (res "models"))
+      (if (= cat (res "category")) m nm))
+    (let (models (make-map (cons "" (res "categories"))
+                           (cons (res "missings-model") (res "models"))))
+      (models cat false))))
 
 ;; Final workflow
 (define (predict-by-category eid input)
   (let (res (exec-result eid)
         cat (or (input (res "field-id") false) (input (res "field-name") ""))
-        models (make-map (cons "" (res "categories"))
-                         (cons (res "missings-model") (res "models")))
-        model (or (models cat false)
+        model (or (find-model cat res)
                   (raise (if (empty? cat)
-                          (str "Invalid category " cat)
-                          "Missing category"))))
+                             (str "No model for category " cat)
+                             "No model for missing category"))))
     (log-info "Creating prediction for "
               (if (empty? cat) "missing category" (str "'" cat "'"))
               " using " model)

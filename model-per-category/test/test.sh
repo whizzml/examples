@@ -13,8 +13,8 @@ function cleanup {
   rm -f -R $outdir_del $outdir .bigmler*
 }
 
-def_inputs="[\"field\", \"000004\"], [\"objective\", \"000002\"]"
-cats_rx="\"categories\": \[(\"Iris-setosa\"|\"Iris-versicolor\"|\"Iris-virginica\"[,\]]+)"
+def_inputs="[\"split-field\", \"000004\"], [\"objective\", \"000002\"]"
+cats_rx="\"categor(ies|y)\": \[?(\"Iris-setosa\"|\"Iris-versicolor\"|\"Iris-virginica\"[,\]\}]+)"
 
 function check_execute_results {
   cnts=$(<$1)
@@ -38,6 +38,11 @@ function execute_create_models {
                       --inputs $inputs_file \
                       --output-dir $exec_dir
   check_execute_results $exec_dir/whizzml_results.json $exec_dir/execution
+}
+
+function execute_create_models_binary {
+  local p="[[\"dataset\", \"$2\"], [\"binary-split\", true], $def_inputs]"
+  execute_create_models "$1" "" "$p"
 }
 
 single_rx="\"result\": \"prediction/[a-f0-9]{24}"
@@ -96,7 +101,8 @@ cleanup
 
 log "Registering the package scripts in ${BIGML_DOMAIN:-bigml.io}"
 log "-------------------------------------------------------"
-run_bigmler whizzml --package-dir ../ --output-dir $outdir/scripts
+run_bigmler whizzml --package-dir ../ --output-dir $outdir/scripts || \
+    (echo "KO: Failed to create whizzml package"; exit 1)
 
 models_script_id=$(<$outdir/scripts/create-category-models/scripts)
 single_script_id=$(<$outdir/scripts/single-prediction/scripts)
@@ -117,6 +123,8 @@ execute_create_models $models_script_id $iris_id
 ex_iris_id=$last_result
 execute_create_models $models_script_id $iris_missings_id
 ex_miss_id=$last_result
+execute_create_models_binary $models_script_id $iris_missings_id
+ex_bin_id=$last_result
 
 log "Tests for single predictions"
 log "-------------------------------------------------------"

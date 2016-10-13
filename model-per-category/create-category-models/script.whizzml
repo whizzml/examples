@@ -17,10 +17,10 @@
 (define (categories dataset-id field-id)
   (let ([f id] (find-field* ((fetch dataset-id) "fields") field-id))
     (when (not (= "categorical" (f "optype")))
-      (raise (str "Field '" field "' is not categorical")))
+      (raise (str "Field '" field-id "' is not categorical")))
     (let (cs (map head (f ["summary" "categories"] [])))
       (when (empty? cs)
-        (raise (str "Field '" field "' does not contain any category")))
+        (raise (str "Field '" field-id "' does not contain any category")))
       [cs (f ["summary" "missing_count"] 0) id (f "name")])))
 
 ;; Given a parent dataset, a field and one of its categories,
@@ -38,8 +38,8 @@
       [ds (wait (create kind ds params))])
     [false false]))
 
-;; Final workflow
-(define (model-by-categories dataset field objective kind parameters)
+;; Final workflow for multiway first split
+(define (multiway-model dataset field objective kind parameters)
   (let ([cs missings id name] (categories dataset field)
         ds (for (c cs) (category-dataset dataset field c))
         ps (if (empty? objective)
@@ -47,13 +47,48 @@
              (assoc parameters "objective_field" objective))
         ms (for (d ds) (create kind d ps))
         [md mm] (missings-resources dataset missings field kind ps))
+    (wait* ms)
+    (delete* ds)
+    (when md (delete md))
     {"categories" cs
-     "datasets" ds
      "field-id" id
      "field-name" name
-     "models" (wait* ms)
-     "missings-dataset" md
+     "models" ms
+     "binary" false
+     "kind" kind
      "missings-model" mm}))
 
+;; Find the category for a binary split
+(define (find-category dataset id params)
+  (let (m-id (wait (create-model dataset (assoc params "input_fields" [id])))
+        m (fetch m-id {"exclude" "fields"})
+        c (m ["model" "root" "children" 0 "predicate" "value"] false))
+    (delete m-id)
+    (or c (raise "Unable to find a category for first split"))))
+
+;; Split a dataset extracting a given category
+(define (split-on-category dataset id cat)
+  (let (fl (flatline "(= (f {{id}}) {{cat}})")
+        nfl (flatline "(!= (f {{id}}) {{cat}})"))
+    (for (f [fl nfl]) (create-dataset dataset {"lisp_filter" f}))))
+
+;; Final workflow for binary first split
+(define (binary-model dataset field objective kind parameters)
+  (let ([cs missings id name] (categories dataset field)
+        ps (if (empty? objective)
+             parameters
+             (assoc parameters "objective_field" objective))
+        c (find-category dataset id ps)
+        ds (split-on-category dataset id c)
+        ms (wait* (for (d ds) (create kind d ps))))
+    (delete* ds)
+    {"category" c
+     "field-id" id
+     "field-name" name
+     "models" ms
+     "binary" true
+     "kind" kind}))
+
 (define result
-  (model-by-categories dataset field objective model-kind model-parameters))
+  (let (f (if binary-split binary-model multiway-model))
+    (f dataset split-field objective model-kind model-parameters)))

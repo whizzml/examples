@@ -1,6 +1,7 @@
 {
   "name": "Create category models",
-  "description": "Generate a set of models from a dataset, one per each category in a given field",
+  "description":
+  "Generate models for a dataset, simulating a root split on a given field",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
@@ -10,21 +11,30 @@
       "description": "The data to model"
     },
     {
-      "name": "field",
+      "name": "split-field",
       "type": "string",
-      "description": "The name or id of the categorical field used to split the input data"
+      "description":
+      "The name or id of the categorical field used to split the input data"
+    },
+    {
+      "name": "binary-split",
+      "type": "boolean",
+      "default": false,
+      "description":
+      "If true, a binary split (instead of a multi-way one) is used"
     },
     {
       "name": "objective",
       "type": "string",
       "default": "",
-      "description": "The objective name or id, or blank to use the dataset's default"
+      "description":
+      "The objective name or id, or blank to use the dataset's default"
     },
     {
       "name": "model-kind",
       "type": "string",
       "default": "model",
-      "description": "The kind of ML model to create: model, ensemble or logisticregression"
+      "description": "The kind of ML model to create: model or ensemble"
     },
     {
       "name": "model-parameters",

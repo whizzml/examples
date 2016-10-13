@@ -10,8 +10,11 @@
 ;; Extracts the result of the given execution, signaling an
 ;; error if it's not of the expected kind.
 (define (exec-result eid)
-  (let (res ((fetch eid) ["execution" "result"] {}))
-    (for (k ["models" "missings-model" "categories" "field-id" "field-name"])
+  (let (res ((fetch eid) ["execution" "result"] {})
+        ks (if (res "binary" false)
+             ["category"]
+             ["categories" "missings-model"]))
+    (for (k (concat ["models" "field-id" "field-name" "kind"] ks))
       (when (not (contains? res k))
         (raise (str "Invalid execution: Missing field " k " in result"))))
     res))
@@ -30,6 +33,12 @@
       (create-dataset dataset {"lisp_filter"
                                (flatline "(missing? {{field}})")}))))
 
+;; Split a dataset extracting a given category
+(define (split-on-category dataset id cat)
+  (let (fl (flatline "(= (f {{id}}) {{cat}})")
+        nfl (flatline "(!= (f {{id}}) {{cat}})"))
+    (for (f [fl nfl]) (create-dataset dataset {"lisp_filter" f}))))
+
 ;; Delete resources ignoring errors
 (define (safe-delete id)
   (try (delete id)
@@ -43,7 +52,9 @@
                 (find-field-id fds (res "field-id"))
                 (raise (str "The input dataset does not contain "
                             (res "field-name"))))
-        ds (for (c (res "categories")) (category-dataset dataset fid c))
+        ds (if (res "binary")
+             (split-on-category dataset fid (res "category"))
+             (for (c (res "categories")) (category-dataset dataset fid c)))
         mm (res "missings-model")
         md (when mm (missings-dataset dataset fid))
         ds (if (and mm md) (cons md ds) ds)
