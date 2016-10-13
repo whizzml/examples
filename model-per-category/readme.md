@@ -6,12 +6,14 @@ algorithm in BigML.
 
 With the [create-category-models script](create-category-models),
 given an input dataset and one of its categorical fields, you'll
-generate a new dataset for each of the categories in the given field,
-containing each only those instances that belong to the same
-category.  Once those datasets are created, a predict model is created
-for each one, using the specified objective field.  The final result
-of the script execution is thus a list of datasets and a list of
-predictive models, one per category.
+generate a collection of predictive models based on the input data,
+each one corresponding to a subtree of the root node, which is set as
+the first split by the caller (instead of letting the modeling
+algorithm find it by itself).  The number of subtrees can be either
+one per category if the root node is branching into as many children
+as there are categories, or just two, if the root node is just a
+binary node as in BigML trees.  The user can select which of the two
+behaviours she prefers via the boolean input parameter `binary-split`.
 
 To make predictions for new instances using those models, you can use
 accompanying scripts [single-prediction](single-prediction)
@@ -22,7 +24,9 @@ and either a single instance or an input dataset to perform either a
 single prediction or a batch prediction using the category models.
 
 Predictions are made by selecting the appropriate model, according to
-the category of the input instances.
+the category of the input instances.  In oder words, the split on the
+root node is performed first *by hand*, dispatching then to the
+adequate submodel to finish the prediction.
 
 ## How to install
 

@@ -55,7 +55,7 @@
         ds (if (res "binary")
              (split-on-category dataset fid (res "category"))
              (for (c (res "categories")) (category-dataset dataset fid c)))
-        mm (res "missings-model")
+        mm (res "missings-model" false)
         md (when mm (missings-dataset dataset fid))
         ds (if (and mm md) (cons md ds) ds)
         ms (if (and mm md) (cons mm (res "models")) (res "models"))

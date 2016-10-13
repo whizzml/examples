@@ -134,14 +134,20 @@ check_single_prediction $single_script_id \
                         "{\"species\": \"Iris-setosa\"}"
 
 check_single_prediction $single_script_id $ex_miss_id "{}"
+check_single_prediction $single_script_id $ex_miss_id "{\"sepal width\": 0.1}"
+
+check_single_prediction $single_script_id $ex_bin_id "{}"
+check_single_prediction $single_script_id \
+                        $ex_bin_id \
+                        "{\"species\": \"Iris-versicolor\", \"petal length\": 1}"
 
 log "Tests for batch predictions"
 log "-------------------------------------------------------"
 
-check_batch_prediction $batch_script_id $ex_iris_id $iris_id
-check_batch_prediction $batch_script_id $ex_iris_id $iris_missings_id
-check_batch_prediction $batch_script_id $ex_miss_id $iris_missings_id
-check_batch_prediction $batch_script_id $ex_miss_id $iris_id
+for s in $ex_iris_id $ex_miss_id $ex_bin_id; do
+    check_batch_prediction $batch_script_id $s $iris_id
+    check_batch_prediction $batch_script_id $s $iris_missings_id
+done
 
 log "Removing created resources"
 log "-------------------------------------------------------"
