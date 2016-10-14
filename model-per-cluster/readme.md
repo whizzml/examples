@@ -29,7 +29,7 @@ make predictions.
 If you have bigmler installed in your system, just checkout this
 repository and, at its top level, issue the command:
 
-        make compile PKG_DIR=model-per-cluster
+        make compile PKG=model-per-cluster
 
 That will create all necessary libraries and the three scripts for
 you.

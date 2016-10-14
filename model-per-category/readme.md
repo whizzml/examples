@@ -35,7 +35,7 @@ adequate submodel to finish the prediction.
 If you have bigmler installed in your system, just checkout this
 repository and, at its top level, issue the command:
 
-        make compile PKG_DIR=model-per-category
+        make compile PKG=model-per-category
 
 That will create all three scripts for you.
 
