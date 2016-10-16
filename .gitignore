@@ -1,11 +1,7 @@
 *.swp
 *.swo
-*/test/.bigmler
-*/test/.bigmler_*
-*/test/test_inputs.json
-/.bigmler_*
-.bigmler_build
+.bigmler_*
 */test/cmd
 */test/cmd_del
-
+*/test/test_inputs.json
 *~

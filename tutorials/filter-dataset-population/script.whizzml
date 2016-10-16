@@ -61,7 +61,7 @@
                                                dataset-id
                                                threshold)}))
 
-(define result (filtered-dataset dataset-id n))
+(define output-dataset-id (filtered-dataset input-dataset-id threshold))
 
 ;; EXAMPLE:
 ;; (filtered-dataset "dataset/83hs0sj3819sdkd92k" 0.75) -> "dataset/kd8j83hf93h3hf83h99"
