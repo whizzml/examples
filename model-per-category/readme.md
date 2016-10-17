@@ -47,3 +47,6 @@ That will create all three scripts for you.
   single predictions given an execution of `create-category-models`.
 - Install [batch-prediction](./batch-prediction) to be able to create
   batch predictions given an execution of `create-category-models`.
+
+If necessary, please see the top-level readme for more general
+installation instructions.

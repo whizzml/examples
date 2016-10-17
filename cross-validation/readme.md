@@ -13,7 +13,10 @@ cross-validation for different resources:
   General k-fold
   cross-validation for logistic regressions.
 
+## Installation
 
+Please see the top-level readme for detailed installation
+instructions.
 
 ## Tests
 

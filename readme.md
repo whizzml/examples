@@ -55,6 +55,35 @@ By convention, when the artifact is a library, the files are called
   or regression) and turns it into a binary classification problem
   with the two classes "normal" and "anomalous".
 
+## How to install WhizzML packages
+
+WhizzML packages contain both a number of scripts and the libraries they
+depend on. They can be installed in either of the following ways:
+
+### Using bigmler
+
+If you have bigmler installed in your system, just checkout the
+repository 'whizzml/examples' and, at its top level, issue the command:
+
+        make compile PKG=example-name
+
+replacing "example-name" with the actual example name. That will
+create all of the example's scripts and libraries for you.
+
+### Using the web UI
+
+- Install each of the libraries seperately, using the urls to each of
+  their folders. (For example, https://github.com/whizzml/examples/tree/master/clean-dataset/clean-data)
+  
+- Install each of the scripts seperately, using the
+  urls to each of their folders.  
+
+- If a script requires a library, you will get the error message
+  'Library ../my-library not loaded.' Load the library by clicking in
+  the textbox above the error message and typing the first few letters
+  of the library's name. Select the library, then create the script as
+  usual.
+
 ## Compiling packages and running tests
 
 The [makefile](makefile) at the top level provides targets to register

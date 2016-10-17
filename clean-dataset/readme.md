@@ -1,6 +1,11 @@
 # clean-data
 The `clean-data` library is a collection of WhizzML routines that for cleaning up a dataset before is used by other BigML functions on datasets.
 
+## Installation
+
+Please see the top-level readme for detailed installation
+instructions.
+
 ## Routines
 The library is includes several functions described next.  More may be added in the future as the library is expanded.
 
