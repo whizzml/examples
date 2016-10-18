@@ -17,8 +17,8 @@ and three scripts to apply the algorithm to
 which you can install individually afterwards.  When importing any of
 the scripts, `Best K-Means` must be declared as a dependency.
 
-If necessary, please see the top-level readme for more detailed
-installation instructions.
+If necessary, please see [the top-level readme](../readme.md) for more
+detailed installation instructions.
 
 ## Routines
 The library is organized into several functions described next.

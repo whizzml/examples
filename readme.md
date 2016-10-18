@@ -55,10 +55,20 @@ By convention, when the artifact is a library, the files are called
   or regression) and turns it into a binary classification problem
   with the two classes "normal" and "anomalous".
 
-## How to install WhizzML packages
+## How to install
 
-WhizzML packages contain both a number of scripts and the libraries they
-depend on. They can be installed in either of the following ways:
+There are three kinds of installable WhizzML artifacts in this repo,
+identified by the field "kind" in their metadata: libraries, scripts
+and packages. The latter are compounds of libraries and scripts,
+possibly with interdependencies, meant to be installed together.
+
+Libraries and scripts are easily installed at the BigML dashboard.  To
+install a script, navigate to 'Scripts' and then hover over the
+installation dropdown. Choose 'Import script from GitHub' and paste in
+the url to the example's folder. To install a library, first navigate
+to 'Libraries', and the rest of the process is the same.
+
+Packages can be installed in either of the following ways:
 
 ### Using bigmler
 

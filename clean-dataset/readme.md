@@ -3,7 +3,7 @@ The `clean-data` library is a collection of WhizzML routines that for cleaning u
 
 ## Installation
 
-Please see the top-level readme for detailed installation
+Please see [the top-level readme](../readme.md) for detailed installation
 instructions.
 
 ## Routines

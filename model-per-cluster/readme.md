@@ -45,5 +45,5 @@ you.
 - Install [batch-prediction](./batch-prediction), with the previous
   library as its only dependency.
 
-If necessary, please see the top-level readme for more general
+If necessary, please see [the top-level readme](../readme.md) for more general
 installation instructions.

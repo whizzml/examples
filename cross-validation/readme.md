@@ -15,7 +15,7 @@ cross-validation for different resources:
 
 ## Installation
 
-Please see the top-level readme for detailed installation
+Please see [the top-level readme](../readme.md) for detailed installation
 instructions.
 
 ## Tests
