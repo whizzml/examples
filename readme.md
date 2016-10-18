@@ -77,7 +77,7 @@ repository 'whizzml/examples' and, at its top level, issue the command:
 
         make compile PKG=example-name
 
-replacing "example-name" with the actual example name. That will
+replacing `example-name` with the actual example name. That will
 create all of the example's scripts and libraries for you.
 
 ### Using the web UI
