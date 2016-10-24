@@ -62,10 +62,9 @@
        (catch e (log-info (str "Error deleting resource " id " ignored")))))
 
 (define (delete-batchprediction-datasets resources)
-  (let (ids (filter (lambda (id) (!= id ""))
-                    (map (lambda (r) ((fetch r) "output_dataset_resource" ""))
-                         resources)))
-    (map safe-delete ids)))
+  (for (r resources)
+       (let (id ((fetch r) "output_dataset_resource" false))
+         (when id (safe-delete id)))))
 
 ;; Take a dataset, create a training and test set, and find the
 ;; optimal parameters.  The function returns a list of parameters
