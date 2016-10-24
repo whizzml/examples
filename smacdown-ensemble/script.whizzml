@@ -89,6 +89,9 @@
         best-mod (create-ensemble train-id mod-prms)
         best-eval (create-evaluation best-mod test-id))
     (wait* [best-eval full-mod])
+    (when delete-resources
+      (log-info "Deleting training/evaluation datasets...")
+      (map safe-delete [train-id test-id]))
     (cons (assoc (head params)
                  "full_model" full-mod
                  "model" best-mod
