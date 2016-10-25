@@ -19,7 +19,7 @@
       "name": "metric",
       "type": "string",
       "default": "average_phi",
-      "description": "Metric to optimize.  Can be average_recall, average_phi, accuracy, average_precision, average\\_f\\_measure for classification or r_squared for regression."
+      "description": "Metric to optimize.  Can be average_recall, average_phi, accuracy, average_precision, average_f_measure for classification or r_squared for regression."
     },
     {
       "name": "delete-resources",
