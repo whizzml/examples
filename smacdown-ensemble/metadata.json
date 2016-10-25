@@ -1,6 +1,6 @@
 {
   "name": "Ensemble optimization",
-  "description": "Script for ensemble optimization using SMACdown.  The script can be used for both classification and regression ensembles, provided you select the appropriate metric to be optimized.  Classification metrics: average_recall, average_phi, accuracy, average_precision, average_f_measure.  Regression metrics: r_squared.",
+  "description": "Script for ensemble optimization using SMACdown.  The script can be used for both classification and regression ensembles, provided you select the appropriate metric to be optimized (see below).\n\nClassification metrics:\n\n- average_recall\n\n- average_phi\n\n- accuracy\n\n- average_precision\n\n- average_f_measure\n\nRegression metrics:\n\n- r_squared.",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs":[
@@ -19,7 +19,7 @@
       "name": "metric",
       "type": "string",
       "default": "average_phi",
-      "description": "Performance metric to be optimized.  Can be average_recall, average_phi, accuracy, average_precision, average_f_measure for classification problems or r_squared for regression problems."
+      "description": "Metric to optimize.  Can be average_recall, average_phi, accuracy, average_precision, average_f_measure for classification or r_squared for regression."
     },
     {
       "name": "delete-resources",
