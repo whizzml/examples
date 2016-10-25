@@ -1,0 +1,68 @@
+;; Find field
+(define (find-field-id fields field)
+  (or (fields field false)
+      (loop (ids (keys fields))
+        (cond (empty? ids) false
+              (= field (fields [(head ids) "name"] "")) (head ids)
+              (recur (tail ids))))))
+
+
+;; Extracts the result of the given execution, signaling an
+;; error if it's not of the expected kind.
+(define (exec-result eid)
+  (let (res ((fetch eid) ["execution" "result"] {})
+        ks (if (res "binary" false)
+             ["category"]
+             ["categories" "missings-model"]))
+    (for (k (concat ["models" "field-id" "field-name" "kind"] ks))
+      (when (not (contains? res k))
+        (raise (str "Invalid execution: Missing field " k " in result"))))
+    res))
+
+;; Given a parent dataset, a field and one of its categories,
+;; create a new dataset containing only the instances of the parent
+;; that have the given given category.
+(define (category-dataset dataset field category)
+  (let (fltr (flatline "(= (f {{field}}) {{category}})")
+        name (str "Submodel for '" category "'"))
+    (create-dataset dataset {"lisp_filter" fltr "name" name})))
+
+;; Create a dataset for missing values of field
+(define (missings-dataset dataset field)
+  (let (missings ((fetch dataset) ["fields" field "summary" "missing_count"] 0))
+    (when (positive? missings)
+      (create-dataset dataset {"lisp_filter"
+                               (flatline "(missing? {{field}})")}))))
+
+;; Split a dataset extracting a given category
+(define (split-on-category dataset id cat)
+  (let (fl (flatline "(= (f {{id}}) {{cat}})")
+        nfl (flatline "(!= (f {{id}}) {{cat}})"))
+    (for (f [fl nfl]) (create-dataset dataset {"lisp_filter" f}))))
+
+;; Delete resources ignoring errors
+(define (safe-delete id)
+  (try (delete id)
+       (catch e (log-info (str "Error deleting resource " id " ignored")))))
+
+;; Final workflow
+(define (evaluate eid dataset del?)
+  (let (res (exec-result eid)
+        fds ((fetch dataset) "fields")
+        fid (or (find-field-id fds (res "field-name"))
+                (find-field-id fds (res "field-id"))
+                (raise (str "The input dataset does not contain "
+                            (res "field-name"))))
+        ds (if (res "binary")
+             (split-on-category dataset fid (res "category"))
+             (for (c (res "categories")) (category-dataset dataset fid c)))
+        mm (res "missings-model" false)
+        md (when mm (missings-dataset dataset fid))
+        ds (if (and mm md) (cons md ds) ds)
+        ms (if (and mm md) (cons mm (res "models")) (res "models"))
+        evs (map (lambda (d m) (create-evaluation d m)) ds ms)
+        ev (create-evaluation {"evaluations" evs}))
+     (when del? (map safe-delete ds))
+     ev))
+
+(define result (evaluate execution dataset clean-up?))

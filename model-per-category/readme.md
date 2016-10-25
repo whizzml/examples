@@ -1,8 +1,8 @@
 # Modeling and prediction per category
 
 These scripts allow selecting the field to be used as the first split
-(or *root split*) when modeling and predicting with any supervised
-algorithm in BigML.
+(or *root split*) when modeling, evaluating and predicting with any
+supervised algorithm in BigML.
 
 With the [create-category-models script](create-category-models),
 given an input dataset and one of its categorical fields, you'll
@@ -28,6 +28,14 @@ the category of the input instances.  In oder words, the split on the
 root node is performed first *by hand*, dispatching then to the
 adequate submodel to finish the prediction.
 
+It is also possible to evaluate the composed model, using the
+corresponding [evaluation script](evaluation).  As the prediction
+scripts, this evaluation script takes as input the identifier of the
+execution that created the models to be evaluated and a test dataset
+(as any other evaluation would: for instance, you could perform a
+80-20 split of your original dataset and pass the 80% dataset to
+`create-category-models` and the 20% one to `evaluation`).
+
 ## How to install
 
 ### Using bigmler
@@ -47,6 +55,8 @@ That will create all three scripts for you.
   single predictions given an execution of `create-category-models`.
 - Install [batch-prediction](./batch-prediction) to be able to create
   batch predictions given an execution of `create-category-models`.
+- Install [evaluation](./evaluation) to be able to evaluate the models
+  created by `create-category-models`.
 
 If necessary, please see [the top-level readme](../readme.md) for more general
 installation instructions.

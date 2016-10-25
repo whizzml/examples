@@ -5,6 +5,7 @@
   "components":[
     "create-category-models",
     "single-prediction",
-    "batch-prediction"
+    "batch-prediction",
+    "evaluation"
   ]
 }
