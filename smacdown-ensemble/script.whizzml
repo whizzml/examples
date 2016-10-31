@@ -5,13 +5,15 @@
   (lambda ()
     (let (max-trees 127
           max-nodes 1999
-          regression (= "numeric" objective-type))
-      {"random_candidate_ratio" (rand)
-       "stat_pruning" (if (< (rand) 0.5) false true)
-       "balance_objective" (if (or regression (< (rand) 0.5)) false true)
-       "number_of_models" (+ 1 (round (exp (* (log max-trees) (rand)))))
-       "randomize" true
-       "node_threshold" (round (rand-range 4 max-nodes))})))
+          regression (= "numeric" objective-type)
+          cand {"random_candidate_ratio" (rand)
+                "stat_pruning" (if (< (rand) 0.5) false true)
+                "balance_objective" (if (or regression (< (rand) 0.5)) false true)
+                "number_of_models" (+ 1 (round (exp (* (log max-trees) (rand)))))
+                "randomize" true
+                "node_threshold" (round (rand-range 4 max-nodes))})
+      (log-info (str cand))
+      cand)))
 
 ;; This function takes a training and test set (and an objective field
 ;; id) and evaluates a set of parameters by training a model with
