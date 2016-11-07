@@ -1,0 +1,6 @@
+{
+  "name": "Make binary",
+  "description": "",
+  "kind": "library",
+  "source_code": "library.whizzml"
+}

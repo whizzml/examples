@@ -1,0 +1,27 @@
+{
+  "name": "Generate datasets",
+  "description": "",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "imports": ["../make-binary"],
+  "inputs": [
+    {
+      "name": "dataset-list",
+      "type": "list",
+      "description": "The resource ids of the 'mother' datasets"
+    },
+    {
+      "name": "delete-resources",
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to delete all intermediate resources"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "generated-datasets",
+      "type": "list",
+      "description": "generated children datasets"
+    }
+  ]
+}

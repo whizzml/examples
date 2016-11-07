@@ -10,20 +10,26 @@
 ;; new field "Is Anomoly?" with values "anomalous" and "normal" based on
 ;; the original classes
 
-(define (two-to-binary ds)
+(define (two-to-binary ds field-id)
   (let (my-ds (fetch ds)
-       field-id (get-in my-ds ["objective_field" "id"])
-       anomalous (head 
-                   (head (get-in my-ds 
-                                 ["fields" 
-                                  field-id 
-                                  "summary" 
-                                  "categories"]))))
-    (create-dataset {"origin_dataset" ds
-                     "new_fields" [{"field" (two-class-filter 
-                                             field-id 
-                                             anomalous)
-                                    "name" "Is Anomaly?"}]})))
+        field-id (my-ds ["objective_field" "id"])
+        my-name (my-ds "name")
+        anomalous (head (head (my-ds ["fields" 
+                                      field-id 
+                                      "summary" 
+                                      "categories"]))))
+    (create-and-wait-dataset {"origin_dataset" ds
+                              "new_fields" [{"field" (two-class-filter 
+                                                      field-id 
+                                                      anomalous)
+                                             "name" "Is Anomaly?"}]
+                              "all_but" [field-id]
+                              "name" (str my-name " child")})))
+
+;; Delete resources ignoring errors
+(define (safe-delete id)
+  (if id (delete id)))
+;;       (catch e (log-info (str "Error deleting resource " id " ignored")))))
 
 ;; Multi-to-Binary
 
@@ -44,11 +50,13 @@
 ;; Creates a model with 80% of the input dataset, evaluates it
 ;; with the remaining 20%. Returns the evaluation id.
 
-(define (evaluate-model-on-dataset ds-id)
+(define (evaluate-model-on-dataset ds-id delete-resources)
   (let (training-id (sample-dataset ds-id 0.8 false)
         test-id (sample-dataset ds-id 0.8 true)
         model-id (create-model {"dataset" training-id "randomize" true})
         ev-id (create-and-wait-evaluation {"model" model-id "dataset" test-id}))
+    (when delete-resources
+          (map safe-delete [training-id test-id model-id]))
      ev-id))
 
 ;; Graphs
@@ -220,17 +228,19 @@
 ;; either "normal" or "anomalous", determined by the two-colored graph
 ;; of the confusion matrix
 
-(define (multi-to-binary ds)
-  (let (my-eval (evaluate-model-on-dataset ds)
+(define (multi-to-binary ds field-id delete-resources)
+  (let (my-eval (evaluate-model-on-dataset ds delete-resources)
        my-graph (make-graph my-eval)
        my-span-tree (max-span-tree my-graph)
        colored-graph (two-color my-graph my-span-tree)
-       field-id (get (fetch ds) "objective_field")
        color-map (mapify (get colored-graph "nodes") "name" "color")
-       filter (color-filter (get field-id "id") color-map))
-    (create-dataset {"origin_dataset" ds
-                     "new_fields" [{"field" filter
-                                    "name" "Is Anomaly?"}]})))
+       my-filter (color-filter field-id color-map))
+    (when delete-resources
+          (safe-delete my-eval))
+    (create-and-wait-dataset {"origin_dataset" ds
+                             "new_fields" [{"field" my-filter
+                                            "name" "Is Anomaly?"}]
+                              "all_but" [field-id]})))
 
 ;; Numeric-to-Binary
 
@@ -246,22 +256,21 @@
 ;; "normal" based on whether the value of the objective field is above
 ;; or below the median
 
-(define (numeric-to-binary ds)
+(define (numeric-to-binary ds field-id)
   (let (my-ds (fetch ds)
-        field-id (get-in my-ds ["objective_field" "id"])
-        median (get-in my-ds ["fields" field-id "summary" "median"])
+        median (my-ds ["fields" field-id "summary" "median"])
         filter (median-filter field-id median))
-    (create-dataset {"origin_dataset" ds
-                     "new_fields" [{"field" filter
-                                    "name" "Is Anomaly?"}]})))
+    (create-and-wait-dataset {"origin_dataset" ds
+                              "new_fields" [{"field" filter
+                                             "name" "Is Anomaly?"}]
+                              "all_but" [field-id]})))
 
-;; Given a dataset, determines which function to use and returns the
-;; appropriate extended dataset
+;; Given a dataset and the field id of its objective, determines which
+;; function to use and returns the appropriate extended dataset
 
-(define (make-binary ds)
+(define (make-binary ds field-id delete-resources)
   (let (my-ds (fetch ds)
-        field-id (get-in my-ds ["objective_field" "id"])
-        my-optype (get-in my-ds ["fields" field-id "optype"]))
+        my-optype (my-ds ["fields" field-id "optype"]))
     (if (= my-optype "categorical")
       (let (classes (count (get-in my-ds 
                                  ["fields" 
@@ -269,8 +278,6 @@
                                   "summary" 
                                   "categories"])))
         (if (= classes 2)
-          (two-to-binary ds)
-          (multi-to-binary ds)))
-      (numeric-to-binary ds))))                                
-
-(define binary-dataset (make-binary dataset-id))
+          (two-to-binary ds field-id)
+          (multi-to-binary ds field-id delete-resources)))
+      (numeric-to-binary ds field-id))))                                
