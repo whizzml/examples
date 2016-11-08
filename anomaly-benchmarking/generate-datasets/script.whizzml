@@ -145,7 +145,7 @@
 
 (define (generate-map ds-id normal-ds)
   (let (ds (fetch ds-id)
-        combined (create-and-wait-dataset {"origin_datasets" [ds-id normal-ds]}) 
+        combined (create-dataset {"origin_datasets" [ds-id normal-ds]}) 
         my-tags (ds "tags"))
     (make-map ["difficulty" "frequency" "variation"  "resource"] 
               (append my-tags combined))))
