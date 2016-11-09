@@ -1,0 +1,20 @@
+{
+    "name": "Remove non-preferred fields",
+    "description": "Given a dataset, filters out fields that are not preferred.",
+    "kind": "script",
+    "source_code": "script.whizzml",
+    "inputs": [
+        {
+            "name": "input-dataset-id",
+            "type": "dataset-id",
+            "description": "Dataset that will be filtered"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "output-dataset-id",
+            "type": "dataset-id",
+            "description": "New dataset without non-preferred fields."
+        }
+    ]
+}

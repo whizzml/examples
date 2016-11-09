@@ -1,0 +1,11 @@
+;; Filter out non-preferred fields and return a list of
+;; preferred ones ids
+
+(define (preferred-fields ds-id)
+  (let (fields ((fetch ds-id) "fields"))
+    (sort (iterate (ids [] id (keys fields))
+            (if ((fields id) "preferred" true) (append ids id) ids)))))
+
+(define output-dataset-id
+  (wait (create-dataset input-dataset-id
+                        {"input_fields" (preferred-fields input-dataset-id)})))
