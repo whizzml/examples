@@ -40,6 +40,12 @@
         nfl (flatline "(!= (f {{id}}) {{cat}})"))
     (for (f [fl nfl]) (create-dataset dataset {"lisp_filter" f}))))
 
+;; Compute average metric taking into account relative dataset
+;; population
+(define (weighted-average total counts evaluations property)
+  (let (xs (for (e evaluations) (e ["result" "model" property] 0)))
+    (/ (iterate (v 0 c counts x xs) (+ v (* c x))) total)))
+
 ;; Delete resources ignoring errors
 (define (safe-delete id)
   (try (delete id)
@@ -60,9 +66,17 @@
         md (when mm (missings-dataset dataset fid))
         ds (if (and mm md) (cons md ds) ds)
         ms (if (and mm md) (cons mm (res "models")) (res "models"))
-        evs (map (lambda (d m) (create-evaluation d m)) ds ms)
-        ev (create-evaluation {"evaluations" evs}))
-     (when del? (map safe-delete ds))
-     ev))
+        evs (wait* (map (lambda (d m) (create-evaluation d m)) ds ms))
+        counts (for (d ds) ((fetch d) "rows" 0))
+        total (apply + counts)
+        full-evs (map fetch evs)
+        classification? (zero? ((head full-evs) "type"))
+        metrics (if classification?
+                    ["accuracy" "average_f_measure"
+                     "average_precision" "average_recall"]
+                    ["mean_absolute_error" "mean_squared_error" "r_squared"])
+        av-metrics (for (m metrics) (weighted-average total counts full-evs m)))
+    (when del? (map safe-delete ds))
+    (assoc (make-map metrics av-metrics) "evaluations" evs)))
 
 (define result (evaluate execution dataset clean-up?))
