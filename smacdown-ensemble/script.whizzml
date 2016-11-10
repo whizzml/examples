@@ -12,7 +12,6 @@
                 "number_of_models" (+ 1 (round (exp (* (log max-trees) (rand)))))
                 "randomize" true
                 "node_threshold" (round (rand-range 4 max-nodes))})
-      (log-info (str cand))
       cand)))
 
 ;; This function takes a training and test set (and an objective field
