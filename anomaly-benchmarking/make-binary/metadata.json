@@ -1,6 +1,6 @@
 {
   "name": "Make binary",
-  "description": "",
+  "description": "Turns any dataset into one with a binary objective field",
   "kind": "library",
   "source_code": "library.whizzml"
 }

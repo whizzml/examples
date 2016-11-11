@@ -4,7 +4,9 @@
 ;; categorizes datapoints as "anomalous" or "normal"
 
 (define (two-class-filter id anomalous)
-  (flatline "(if (matches? (field {{id}}) {{anomalous}}) \"anomalous\" \"normal\")"))
+  (flatline "(if (matches? (field {{id}}) {{anomalous}})"
+            "   \"anomalous\""
+            "   \"normal\")"))
 
 ;; Given a dataset with an objective field with two classes, adds on a
 ;; new field "Is Anomoly?" with values "anomalous" and "normal" based on
@@ -22,14 +24,13 @@
                               "new_fields" [{"field" (two-class-filter 
                                                       field-id 
                                                       anomalous)
-                                             "name" "Is Anomaly?"}]
+                                             "name" "instance type"}]
                               "all_but" [field-id]
                               "name" (str my-name " child")})))
 
 ;; Delete resources ignoring errors
 (define (safe-delete id)
-  (if id (delete id)))
-;;       (catch e (log-info (str "Error deleting resource " id " ignored")))))
+  (when id (delete id)))
 
 ;; Multi-to-Binary
 
@@ -56,7 +57,7 @@
         model-id (create-model {"dataset" training-id "randomize" true})
         ev-id (create-and-wait-evaluation {"model" model-id "dataset" test-id}))
     (when delete-resources
-          (map safe-delete [training-id test-id model-id]))
+      (map safe-delete [training-id test-id model-id]))
      ev-id))
 
 ;; Graphs
@@ -224,7 +225,7 @@
     (join " " ["(cond" conditions ")"])))
 
 ;; Given a dataset with a multivariate objective field, returns an
-;; extended dataset with a new field "Is Anomaly?", which can be
+;; extended dataset with a new field "instance type", which can be
 ;; either "normal" or "anomalous", determined by the two-colored graph
 ;; of the confusion matrix
 
@@ -236,10 +237,10 @@
        color-map (mapify (get colored-graph "nodes") "name" "color")
        my-filter (color-filter field-id color-map))
     (when delete-resources
-          (safe-delete my-eval))
+      (safe-delete my-eval))
     (create-and-wait-dataset {"origin_dataset" ds
                              "new_fields" [{"field" my-filter
-                                            "name" "Is Anomaly?"}]
+                                            "name" "instance type"}]
                               "all_but" [field-id]})))
 
 ;; Numeric-to-Binary
@@ -252,7 +253,7 @@
   (flatline "(if (> (field {{id}}) {{median}}) \"anomalous\" \"normal\")"))
 
 ;; Given a dataset with a numeric objective field, returns an extended
-;; dataset with a new field "binary" with values "anomalous" and
+;; dataset with a new field "instance type" with values "anomalous" and
 ;; "normal" based on whether the value of the objective field is above
 ;; or below the median
 
@@ -262,7 +263,7 @@
         filter (median-filter field-id median))
     (create-and-wait-dataset {"origin_dataset" ds
                               "new_fields" [{"field" filter
-                                             "name" "Is Anomaly?"}]
+                                             "name" "instance type"}]
                               "all_but" [field-id]})))
 
 ;; Given a dataset and the field id of its objective, determines which

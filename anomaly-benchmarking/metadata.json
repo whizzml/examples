@@ -1,6 +1,6 @@
 {
   "name": "Anomaly benchmarking",
-  "description": "",
+  "description": "Creates a suite of datasets for benchmarking anomaly detectors",
   "kind": "package",
   "components": [
       "make-binary",

@@ -10,14 +10,15 @@ frequency of anomalies, and clusteredness.
 
 For each dataset id in the list, this script: 
 
-- Transforms the dataset into a binary classification using `make-binary`.
+- Transforms the dataset into a binary classification using the
+  library function `make-binary`.
 
 - Seperates out the "normal" rows.
 
 - Point difficulty: Models the dataset with a logistic regression, and
-  uses a batchprediciton to labels each row with the probability of it
+  uses a batchprediction to labels each row with the probability of it
   being labeled "normal". The rows labeled "anomalous" are sorted into
-  one of four datasets based on this probability. ("Easy" (0, 0.1666),
+  one of four datasets based on this probability. ("easy" (0, 0.1666),
   "medium" [0.1666, 0.3333), "hard" [0.3333, 0.5), "very hard" [0.5,
   1))
 

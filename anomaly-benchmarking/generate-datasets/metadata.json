@@ -1,6 +1,6 @@
 {
-  "name": "Generate datasets",
-  "description": "",
+  "name": "Generate benchmarking datasets",
+  "description": "Creates a suite of benchmark datasets for anomaly detection algorithms",
   "kind": "script",
   "source_code": "script.whizzml",
   "imports": ["../make-binary"],

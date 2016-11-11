@@ -2,43 +2,48 @@
 
 (define (all-preferred ds-id)
   (let (ds (fetch ds-id)
-        field-list (keys (ds "fields"))
-        not-preferred (filter (lambda (x) (not (get-in ds ["fields" x "preferred"]))) field-list))
-     (update ds-id {"fields" (make-map not-preferred (repeat (count not-preferred) {"preferred" true}))})))
+        field-list (keys (ds "fields")))
+    (update ds-id 
+            {"fields" (make-map field-list (repeat (count field-list) 
+                                                   {"preferred" true}))})))
 
 ;; Given a dataset and a field name, returns the field id with that name
 
 (define (get-id ds name)
-  (let (field (ds "fields"))
-    (head (filter (lambda (x) (= (field [x "name"]) name)) 
-                (keys field)))))
+  (let (fields (ds "fields"))
+    (try
+      (head (filter (lambda (x) (= (fields [x "name"]) name)) 
+                    (keys fields)))
+      (catch e
+        (log-warn "Could not find field name " name " : " e)))))
 
 ;; Given a binary dataset, finds the point difficulty of each row and
-;; returns an dataset of only anomalous points and a new field
+;; returns a dataset of only anomalous points and a new field
 ;; labeling each row by one of four difficulty levels.
 
-(define (point-difficulty ds-id delete-resources)
+(define (point-difficulty ds-id new-obj delete-resources)
   (let (ds (all-preferred ds-id)
-        lr-id (create-and-wait-logisticregression {"dataset" ds})
-        lr-fields ((fetch lr-id) "input_fields")
-        bp-id (create-and-wait-batchprediction {"logisticregression" lr-id 
-                                       "dataset" ds 
-                                       "probabilities" true 
-                                       "output_dataset" true 
-                                       "output_fields" lr-fields })
+        lr-id (create-and-wait-logisticregression ds)
+        bp-id (wait (create-batchprediction lr-id ds {"probabilities" true 
+                                                      "output_dataset" true 
+                                                      "all_fields" true }))
         prob-ds-id ((fetch bp-id) "output_dataset_resource")
-        prob-ds (fetch prob-ds-id)
+        prob-ds (fetch (wait prob-ds-id))
         norm-field (get-id prob-ds "normal probability")
         ano-field (get-id prob-ds "anomalous probability")
-        obj-field (get-id prob-ds "Is Anomaly?")
-        difficulty-sorter (lambda (diff-id) (flatline "(segment-label {{diff-id}} \"easy\" 0.133333 \"medium\" 0.333333 \"hard\" 0.5 \"very hard\")"))
-        diff-ds (create-and-wait-dataset {"origin_dataset" prob-ds-id
-                  "lisp_filter" (flatline "(= (field {{obj-field}}) \"anomalous\")")
-                  "new_fields" [{"field" (difficulty-sorter norm-field)
-                                 "name" "sorted"}]
-                  "all_but" [norm-field ano-field]}))
+        diff-sort (flatline "(segment-label {{norm-field}}" 
+                            "               \"easy\" 0.133333"
+                            "               \"medium\" 0.333333"
+                            "               \"hard\" 0.5"
+                            "               \"very hard\")")
+        my-filter (flatline "(= (field {{new-obj}}) \"anomalous\")")
+        diff-ds (wait (create-dataset prob-ds-id 
+                                      {"lisp_filter" my-filter
+                                       "new_fields" [{"field" diff-sort
+                                                      "name" "sorted"}]
+                                       "all_but" [norm-field ano-field]})))
     (when delete-resources
-          (map safe-delete [lr-id bp-id prob-ds-id]))
+      (map safe-delete [lr-id bp-id prob-ds-id]))
     diff-ds))
 
 ;; Takes a dataset labeled by point-difficulty, and splits the dataset
@@ -49,17 +54,18 @@
   (let (ds (fetch ds-id)
         split-field (get-id ds "sorted")
         split-list (ds ["fields" split-field "summary" "categories"]) 
-        split-map (make-map (map (lambda (x) (head x)) split-list) 
-                            (map (lambda (x) (last x)) split-list))
+        split-map (make-map (map head split-list)(map last split-list))
         split-it (lambda (level)
-                 (if (contains? split-map level) 
-                   (create-and-wait-dataset {"origin_dataset" ds-id
-                     "lisp_filter" (flatline "(= (field {{split-field}}) {{level}})")
-                     "excluded_fields" [split-field]
-                     "name" (str level " difficulty")
-                     "tags" [level]})
-                   false)))
-    (for (x ["easy" "medium" "hard" "very hard"]) (split-it x))))
+                   (let (my-filter (flatline "(= (f {{split-field}})" 
+                                             "   {{level}})"))
+                     (if (contains? split-map level) 
+                       (wait (create-dataset {"origin_dataset" ds-id
+                                              "lisp_filter" my-filter
+                                              "excluded_fields" [split-field]
+                                              "name" (str level " diff")
+                                              "tags" [level]}))
+                       false))))
+    (map split-it ["easy" "medium" "hard" "very hard"])))
 
 ;; Takes a dataset and creates two datasets, one from the lowest
 ;; anomaly scores and one from the highest. Returns a list of the
@@ -70,24 +76,26 @@
         ds-name (ds "name")
         ad-id (create-anomaly {"dataset" ds-id
                                "id_fields" [obj-field]})
-        bas-id (create-batchanomalyscore {"anomaly" (wait ad-id)
+        bas-id (create-batchanomalyscore {"anomaly" ad-id
                                           "dataset" ds-id
                                           "all_fields" true
                                           "output_dataset" true})
         score-ds ((fetch (wait bas-id)) "output_dataset_resource")
-        id (get-id (fetch score-ds) "score")
+        id (get-id (fetch (wait score-ds)) "score")
         score-low (flatline "(within-percentiles? {{id}} 0 0.2)")
         score-high (flatline "(within-percentiles? {{id}} 0.8 1)")
         low-ds (create-and-wait-dataset {"origin_dataset" score-ds
-                                "lisp_filter" score-low
-                                "name" (str ds-name " - high clusteredness")
-                                "excluded_fields" [id]})
+                                         "lisp_filter" score-low
+                                         "name" (str ds-name 
+                                                     " - high clusteredness")
+                                         "excluded_fields" [id]})
         high-ds (create-and-wait-dataset {"origin_dataset" score-ds
-                                 "lisp_filter" score-high
-                                 "name" (str ds-name " - low clusteredness")
-                                 "excluded_fields" [id]}))
+                                          "lisp_filter" score-high
+                                          "name" (str ds-name 
+                                                      " - low clusteredness")
+                                          "excluded_fields" [id]}))
     (when delete-resources
-          (map safe-delete [ad-id bas-id score-ds]))
+      (map safe-delete [ad-id bas-id score-ds]))
     [low-ds high-ds]))
 
 ;; Takes two datasets, one normal and one anomalous. Finds the
@@ -101,9 +109,9 @@
   (let (ano-ds (fetch ano-ds-id)
         my-tags (ano-ds "tags")
         ano-cl-id (create-and-wait-cluster {"dataset" ano-ds-id 
-                                   "k" 1 
-                                   "balance_fields" false 
-                                   "field_scales" norm-scales})
+                                            "k" 1 
+                                            "balance_fields" false 
+                                            "field_scales" norm-scales})
         ano-var ((fetch ano-cl-id) ["clusters"
                                     "global"
                                     "distance"
@@ -116,7 +124,7 @@
                       (< my-ratio 4) "medium clusteredness"
                       "high clusteredness"))
     (when delete-resources
-          (map safe-delete [ano-cl-id]))
+      (map safe-delete [ano-cl-id]))
     (update ano-ds-id {"tags" (append my-tags new-tag)})))
 
 ;; Takes a dataset. Determines which relative frequencies are
@@ -125,18 +133,21 @@
 
 (define (relative-frequency ds-id normal-rows)
   (let (ds (fetch ds-id)
-        availible-rows (ds "rows")
+        rows (ds "rows")
         ds-name (ds "name")
         my-tags (ds "tags")
-        max-freq (/ availible-rows (+ availible-rows normal-rows)))
+        max-freq (/ rows (+ rows normal-rows)))
     (for (freq [0.001 0.005 0.01 0.05 0.1])
       (let (k (/ (* freq normal-rows) (- 1 freq)))
         (when (> max-freq freq)
-              (repeatedly (min 10 (floor (/ availible-rows k))) 
-                          (lambda () (create-dataset {"origin_dataset" ds-id
-                                       "sample_rate" (/ k availible-rows)
-                                       "name" (str ds-name " - " freq)
-                                       "tags" (append my-tags (str freq))}))))))))
+          (repeatedly (min 10 (floor (/ rows k))) 
+                      (lambda () (create-dataset {"origin_dataset" ds-id
+                                                  "sample_rate" (/ k rows)
+                                                  "name" (str ds-name 
+                                                              " - " 
+                                                              freq)
+                                                  "tags" (append my-tags 
+                                                                 (str freq))}))))))))
   
 ;; Given an anomalous dataset and a normal dataset, combines them into
 ;; a single dataset, and returns a map with key/value pairs from the
@@ -162,10 +173,10 @@
   (let (old-obj ((fetch ds-id) ["objective_field" "id"])
         binary (make-binary ds-id old-obj delete-resources)
         new-obj ((fetch binary) ["objective_field" "id"])
+        norm-filter (flatline "(= (field {{new-obj}}) \"normal\")")
         normal-ds (create-and-wait-dataset {"origin_dataset" binary
-                    "lisp_filter" 
-                    (flatline "(= (field {{new-obj}}) \"normal\")")
-                    "name" "normal"})
+                                            "lisp_filter" norm-filter
+                                            "name" "normal"})
         normal-rows ((fetch normal-ds) "rows")
         norm-cl-id (create-and-wait-cluster {"dataset" normal-ds "k" 1})
         norm-cl (fetch norm-cl-id)
@@ -174,31 +185,34 @@
                            "distance" 
                            "standard_deviation"])
         norm-scales (norm-cl "scales")
-        diff-ds (point-difficulty binary delete-resources)
+        diff-ds (point-difficulty binary new-obj delete-resources)
         difficulty-list (filter (lambda (x) x) (split-difficulty diff-ds))
         variation-list (flatten [] 
                                 (for (x difficulty-list)
-                                  (if x (semantic-variation x 
-                                                            new-obj 
+                                  (when x 
+                                    (semantic-variation x 
+                                                        new-obj 
                                                         delete-resources)))) 
         frequency-list (flatten []
                                 (for (x variation-list)
-                                  (if x (relative-frequency x normal-rows))))
+                                  (when x 
+                                    (relative-frequency x normal-rows))))
         labeled-by-variation (for (x frequency-list)
-                               (if x (variance-ratios x 
-                                                      norm-var 
-                                                      norm-scales 
-                                                      delete-resources))) 
+                               (when x 
+                                 (variance-ratios x 
+                                                  norm-var 
+                                                  norm-scales 
+                                                  delete-resources))) 
         final-list (for (x labeled-by-variation)
                      (if x (generate-map x normal-ds))))
     (when delete-resources
-          (map safe-delete (flatten [] [binary
-                                        normal-ds
-                                        norm-cl-id
-                                        diff-ds 
-                                        difficulty-list 
-                                        variation-list
-                                        frequency-list])))
+      (map safe-delete (flatten [] [binary
+                                    normal-ds
+                                    norm-cl-id
+                                    diff-ds 
+                                    difficulty-list 
+                                    variation-list
+                                    frequency-list])))
     (filter (lambda (x) x) final-list)))
 
 (define generated-datasets

@@ -1,15 +1,15 @@
 # Making a Dataset Binary
 
 This library takes any dataset and returns it extended by a new field,
-"Is Anomaly?". "Is Anomaly?" takes the values "normal" or "anomalous"
+"instance type". This field takes the values "normal" or "anomalous"
 following the procedure laid out in the ODD paper
 http://www.outlier-analytics.org/odd13kdd/papers/emmott,das,dietterich,fern,wong.pdf.
 
 Given a dataset id, the field id of its objective, and the boolean
 `delete-resources`, it:
 
-- Determines whether the dataset is a regression, a classifications
-  with two classes, or a classifications with multiple classes.
+- Determines whether the dataset is a regression, a classification
+  with two classes, or a classification with multiple classes.
 
 - If it is a regression, it assigns points greater than the median of
   the regression response as "anomalous" and those lower "normal".
@@ -34,7 +34,7 @@ Given a dataset id, the field id of its objective, and the boolean
 
   - Two-colors that graph with "normal" and "anomalous".
 
-  - Returns an extended dataset with the new field "Is Anomaly?",
+  - Returns an extended dataset with the new field "instance type",
     determined by the coloring of the class in the old objective
     field.
 
