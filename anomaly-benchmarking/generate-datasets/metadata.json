@@ -11,6 +11,30 @@
       "description": "The resource ids of the 'mother' datasets"
     },
     {
+      "name": "diff-map",
+      "type": "map",
+      "default": {"easy": 0.13333333, "medium": 0.33333333, "hard": 0.5, "very hard": 1},
+      "description": "How to categorize a row's point difficulty. This is a map of category levels (e.g. \"medium\") to the maximum allowed value for that level. The default is {\"easy\" 0.13333333 \"medium\" 0.33333333 \"hard\" 0.5 \"very hard\" 1}."
+    },
+    {
+      "name": "var-map",
+      "type": "map",
+      "default":{"high scatter": 0.25, "medium scatter": 0.5, "low scatter": 1, "low clusteredness": 2, "medium clusteredness": 4, "high clusteredness": 1000000},
+      "description": "How to categorize a dataset's semantic variance. This is a map of category levels (e.g. \"low clusteredness\") to the maximum allowed ratio of variance of normal points to variance of anomalous points. The default is {\"high scatter\" 0.25 \"medium scatter\" 0.5 \"low scatter\" 1 \"low clusteredness\" 2 \"medium clusteredness\" 4 \"high clusteredness\" 1000000}."
+    },
+    {
+      "name": "freq-list",
+      "type": "list",
+      "default": [0.001, 0.005, 0.01, 0.05, 0.1],
+      "description": "Which relative frequencies will be generated. The default for this list is [0.001 0.005 0.01 0.05 0.1]."
+    },
+    {
+      "name": "replicates",
+      "type": "integer",
+      "default": 10,
+      "description": "How many datasets to make at a given point difficulty, variance, and frequency. The default is ten."
+    },
+    {
       "name": "delete-resources",
       "type": "boolean",
       "default": true,
