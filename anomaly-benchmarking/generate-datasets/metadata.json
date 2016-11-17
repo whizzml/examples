@@ -14,25 +14,25 @@
       "name": "difficulty-map",
       "type": "map",
       "default": {"easy": 0.13333333, "medium": 0.33333333, "hard": 0.5, "very hard": 1},
-      "description": "How to categorize a row's point difficulty. This is a map of category levels (e.g. \"medium\") to the maximum allowed value for that level."
+      "description": "Categories for point difficulty"
     },
     {
       "name": "variance-map",
       "type": "map",
       "default":{"high scatter": 0.25, "medium scatter": 0.5, "low scatter": 1, "low clusteredness": 2, "medium clusteredness": 4, "high clusteredness": 1000000},
-      "description": "How to categorize a dataset's semantic variance. This is a map of category levels (e.g. \"low clusteredness\") to the maximum allowed ratio of variance of normal points to variance of anomalous points."
+      "description": "Categories for semantic variance"
     },
     {
       "name": "frequency-list",
       "type": "list",
       "default": [0.001, 0.005, 0.01, 0.05, 0.1],
-      "description": "Which relative frequencies will be generated."
+      "description": "Relative frequency levels"
     },
     {
       "name": "replicates",
       "type": "integer",
       "default": 10,
-      "description": "How many datasets to make at a given point difficulty, variance, and frequency."
+      "description": "How many datasets to make at given categories/levels"
     },
     {
       "name": "delete-resources",
