@@ -1,11 +1,12 @@
 ;; Takes a map of bin labels and max edges, and returns a sorted list
 ;; of maps
 
-(define (map-to-list my-map)
-  (let (my-keys (keys my-map)
-        my-list (map (lambda (x) (make-map ["level" "max"] [x (my-map x)]))
-                     my-keys))
-    (sort-by-key "max" my-list)))
+(define (map-to-list edges-map)
+  (let (labels (keys edges-map)
+        edges-list (map (lambda (x) (make-map ["level" "max"] 
+                                              [x (edges-map x)]))
+                     labels))
+    (sort-by-key "max" edges-list)))
 
 ;; Takes a dataset, returns the same dataset with all fields marked preferred
 
@@ -33,15 +34,17 @@
 (define (point-difficulty ds-id new-obj delete-resources diff-list)
   (let (ds (all-preferred ds-id)
         lr-id (create-and-wait-logisticregression ds)
+        pred-name (str "prediction for " 
+                       ((fetch ds) ["objective_field" "name"]))
         bp-id (wait (create-batchprediction lr-id 
                                             ds 
                                             {"probabilities" true 
                                              "output_dataset" true 
                                              "all_fields" true 
-                                             "prediction_name" "bp"}))
+                                             "prediction_name" pred-name}))
         prob-ds-id ((fetch bp-id) "output_dataset_resource")
         prob-ds (fetch (wait prob-ds-id))
-        pred-field (get-id prob-ds "bp")
+        pred-field (get-id prob-ds pred-name)
         norm-field (get-id prob-ds "normal probability")
         ano-field (get-id prob-ds "anomalous probability")
         other-bins (butlast diff-list)
@@ -150,8 +153,8 @@
     (update ano-ds-id {"tags" (append my-tags new-tag)})))
 
 ;; Takes a dataset. Determines which relative frequencies are
-;; possible. Generates the max possible datasets (limit 40) at those
-;; frequencies. Returns a list of datasets.
+;; possible. Generates the max possible datasets (limit 10 by default)
+;; at those frequencies. Returns a list of datasets.
 
 (define (relative-frequency ds-id normal-rows replicates freq-list)
   (let (ds (fetch ds-id)
@@ -161,7 +164,7 @@
         max-freq (/ rows (+ rows normal-rows)))
     (for (freq freq-list)
       (let (k (/ (* freq normal-rows) (- 1 freq)))
-        (when (> max-freq freq)
+        (when (and (> max-freq freq) (> k 10))
           (repeatedly (min replicates (floor (/ rows k))) 
                       (lambda () (create-dataset {"origin_dataset" ds-id
                                                   "sample_rate" (/ k rows)
@@ -251,8 +254,8 @@
 
 (define generated-datasets
   (for (x dataset-list) (generate x 
-                                  diff-map 
-                                  var-map 
-                                  freq-list 
+                                  difficulty-map 
+                                  variance-map 
+                                  frequency-list 
                                   replicates 
                                   delete-resources)))

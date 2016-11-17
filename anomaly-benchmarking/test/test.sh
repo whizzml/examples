@@ -39,7 +39,7 @@ fi
 
 # building the inputs for the second test
 prefix='[["dataset-list", ["'
-suffix='"]], ["diff-map", {"easy": 0.1333333}], ["freq-list", [0.001]]]'
+suffix='"]], ["difficulty-map", {"easy": 0.1333333}], ["frequency-list", [0.001]]]'
 text=''
 cat cmd/pre_test/dataset | while read dataset
 do
