@@ -163,16 +163,19 @@
         my-tags (ds "tags")
         max-freq (/ rows (+ rows normal-rows)))
     (for (freq freq-list)
-      (let (k (/ (* freq normal-rows) (- 1 freq)))
-        (when (and (> max-freq freq) (> k 10))
-          (repeatedly (min replicates (floor (/ rows k))) 
-                      (lambda () (create-dataset {"origin_dataset" ds-id
-                                                  "sample_rate" (/ k rows)
-                                                  "name" (str ds-name 
-                                                              " - " 
-                                                              freq)
-                                                  "tags" (append my-tags 
-                                                                 (str freq))}))))))))
+      (try
+        (let (k (/ (* freq normal-rows) (- 1 freq)))
+          (when (and (> max-freq freq) (> k 10))
+            (repeatedly (min replicates (floor (/ rows k))) 
+                        (lambda () (create-dataset {"origin_dataset" ds-id
+                                                    "sample_rate" (/ k rows)
+                                                    "name" (str ds-name 
+                                                                " - " 
+                                                                freq)
+                                                    "tags" (append my-tags 
+                                                                   (str freq))})))))
+        (catch e
+          (log-error "Skipping frequency " freq ": " e))))))
   
 ;; Given an anomalous dataset and a normal dataset, combines them into
 ;; a single dataset, and returns a map with key/value pairs from the

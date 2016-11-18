@@ -1,6 +1,6 @@
 {
   "name": "Generate benchmarking datasets",
-  "description": "Creates a suite of benchmark datasets for anomaly detection algorithms",
+  "description": "This script takes a list of datasets and transforms them into a suite of ground-truthed benchmarking datasets for anomaly detection. It depends on the library make-binary. These output datasets vary along the dimensions point difficulty, relative frequency of anomalies, and clusteredness. How these dimensions are discretized can be altered with the inputs difficulty-map, variance-map, and frequency-list. Please see the script [readme](https://github.com/whizzml/examples/blob/master/anomaly-benchmarking/generate-datasets/readme.md) for more details.",
   "kind": "script",
   "source_code": "script.whizzml",
   "imports": ["../make-binary"],
@@ -30,7 +30,7 @@
     },
     {
       "name": "replicates",
-      "type": "integer",
+      "type": "number",
       "default": 10,
       "description": "How many datasets to make at given categories/levels"
     },
