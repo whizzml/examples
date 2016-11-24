@@ -5,36 +5,18 @@
 ;;     to use the above to make predictions
 ;;
 
-;; Auxiliary function splitting a dataset
-(define (split-dataset ds-id rate)
-  (let (seed (str (rand-int 1000) (rand-int 1000)))
-    [(create-dataset {"sample_rate" rate
-                      "origin_dataset"  ds-id
-                      "out_of_bag" false
-                      "seed" seed})
-     (create-dataset {"sample_rate" rate
-                      "origin_dataset"  ds-id
-                      "out_of_bag" true
-                      "seed" seed})]))
-
-;; Split a dataset and wait until both halves are finished
-(define (split-dataset-and-wait ds-id rate)
-  (wait* (split-dataset ds-id rate)))
-
 ;; Extract for a batchpredction its associated dataset of results
 (define (batch-dataset id)
-  (wait ((fetch id) "output_dataset_resource")))
+  ((fetch (wait id)) "output_dataset_resource"))
 
 ;; Create a batchprediction for the given model and datasets,
 ;; with a map of additional options and using defaults appropriate
 ;; for model stacking
-(define (make-batch ds-id mod-id opts)
-  (create-batchprediction (merge {"all_fields" true
-                                  "output_dataset" true
-                                  "dataset" ds-id
-                                  "prediction_name" (resource-type mod-id)
-                                  "model" (wait mod-id)}
-                                 {})))
+(define (make-batch ds-id mod-id)
+  (let (name (resource-type mod-id))
+    (create-batchprediction ds-id mod-id {"all_fields" true
+                                          "output_dataset" true
+                                          "prediction_name" name})))
 
 ;; Auxiliary function extracting the model_inputs of a model
 (define (model-inputs mod-id)
@@ -55,9 +37,9 @@
 ;; given models over the initial dataset ds-id.  Returns the final
 ;; dataset id.
 (define (create-stack-predictions models ds-id)
-  (reduce (lambda (did mid)
-            (batch-dataset (wait (make-batch did mid {}))))
-          ds-id models))
+  (reduce (lambda (did mid) (batch-dataset (make-batch did mid)))
+          ds-id
+          models))
 
 ;; Splits the given dataset, using half of it to create
 ;; an heterogeneous collection of models and the other
@@ -68,17 +50,15 @@
 ;; has as value a boolean flag indicating whether the
 ;; process was successful.
 (define (make-stack dataset-id)
-  (let (ids (split-dataset-and-wait dataset-id 0.5)
-        train-id (nth ids 0)
-        hold-id (nth ids 1)
+  (let ([train-id hold-id] (create-random-dataset-split dataset-id 0.5)
         models (create-stack-models train-id)
         id (create-stack-predictions models hold-id)
         orig-fields (model-inputs (head models))
         obj-id (dataset-get-objective-id train-id)
-        meta-id (create-and-wait-model {"dataset" id
-                                        "excluded_fields" orig-fields
-                                        "objective_field" obj-id})
-        success? (resource-done? (fetch meta-id)))
+        meta-id (create-model {"dataset" id
+                               "excluded_fields" orig-fields
+                               "objective_field" obj-id})
+        success? (resource-done? (fetch (wait meta-id))))
     {"models" models "metamodel" meta-id "result" success?}))
 
 ;; Use the models and metamodels computed by make-stack
