@@ -29,9 +29,9 @@
     },
     {
         "name": "bias",
-        "type": "number",
-        "default": 1,
-        "description": "Scale of the intercept term"
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to include an intercept term"
     },
     {
         "name": "c",

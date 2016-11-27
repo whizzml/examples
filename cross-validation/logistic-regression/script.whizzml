@@ -1,17 +1,5 @@
 ;; This code will eventually be defined as a library.
 
-(define MODEL_OPTIONS ["balance_objective"
-                       "missing_splits"
-                       "pruning"
-                       "weight_field"
-                       "objective_weights"
-                       "node_threshold"])
-(define ENSEMBLE_OPTIONS (concat MODEL_OPTIONS
-                                 ["sample_rate"
-                                  "replacement"
-                                  "randomize"
-                                  "number_of_models"
-                                  "seed"]))
 (define LOGISTIC_OPTIONS ["balance_fields"
                           "bias"
                           "c"
@@ -282,7 +270,7 @@
 ;; maps the options to be used in logistic regression
 ;; Inputs:
 ;;   balance-fields: (boolean) Whether to scale each numeric field
-;;   bias: (number) Scale of the intercept term
+;;   bias: (boolean) Whether to include an intercept term
 ;;   c: (number) Step of the regularization step
 ;;   missing-numerics: (boolean) Sets the logistic regression missing_numerics
 ;;                               flag
@@ -330,7 +318,7 @@
 ;;   k-folds: (integer) Number of folds
 ;;   objective-id: (string) ID of the objective field
 ;;   balance-fields: (boolean) Whether to scale each numeric field
-;;   bias: (number) Scale of the intercept term
+;;   bias: (boolean) Whether to include an intercept term
 ;;   c: (number) Step of the regularization step
 ;;   missing-numerics: (boolean) Sets the logistic regression missing_numerics
 ;;                               flag
