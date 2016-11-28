@@ -82,17 +82,40 @@ function check_batch_results {
   fi
 }
 
-function check_batch_prediction {
-  log "Checking batch prediction..."
+function run_exec_dataset {
   exec_count=$((exec_count+1))
   local inputs="[[\"execution\", \"$2\"], [\"dataset\", \"$3\"]]"
-  local inputs_file="$outdir/batch_inputs_$exec_count.json"
+  local inputs_file="$outdir/$4_inputs_$exec_count.json"
   echo $inputs > $inputs_file
-  local exec_dir="$outdir/batch_$exec_count"
+  local exec_dir="$outdir/$4_$exec_count"
   run_bigmler execute --script $1 \
                       --inputs $inputs_file \
                       --output-dir $exec_dir
-  check_batch_results $exec_dir/whizzml_results.json
+  last_result=$exec_dir/whizzml_results.json
+}
+
+function check_batch_prediction {
+  log "Checking batch prediction..."
+  run_exec_dataset $1 $2 $3 "batch"
+  check_batch_results $last_result
+}
+
+eval_rx="\"result\": \{.*\"evaluations\": \[(\"evaluation/[a-f0-9]{24}\"[, ])+"
+
+function check_eval_results {
+  last_result=$(<$1)
+  if [[ $last_result =~ $eval_rx ]]; then
+      log "OK"
+  else
+      echo "KO: Failed evaluation result in $1: $last_result"
+      exit 1
+  fi
+}
+
+function check_evaluation {
+  log "Checking evaluation..."
+  run_exec_dataset $1 $2 $3 "eval"
+  check_eval_results $last_result
 }
 
 log "Removing stale resources (if any)"
@@ -107,6 +130,7 @@ run_bigmler whizzml --package-dir ../ --output-dir $outdir/scripts || \
 models_script_id=$(<$outdir/scripts/create-category-models/scripts)
 single_script_id=$(<$outdir/scripts/single-prediction/scripts)
 batch_script_id=$(<$outdir/scripts/batch-prediction/scripts)
+eval_script_id=$(<$outdir/scripts/evaluation/scripts)
 
 log "Tests for model creation scripts"
 log "-------------------------------------------------------"
@@ -148,6 +172,14 @@ for s in $ex_iris_id $ex_miss_id $ex_bin_id; do
     check_batch_prediction $batch_script_id $s $iris_id
     check_batch_prediction $batch_script_id $s $iris_missings_id
 done
+
+log "Tests for evaluations"
+log "-------------------------------------------------------"
+for s in $ex_iris_id $ex_miss_id $ex_bin_id; do
+    check_evaluation $eval_script_id $s $iris_id
+    check_evaluation $eval_script_id $s $iris_missings_id
+done
+
 
 log "Removing created resources"
 log "-------------------------------------------------------"

@@ -1,6 +1,6 @@
 ;; Find field
 (define (find-field-id fields field)
-  (or (fields field false)
+  (or (and (contains? fields field) field)
       (loop (ids (keys fields))
         (cond (empty? ids) false
               (= field (fields [(head ids) "name"] "")) (head ids)
