@@ -1,0 +1,19 @@
+;; A filter that keeps each of the contiguous rows of the given field
+;; with probability 1/(remaining window size) each.
+(define (reservoir-filter field)
+  (flatline "(let (id (f {{field}})"
+            "      n (count (cond-window {{field}}"
+            "                            (= id (f {{field}})))))"
+            "  (= 0 (rand-int n)))"))
+
+;; Filter that keeps only the first of every batch of duplicated
+;; fields.
+(define (uniqueness-filter field)
+  (flatline "(!= (f {{field}}) (f {{field}} -1))"))
+
+(define result
+  (let (id (create-dataset dataset-id {"lisp_filter" (reservoir-filter field)})
+        id2 (create-dataset id {"lisp_filter" (uniqueness-filter field)}))
+    (wait id2)
+    (delete id)
+    id2))

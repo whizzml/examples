@@ -19,6 +19,9 @@ By convention, when the artifact is a library, the files are called
   between two datasets.
 - `model-or-ensemble` Decide whether to use models or ensembles for
   predictions, given an input source.
+- `deduplicate` Removes contiguos duplicate rows of a dataset, where
+  "duplicate" means a concrete field's value is the same for a set of
+  contiguous rows.
 - `remove-anomalies` Using Flatline and an anomaly detector, remove
   from an input dataset its anomalous rows.
 - `smacdown-branin` Simple example of SMACdown, using the Branin
@@ -84,9 +87,9 @@ create all of the example's scripts and libraries for you.
 
 - Install each of the libraries seperately, using the urls to each of
   their folders. (For example, https://github.com/whizzml/examples/tree/master/clean-dataset/clean-data)
-  
+
 - Install each of the scripts seperately, using the
-  urls to each of their folders.  
+  urls to each of their folders.
 
 - If a script requires a library, you will get the error message
   'Library ../my-library not loaded.' Load the library by clicking in

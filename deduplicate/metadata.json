@@ -1,0 +1,25 @@
+{
+  "name": "Deduplicate",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "description": "Select one row out of each group of contiguous rows with the same value of a given field",
+  "inputs": [
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "Input dataset"
+    },
+    {
+      "name": "field",
+      "type": "string",
+      "description": "Name or identifier of the field to be deduplicated"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "result",
+      "type": "dataset-id",
+      "description": "Identifier of the resulting dataset"
+    }
+  ]
+}
