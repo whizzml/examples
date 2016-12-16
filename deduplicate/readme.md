@@ -29,5 +29,5 @@ dataset, which is easily accomplished via the Flatline filter
     (!= (f "key") (f "key" -1))
 
 So the WhizzML script's job is mostly trivial: generate the Flatline
-expression an request a dataset for each filter in succession and
+expression, request a dataset for each filter in succession, and
 delete the intermediate dataset.
