@@ -56,10 +56,9 @@
 ;; Output: (string) Dataset ID - filtered out rows based on threshold
 
 (define (filtered-dataset dataset-id threshold)
-  (create-and-wait-dataset {"origin_dataset" dataset-id
-                            "excluded_fields" (excluded-fields
-                                               dataset-id
-                                               threshold)}))
+  (let (excluded (excluded-fields dataset-id threshold)
+        params (if (empty? excluded) {} {"excluded_fields" excluded}))
+    (create-and-wait-dataset dataset-id params)))
 
 (define output-dataset-id (filtered-dataset input-dataset-id threshold))
 
