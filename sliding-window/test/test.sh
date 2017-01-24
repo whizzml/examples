@@ -33,6 +33,8 @@ function cleanup {
   rm -f ./$data
 }
 
+log "Testing sliding-window"
+
 log "Removing stale resources (if any)"
 log "-------------------------------------------------------"
 cleanup
@@ -62,7 +64,7 @@ run_bigmler execute --script $script_id \
             --inputs $ins \
             --output-dir $outdir/exec
 
-new_id=$(grep -Po 'dataset/[0-9a-f]{24}' $outdir/exec/whizzml_results.json|head -1)
+new_id=$(grep -Eo 'dataset/[0-9a-f]{24}' $outdir/exec/whizzml_results.json|head -1)
 
 [ -z $new_id ] && echo "KO: no dataset found in results" && exit 1
 
