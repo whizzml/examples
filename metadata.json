@@ -19,6 +19,7 @@
     "model-per-cluster",
     "remove-anomalies",
     "seeded-best-k",
+    "sliding-window",
     "smacdown-branin",
     "smacdown-ensemble",
     "stacked-generalization"

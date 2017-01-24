@@ -1,0 +1,32 @@
+{
+  "name" : "Sliding Windows",
+  "kind" : "script",
+  "source_code" : "script.whizzml",
+  "description" : "Extends a dataset with additional fields containing row-shifted values of each numeric field",
+  "inputs": [
+    {
+      "name" : "dataset-id",
+      "type" : "dataset-id",
+      "description" : "Input dataset ID"
+    },
+    {
+      "name" : "begin",
+      "type" : "integer",
+      "default" : -3,
+      "description" : "Beginning of window"
+    },
+    {
+      "name" : "end",
+      "type" : "integer",
+      "default" : -1,
+      "description" : "End of window"
+    }
+  ],
+  "outputs" : [
+    {
+      "name" : "result",
+      "type" : "dataset-id",
+      "description" : "Output dataset ID"
+    }
+  ]
+}

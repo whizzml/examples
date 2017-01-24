@@ -57,6 +57,9 @@ By convention, when the artifact is a library, the files are called
 - `anomaly-benchmarking` Script that takes any dataset (classification
   or regression) and turns it into a binary classification problem
   with the two classes "normal" and "anomalous".
+- `sliding-window` Script that extends a dataset with new fields
+  containing row-shifted values from numeric fields. For casting time
+  series forecasting as a supervised learning problem.
 
 ## How to install
 

@@ -1,0 +1,29 @@
+;; Extend an input dataset with fields containing row-shifted values
+;; of each non-datetime numeric field, corresponding to a given sliding window
+;; interval.
+
+;; Given and list of field descriptors and window edge locations,
+;; construct the new_fields parameter: a list of flatline strings and
+;; new field names
+(define (new-fields fdescs begin end)
+  (let (flat-str (lambda (f) (flatline "(window {{f}} {begin} {end})")))
+    (reduce
+     (lambda (nfs fd)
+             (if (and (numeric-field? fd) (not (fd "parent_optype" false)))
+               (append nfs {"field" (flat-str (fd "name"))
+                            "names" (map (lambda (t) (str (fd "name") " " t))
+                                         (range begin (+ end 1)))})
+               nfs))
+     [] (values fdescs))))
+
+;; BigML call to extend the input dataset with new sliding window fields.
+(define (extend-with-windows dataset-id begin end)
+  (let (fds (resource-fields dataset-id)
+        nfs (if (>= end begin)
+              (new-fields fds begin end)
+              (prog (log-warn "Swapping window begin and end values")
+                    (new-fields fds end begin))))
+    (create-and-wait-dataset dataset-id {"new_fields" nfs})))
+
+;; Input and output
+(define result (extend-with-windows dataset-id begin end))
