@@ -18,6 +18,7 @@
     "model-per-category",
     "model-per-cluster",
     "remove-anomalies",
+    "same-optype",
     "seeded-best-k",
     "sliding-window",
     "smacdown-branin",

@@ -44,6 +44,7 @@ By convention, when the artifact is a library, the files are called
   dataset with a hand-picked root node field.
 - `best-k` Scripts and library implementing Pham-Dimov-Nguyen
   algorithm for choosing the best k in k-means clusters.
+- `same-optype` Script matches the field optypes to a given dataset
 - `seeded-best-k` Scripts and library implementing Pham-Dimov-Nguyen
   algorithm for choosing the best k in k-means clusters, with
   user-provided seeds.
