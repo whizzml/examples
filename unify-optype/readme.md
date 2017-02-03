@@ -1,4 +1,4 @@
-# Same Field Optypes
+# Unify Field Optypes
 
 Sometimes it is difficult to autodetect appropriate optypes for the
 fields of sparse or heavily repeating datasets. This script takes a

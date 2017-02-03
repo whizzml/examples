@@ -1,5 +1,5 @@
 {
-  "name": "Same optype",
+  "name": "Unify optype",
   "description": "Ensures that a dataset made from a given source has fields with the same optype as a different given dataset",
   "kind": "script",
   "source_code": "script.whizzml",

@@ -1,17 +1,20 @@
-;; Given a source with incorrect optypes and a dataset with correct
-;; optypes, returns a dataset built from the source which has the same
-;; field optypes as the given dataset, matching field names. It also
-;; has the same field locales and term_analysis, if applicable.
+;; Given a source with possibly incorrect optypes and a dataset with
+;; correct optypes, returns a dataset built from the source which has
+;; the same field optypes as the given dataset, matching field
+;; names. It also has the same field locales and term_analysis, if
+;; applicable.
 
-(define (same-optype source-id dataset-id)
+(define (unify-optype source-id dataset-id)
   (let (ds (fetch dataset-id)
-        ds-ids (keys (ds "fields"))
+        ds-ids (ds "input_fields")
         ds-locale (ds "locale")
         src-fields (resource-fields source-id)
         src-ids (keys src-fields)
         ds-fields (map (lambda (x) 
-                         (find-field (ds "fields") 
-                                     (get-in src-fields [x "name"]))) src-ids)
+                         (when (member? x ds-ids)
+                         (find-field (ds "fields")
+                                     (src-fields [x "name"]))))
+                         src-ids)
         optype-list (map (lambda (x) (x "optype")) ds-fields) 
         locale-list (map (lambda (x) (x "locale" false)) ds-fields)
         term-list (map (lambda (x) (x "term_analysis" false)) ds-fields)
@@ -25,4 +28,4 @@
                                        "source_parser" {"locale" 
                                                         ds-locale}}))))
 
-(define generated-dataset (wait (same-optype source template-dataset)))
+(define generated-dataset (wait (unify-optype source template-dataset)))

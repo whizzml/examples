@@ -75,7 +75,7 @@ function cleanup {
   rm -f ./$bad_data
 }
 
-log "Testing same-optype"
+log "Testing unify-optype"
 
 log "Removing stale resources (if any)"
 log "-------------------------------------------------------"
@@ -136,7 +136,7 @@ results="$outdir/results/$underscore_source"
 
 if grep -q "{\"000000\": {\"order\": 0, \"optype\": \"text\"" $results
 then
-    log "some-optype OK"
+    log "unify-optype OK"
 else
     echo "KO: optype not set properly in results" 
     exit 1
