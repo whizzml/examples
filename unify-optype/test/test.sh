@@ -134,7 +134,7 @@ run_bigmler --source $source_id \
 underscore_source=${source_id////_}
 results="$outdir/results/$underscore_source" 
 
-if grep -q "{\"000000\": {\"order\": 0, \"optype\": \"text\"" $results
+if grep -q "\"optype\": \"text\"" $results
 then
     log "unify-optype OK"
 else
