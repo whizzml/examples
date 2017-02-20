@@ -1,0 +1,30 @@
+{
+  "name": "Stratified Sampling",
+  "description": "A script to allow stratified sampling",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "The dataset you wish to sample from"
+    },
+    {
+      "name": "field",
+      "type": "string",
+      "description": "The field id of the strata"
+    },
+    {
+      "name": "sizes",
+      "type": "list",
+      "description": "A list indicating the count of each strata"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "stratified-dataset",
+      "type": "dataset-id",
+      "description": "The generated dataset"
+    }
+  ]
+}
