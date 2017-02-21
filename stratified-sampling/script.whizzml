@@ -1,35 +1,31 @@
-;; Takes a dataset id and a catagorical field id, and breaks the
+;; Takes a dataset id and a categorical field id, and breaks the
 ;; dataset into pieces, one per value. Returns the list of datasets.
-
 (define (split-it ds-id fld-id)
-  (let (bucket-list (map (lambda (x) (head x)) 
-                         ((fetch ds-id) 
-                             ["fields" fld-id "summary" "categories"])))
+  (let (bucket-list (map head ((fetch ds-id) 
+                               ["fields" fld-id "summary" "categories"])))
     (iterate (ds-list []            
               bucket bucket-list)
       (let (split-filter (flatline "(= (f {{fld-id}}) {{bucket}})")
-            split-ds (create-dataset {"origin_dataset" ds-id
-                                      "lisp_filter" split-filter}))
+            split-ds (create-dataset ds-id
+                                     {"lisp_filter" split-filter}))
         (append ds-list split-ds)))))
 
-;; Takes a list of datasets and a list of counts, and randomly samples
-;; each dataset at the count indicated. Returns the list of sampled
-;; datasets.
-
+;; Takes a list of dataset ids and a list of counts, and randomly
+;; samples each dataset at the count indicated. Returns the list of
+;; sampled dataset ids.
 (define (sample-it split-list sample-list)
   (iterate (ds-list []
             ds split-list
             sample-size sample-list)
     (let (ds-size ((fetch ds) "rows"))
-      (append ds-list (create-dataset {"origin_dataset" ds
-                                       "sample_rate" (/ sample-size ds-size)})))))
+      (append ds-list (create-dataset ds
+                                      {"sample_rate" (/ sample-size ds-size)})))))
 
 ;; Putting it together, takes in a dataset, a field id, and a list of
 ;; sample counts. Breaks the dataset into pieces by categorical value,
 ;; samples them according to the sample counts, and puts them back
 ;; together into a single returned dataset. Deletes the intermediate
 ;; datasets.
-
 (define (stratified-sampling ds-id field-id sample-list)
   (let (split-list (split-it ds-id field-id)
         sample-list (sample-it split-list sample-list)
