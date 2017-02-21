@@ -15,7 +15,7 @@
       "description": "The field id of the strata"
     },
     {
-      "name": "sizes",
+      "name": "counts",
       "type": "map",
       "description": "A map of field value to sample count"
     }

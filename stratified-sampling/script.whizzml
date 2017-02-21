@@ -35,4 +35,4 @@
     (delete* sample-list)
     collected))
 
-(define stratified-dataset (stratified-sampling dataset field sizes))
+(define stratified-dataset (stratified-sampling dataset field counts))

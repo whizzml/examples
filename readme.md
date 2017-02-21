@@ -16,57 +16,51 @@ By convention, when the artifact is a library, the files are called
 ## Examples
 
 - `covariate-shift` Determine if there is a shift in data distribution
-  between two datasets.  
-- `model-or-ensemble` Decide whether to use
-  models or ensembles for predictions, given an input source.  
+  between two datasets.
+- `model-or-ensemble` Decide whether to use models or ensembles for
+  predictions, given an input source.
 - `deduplicate` Removes contiguos duplicate rows of a dataset, where
   "duplicate" means a concrete field's value is the same for a set of
-  contiguous rows.  
-- `remove-anomalies` Using Flatline and an anomaly
-  detector, remove from an input dataset its anomalous rows.  
+  contiguous rows.
+- `remove-anomalies` Using Flatline and an anomaly detector, remove
+  from an input dataset its anomalous rows.
 - `smacdown-branin` Simple example of SMACdown, using the Branin
-  function as evaluator.  
-- `smacdown-ensemble` Use SMACdown to
-  discover the best possible ensemble to model a given dataset id.  
-- `find-neighbors` Using cluster distances as a metric, find instances
-  in a dataset close to a given row.  
+  function as evaluator.
+- `smacdown-ensemble` Use SMACdown to discover the best possible
+  ensemble to model a given dataset id.
+- `find-neighbors`  Using cluster distances as a metric, find
+  instances in a dataset close to a given row.
 - `stacked-generalization` Simple
   [stacking](https://en.wikipedia.org/wiki/Ensemble_learning#Stacking)
-  using decision tree, ensembles and logistic regression.  
-- `best-first` Feature selection using a greedy algorithm.  
-- `gradient-boosting` 
-  [Boosting](https://en.wikipedia.org/wiki/Gradient_boosting) algorithm 
-  using gradient descent.  
+  using decision tree, ensembles and logistic regression.
+- `best-first` Feature selection using a greedy algorithm.
+- `gradient-boosting`
+  [Boosting](https://en.wikipedia.org/wiki/Gradient_boosting)
+  algorithm using gradient descent.
 - `model-per-cluster` Scripts and library to model data after
   clustering and make predictions using the resulting per-cluster
-  model.  
-- `model-per-category` Scripts to model and predict from an
-  input dataset with a hand-picked root node field.  
-- `best-k` Scripts and library implementing Pham-Dimov-Nguyen algorithm for
-  choosing the best k in k-means clusters.  
-- `seeded-best-k` Scripts
-  and library implementing Pham-Dimov-Nguyen algorithm for choosing
-  the best k in k-means clusters, with user-provided seeds.  
+  model.
+- `model-per-category` Scripts to model and predict from an input
+  dataset with a hand-picked root node field.
+- `best-k` Scripts and library implementing Pham-Dimov-Nguyen
+  algorithm for choosing the best k in k-means clusters.
+- `seeded-best-k` Scripts and library implementing Pham-Dimov-Nguyen
+  algorithm for choosing the best k in k-means clusters, with
+  user-provided seeds.
 - `anomaly-shift` Calculate the average anomaly between two given
-  datasets.  
-- `cross-validation` Scripts for performing k-fold
-  crossvalidation.  
-- `clean-dataset` Scripts and library for cleaning
-  up a dataset.  
-- `boruta` Script for feature selection using the
-  Boruta algorithm.  
-- `cluster-classification` Script that determines
-  which input fields are most important for differentiating between
-  clusters.  
-- `anomaly-benchmarking` Script that takes any dataset
-  (classification or regression) and turns it into a binary
-  classification problem with the two classes "normal" and
-  "anomalous".  
-- `sliding-window` Script that extends a dataset with
-  new fields containing row-shifted values from numeric fields. For
-  casting time series forecasting as a supervised learning problem.  
-- `unify-optype` Script that matches the field optypes to a given
-  dataset 
+  datasets.
+- `cross-validation` Scripts for performing k-fold crossvalidation.
+- `clean-dataset` Scripts and library for cleaning up a dataset.
+- `boruta` Script for feature selection using the Boruta algorithm.
+- `cluster-classification` Script that determines which input fields
+  are most important for differentiating between clusters.
+- `anomaly-benchmarking` Script that takes any dataset (classification
+  or regression) and turns it into a binary classification problem
+  with the two classes "normal" and "anomalous".
+- `sliding-window` Script that extends a dataset with new fields
+  containing row-shifted values from numeric fields. For casting time
+  series forecasting as a supervised learning problem.
+- `unify-optype` Script that matches the field optypes to a given dataset
 - `stratified-sampling` Script that implements the stratified sampling
   technique
 
