@@ -11,7 +11,7 @@ levels. Currently, it requires sample counts as input.
 
 - The id of the field of interest
 
-- The desired counts of the strata, as a list
+- A map of the field values to their desired counts
 
 #Output
 

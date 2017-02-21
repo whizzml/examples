@@ -1,14 +1,13 @@
-;; Takes a dataset id and a categorical field id, and breaks the
-;; dataset into pieces, one per value. Returns the list of datasets.
-(define (split-it ds-id fld-id)
-  (let (bucket-list (map head ((fetch ds-id) 
-                               ["fields" fld-id "summary" "categories"])))
-    (iterate (ds-list []            
-              bucket bucket-list)
-      (let (split-filter (flatline "(= (f {{fld-id}}) {{bucket}})")
-            split-ds (create-dataset ds-id
-                                     {"lisp_filter" split-filter}))
-        (append ds-list split-ds)))))
+;; Takes a dataset id, a categorical field id, and a list of the
+;; categories in that field, and breaks the dataset into pieces, one
+;; per category. Returns the list of datasets.
+(define (split-it ds-id fld-id bucket-list)
+  (iterate (ds-list []            
+            bucket bucket-list)
+    (let (split-filter (flatline "(= (f {{fld-id}}) {{bucket}})")
+          split-ds (create-dataset ds-id
+                                   {"lisp_filter" split-filter}))
+      (append ds-list split-ds))))
 
 ;; Takes a list of dataset ids and a list of counts, and randomly
 ;; samples each dataset at the count indicated. Returns the list of
@@ -21,14 +20,16 @@
       (append ds-list (create-dataset ds
                                       {"sample_rate" (/ sample-size ds-size)})))))
 
-;; Putting it together, takes in a dataset, a field id, and a list of
-;; sample counts. Breaks the dataset into pieces by categorical value,
-;; samples them according to the sample counts, and puts them back
-;; together into a single returned dataset. Deletes the intermediate
-;; datasets.
-(define (stratified-sampling ds-id field-id sample-list)
-  (let (split-list (split-it ds-id field-id)
-        sample-list (sample-it split-list sample-list)
+;; Putting it together, takes in a dataset, a field id, and a map of
+;; field values to sample counts. Breaks the dataset into pieces by
+;; field value, samples them according to the sample counts, and puts
+;; them back together into a single returned dataset. Deletes the
+;; intermediate datasets.
+(define (stratified-sampling ds-id field-id sample-map)
+  (let (field-values (keys sample-map)
+        sample-count (values sample-map)
+        split-list (split-it ds-id field-id field-values)
+        sample-list (sample-it split-list sample-count)
         collected (create-and-wait-dataset {"origin_datasets" sample-list}))
     (delete* split-list)
     (delete* sample-list)

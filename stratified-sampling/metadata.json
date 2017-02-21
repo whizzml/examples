@@ -1,6 +1,6 @@
 {
   "name": "Stratified Sampling",
-  "description": "A script to allow stratified sampling",
+  "description": "An implementation of stratified sampling",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
@@ -16,8 +16,8 @@
     },
     {
       "name": "sizes",
-      "type": "list",
-      "description": "A list indicating the count of each strata"
+      "type": "map",
+      "description": "A map of field value to sample count"
     }
   ],
   "outputs": [
