@@ -15,7 +15,7 @@ run_bigmler --train s3://bigml-public/csv/diabetes.csv --no-model \
 
 # building the inputs for the test
 prefix='[["dataset", "'
-suffix='"], ["field", "000008"], ["sizes", {"true": 100, "false": 100}]]'
+suffix='"], ["field", "000008"], ["counts", {"true": 100, "false": 100}]]'
 text=''
 cat cmd/pre_test/dataset | while read dataset
 do
