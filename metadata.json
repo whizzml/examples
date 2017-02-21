@@ -23,6 +23,7 @@
     "sliding-window",
     "smacdown-branin",
     "smacdown-ensemble",
-    "stacked-generalization"
+    "stacked-generalization",
+    "stratified-sampling"
   ]
 }
