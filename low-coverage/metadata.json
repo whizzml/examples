@@ -1,0 +1,25 @@
+{
+  "name": "Remove Low Coverage Fields",
+  "description": "Given a dataset and a percent threshold value, this script removes all fields with counts less than that threshold.",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "The dataset that contains low-coverage fields"
+    },
+    {
+      "name": "threshold",
+      "type": "number",
+      "description": "The threshold value (ex, 0.10 for 10%)"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "filtered-dataset",
+      "type": "dataset-id",
+      "description": "The filtered dataset"
+    }
+  ]
+}

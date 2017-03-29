@@ -1,0 +1,20 @@
+(define (low-coverage dsid threshold)
+  (let (ds (fetch dsid)
+        size (ds "rows")
+        name (ds "name")
+        fields (keys (ds "fields"))
+        missing (map (lambda (x) (ds ["fields" 
+                                          x 
+                                          "summary" 
+                                          "missing_count"])) 
+                         fields)
+        missing-pairs (iterate (a [] x fields y missing) (append a [x y]))
+
+        low-list (filter (lambda (x) (< (last x) (* (- 1 threshold) size))) 
+                         missing-pairs)
+        fields-to-keep (map (lambda (x) (head x)) low-list))
+    (create-dataset {"origin_dataset" dsid
+                     "input_fields" fields-to-keep
+                     "name" (str name " - only high coverage") })))
+
+(define filtered-dataset (low-coverage dataset threshold))
