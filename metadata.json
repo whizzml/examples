@@ -14,6 +14,7 @@
     "deduplicate",
     "find-neighbors",
     "gradient-boosting",
+    "low-coverage",
     "model-or-ensemble",
     "model-per-category",
     "model-per-cluster",

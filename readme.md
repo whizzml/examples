@@ -63,6 +63,8 @@ By convention, when the artifact is a library, the files are called
 - `unify-optype` Script that matches the field optypes to a given dataset
 - `stratified-sampling` Script that implements the stratified sampling
   technique
+- `low-coverage` Script that removes all the sparse fields that have
+  coverage less than a given threshold coverage.
 
 ## How to install
 
