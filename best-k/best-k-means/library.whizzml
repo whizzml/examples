@@ -231,7 +231,7 @@
     cluster-id))
 
 
-;; best-batchcentroid
+;; find-best-batchcentroid
 ;;
 ;; Uses the Pham-Dimov-Nguyen algorithm to create the batchcentroid annotated
 ;; with the best K-means clustering
@@ -247,7 +247,7 @@
 ;;
 ;; Output: (batchcentroid) Created batchcentroid
 ;;
-(define (best-batchcentroid dataset cluster-args k-min k-max bestcluster-args clean logf)
+(define (find-best-batchcentroid dataset cluster-args k-min k-max bestcluster-args clean logf)
   (let (cluster-id (best-k-means dataset cluster-args k-min k-max bestcluster-args clean logf)
         batchcentroid-id (create-and-wait-batchcentroid {"cluster" cluster-id
                                                          "dataset" dataset
