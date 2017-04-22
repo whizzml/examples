@@ -12,7 +12,7 @@
     {
       "name": "threshold",
       "type": "number",
-      "description": "The threshold value (ex, 0.10 for 10%)"
+      "description": "The threshold value either as an integer (e.g. permit no more than 100 missing values) or a percent (e.g. permit no less than 10% coverage)"
     }
   ],
   "outputs": [
