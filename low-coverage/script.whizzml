@@ -9,8 +9,8 @@
         fields-to-keep (filter (lambda (id) 
                           (< (fields [id "summary" "missing_count"]) mc)) 
                         (keys fields)))
-    (if (< threshold 0)
-        (raise "Your threshold is negative."))
+    (when (< threshold 0)
+        (raise "Threshold must be non-negative."))
     (create-dataset {"origin_dataset" dsid
                      "input_fields" fields-to-keep
                      "name" (str name " - only high coverage") })))
