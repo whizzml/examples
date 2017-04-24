@@ -29,7 +29,7 @@ run_bigmler execute --scripts .build/scripts  --inputs test_inputs.json \
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
 
-if grep -q "{\"outputs\": \[\[\"filtered-dataset\"" $file
+if grep -q "\"outputs\": \[\[\"filtered-dataset\"" $file
 then
   log "low-coverage OK"
 else
