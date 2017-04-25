@@ -47,7 +47,7 @@
     {
       "name": "result",
       "type": "map",
-      "description": "A map with categories, datasets and models, as lists"
+      "description": "A map with categories and models, as lists"
     }
   ]
 }

@@ -27,7 +27,10 @@
 ;; that have the given category.
 (define (category-dataset origin-id field category)
   (let (fltr (flatline "(= (f {{field}}) {{category}})"))
-    (create-dataset origin-id {"lisp_filter" fltr})))
+    (create-dataset origin-id {"lisp_filter" fltr
+                               "name" (str (origin-id "name") 
+                                          " > " 
+                                          category)})))
 
 ;; Create a dataset and a model for missing values of field
 (define (missings-resources dataset missings field kind params)
