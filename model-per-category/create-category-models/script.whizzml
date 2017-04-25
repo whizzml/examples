@@ -28,7 +28,7 @@
 (define (category-dataset origin-id field category)
   (let (fltr (flatline "(= (f {{field}}) {{category}})"))
     (create-dataset origin-id {"lisp_filter" fltr
-                               "name" (str (origin-id "name") 
+                               "name" (str ((fetch origin-id) "name") 
                                           " > " 
                                           category)})))
 
