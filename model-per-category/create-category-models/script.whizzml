@@ -25,12 +25,10 @@
 ;; Given a parent dataset, a field and one of its categories,
 ;; create a new dataset containing only the instances of the parent
 ;; that have the given category.
-(define (category-dataset origin-id field category)
+(define (category-dataset origin-id field category name)
   (let (fltr (flatline "(= (f {{field}}) {{category}})"))
     (create-dataset origin-id {"lisp_filter" fltr
-                               "name" (str ((fetch origin-id) "name") 
-                                          " > " 
-                                          category)})))
+                               "name" (str  name " > " category)})))
 
 ;; Create a dataset and a model for missing values of field
 (define (missings-resources dataset missings field kind params)
@@ -43,7 +41,8 @@
 ;; Final workflow for multiway first split
 (define (multiway-model dataset field objective kind parameters)
   (let ([cs missings id name] (categories dataset field)
-        ds (for (c cs) (category-dataset dataset field c))
+        name ((fetch dataset) "name")
+        ds (for (c cs) (category-dataset dataset field c name))
         ps (if (empty? objective)
              parameters
              (assoc parameters "objective_field" objective))
