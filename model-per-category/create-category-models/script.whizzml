@@ -41,8 +41,8 @@
 ;; Final workflow for multiway first split
 (define (multiway-model dataset field objective kind parameters)
   (let ([cs missings id name] (categories dataset field)
-        name ((fetch dataset) "name")
-        ds (for (c cs) (category-dataset dataset field c name))
+        ds-name ((fetch dataset) "name")
+        ds (for (c cs) (category-dataset dataset field c ds-name))
         ps (if (empty? objective)
              parameters
              (assoc parameters "objective_field" objective))
