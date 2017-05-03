@@ -25,10 +25,10 @@
 ;; Given a parent dataset, a field and one of its categories,
 ;; create a new dataset containing only the instances of the parent
 ;; that have the given category.
-(define (category-dataset origin-id field category name)
+(define (category-dataset origin-id field category ds-name)
   (let (fltr (flatline "(= (f {{field}}) {{category}})"))
     (create-dataset origin-id {"lisp_filter" fltr
-                               "name" (str  name " > " category)})))
+                               "name" (str  ds-name " > " category)})))
 
 ;; Create a dataset and a model for missing values of field
 (define (missings-resources dataset missings field kind params)
