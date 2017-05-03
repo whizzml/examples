@@ -65,6 +65,8 @@ By convention, when the artifact is a library, the files are called
   technique
 - `low-coverage` Script that removes all the sparse fields that have
   coverage less than a given threshold coverage.
+- `stacked-predictions` Script that builds several predictors and
+  returns an appended dataset with the most popular prediction
 
 ## How to install
 

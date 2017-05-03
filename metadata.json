@@ -25,6 +25,7 @@
     "smacdown-branin",
     "smacdown-ensemble",
     "stacked-generalization",
-    "stratified-sampling"
+    "stratified-sampling",
+    "stacked-predicitions"
   ]
 }

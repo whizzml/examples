@@ -1,0 +1,88 @@
+;; Extract for a batchpredction its associated dataset of results
+(define (batch-dataset id)
+  ((fetch (wait id)) "output_dataset_resource"))
+
+;; Create a batchprediction for the given model and datasets,
+;; with a map of additional options and using defaults appropriate
+;; for model stacking
+(define (make-batch ds-id mod-id)
+  (let (mod (fetch mod-id) 
+        name (if (= (resource-type mod-id) "ensemble")
+               (if (contains? mod "boosting")
+                 "ensemble-boosted"
+                 (if (mod "randomize")
+                   "ensemble-rdf"
+                   "ensemble-bagging"))
+               (resource-type mod-id)))
+    (create-batchprediction ds-id mod-id {"all_fields" true
+                                          "output_dataset" true
+                                          "prediction_name" name})))
+
+;; Auxiliary function to create the set of stack models
+(define (create-stack-models train-id obj-id)
+  (if (= ((fetch train-id) ["fields" obj-id "optype"]) "numeric")
+    [(create-model {"dataset" train-id})
+     (create-ensemble {"dataset" train-id
+                       "randomize" false})
+     (create-ensemble {"dataset" train-id
+                       "randomize" true})
+     (create-ensemble {"dataset" train-id
+                       "boosting" {"iterations" 10}})]
+    [(create-model {"dataset" train-id})
+     (create-ensemble {"dataset" train-id
+                       "randomize" false})
+     (create-ensemble {"dataset" train-id
+                       "randomize" true})
+     (create-ensemble {"dataset" train-id
+                       "boosting" {"iterations" 10}})
+     (create-logisticregression {"dataset" train-id})]))
+
+;; Auxiliary funtion to successively create batchpredictions using the
+;; given models over the initial dataset ds-id.  Returns the final
+;; dataset id.
+(define (create-stack-predictions models ds-id)
+  (reduce (lambda (did mid) (batch-dataset (make-batch did mid)))
+          ds-id
+          models))
+
+;; Auxiliary function extracting the model_inputs of a model
+(define (model-inputs mod-id)
+  ((fetch mod-id) "input_fields"))
+
+;; Lisp filter to find the most popular/average
+
+(define (popular-filter id obj-id)
+  (let (obj-optype ((fetch id) ["fields" obj-id "optype"]))
+    (if (= obj-optype "numeric")
+        (flatline "(/ (+ (f \"model\")              "
+                        "(f \"ensemble-bagging\")   "
+                        "(f \"ensemble-rdf\")       "
+                        "(f \"ensemble-boosted\"))   "
+                     "4)")
+        (flatline "(let (combined (list (f \"model\")              "
+                                       "(f \"ensemble-bagging\")     "
+                                       "(f \"ensemble-rdf\")      "
+                                       "(f \"ensemble-boosted\")   "
+                                       "(f \"logisticregression\")))"
+                  "  (mode combined))"))))
+
+;; Splits the given dataset, using half of it to create
+;; an heterogeneous collection of models and the other
+;; half to train a tree that predicts based on those other
+;; models predictions.  Returns a map with the collection
+;; of models (under the key "models") and the meta-prediction
+;; as the value of the key "metamodel".  The key "result"
+;; has as value a boolean flag indicating whether the
+;; process was successful.
+(define (make-stack train-id hold-id)
+  (let (obj-id (dataset-get-objective-id train-id)
+        models (create-stack-models train-id obj-id)
+        id (create-stack-predictions models hold-id)
+        orig-fields (model-inputs (head models))
+        popular-id (create-dataset {"origin_dataset" id 
+                                 "new_fields" [{"field" (popular-filter id obj-id)
+                                                "name" "popular"}]})
+        success? (resource-done? (fetch (wait popular-id))))
+    {"models" models "dataset" popular-id "result" success?}))
+
+(define popular-dataset ((make-stack training holdout) "dataset"))
