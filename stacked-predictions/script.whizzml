@@ -19,23 +19,10 @@
                                           "prediction_name" name})))
 
 ;; Auxiliary function to create the set of stack models
-(define (create-stack-models train-id obj-id)
-  (if (= ((fetch train-id) ["fields" obj-id "optype"]) "numeric")
-    [(create-model {"dataset" train-id})
-     (create-ensemble {"dataset" train-id
-                       "randomize" false})
-     (create-ensemble {"dataset" train-id
-                       "randomize" true})
-     (create-ensemble {"dataset" train-id
-                       "boosting" {"iterations" 10}})]
-    [(create-model {"dataset" train-id})
-     (create-ensemble {"dataset" train-id
-                       "randomize" false})
-     (create-ensemble {"dataset" train-id
-                       "randomize" true})
-     (create-ensemble {"dataset" train-id
-                       "boosting" {"iterations" 10}})
-     (create-logisticregression {"dataset" train-id})]))
+(define (create-stack-models train-id model-name param)
+  (cond (= model-name "model") (create-model train-id param)
+        (= model-name "ensemble") (create-ensemble train-id param)
+        (= model-name "lr") (create-logisticregression train-id param)))
 
 ;; Auxiliary funtion to successively create batchpredictions using the
 ;; given models over the initial dataset ds-id.  Returns the final
@@ -74,9 +61,11 @@
 ;; as the value of the key "metamodel".  The key "result"
 ;; has as value a boolean flag indicating whether the
 ;; process was successful.
-(define (make-stack train-id hold-id)
+(define (make-stack train-id hold-id model-list params)
   (let (obj-id (dataset-get-objective-id train-id)
-        models (create-stack-models train-id obj-id)
+        models (map (lambda (x) 
+                      (create-stack-models train-id (nth model-list x) (nth params x)))
+                    (range (count model-list)))
         id (create-stack-predictions models hold-id)
         orig-fields (model-inputs (head models))
         popular-id (create-dataset {"origin_dataset" id 
@@ -85,4 +74,4 @@
         success? (resource-done? (fetch (wait popular-id))))
     {"models" models "dataset" popular-id "result" success?}))
 
-(define popular-dataset ((make-stack training holdout) "dataset"))
+(define popular-dataset ((make-stack training holdout model-list parameters) "dataset"))

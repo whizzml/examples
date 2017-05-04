@@ -17,7 +17,7 @@ run_bigmler --train s3://bigml-public/csv/diabetes.csv --no-model \
 # building the inputs for the test
 prefix='[["training", "'
 infix='"], ["holdout", "'
-suffix='"]]'
+suffix='"], ["model-list", ["model", "ensemble", "ensemble", "ensemble", "lr"]], ["parameters", [{}, {"randomize": false}, {"randomize": true}, {"boosting": {"iterations": 10}}, {}]]]'
 text=''
 
 cat cmd/pre_test/dataset_train | while read train
@@ -38,9 +38,9 @@ declare regex="\"outputs\": \[\[\"popular-dataset\", "
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        log "stratified-sampling OK"
+        log "stacked-predicitons OK"
     else
-        echo "stratified-sampling KO:\n $file_content"
+        echo "stacked-predicitons KO:\n $file_content"
         exit 1
 fi
 

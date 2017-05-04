@@ -1,20 +1,25 @@
 # Stacked Predictions
 
-This script takes two datasets, a training and a holdout, and builds
-several predictors using the training dataset. These include a model,
-a bagging ensemble, a random decision forest, a boosted tree, and a
-logistic regression (for categorical datasets).  The script then runs
-a batch prediction on the holdout dataset for each predictor, and
-finally appends the holdout dataset with the prediction of each
-predictor and the most popular prediciton over all.
+This script takes two datasets, a training and a holdout, a list of
+predictors to be built, and a list of parameter to pass to them. (By
+default they are a model, a bagging ensemble, a random decision
+forest, a boosted ensemble, and a logistic regression.)  The script
+then runs a batch prediction on the holdout dataset for each
+predictor, and finally appends the holdout dataset with the prediction
+of each predictor and the most popular prediciton over all.
 
 # Inputs
 
 - A training dataset to build the predictors
 - A holdout dataset to predict
+- A list of predictors to build. The default is a model, a bagging
+  ensemble, a random decsion forest, a boosted ensemble, and a
+  logistic regression
+- A list of parameters to pass to your predictors. The default is the
+  default BigML settings for the default predictors above
 
 
 # Outputs
 
-- An appened dataset with all the prediction and the most popular
-  prediciton last
+- A copy of the original dataset appended with all the prediction and
+  the most popular prediction last

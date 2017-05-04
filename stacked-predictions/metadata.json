@@ -13,6 +13,18 @@
       "name": "holdout",
       "type": "dataset-id",
       "description": "The holdout dataset"
+    },
+    {
+      "name": "model-list",
+      "type": "list",
+      "default": ["model", "ensemble", "ensemble", "ensemble", "lr"],
+      "description": "list of predictors to be made (the default is a model, a bagging ensemble, a random decision forest, a boosted ensemble, and a logistic regression)"
+    },
+    {
+      "name": "parameters",
+      "type": "list",
+      "default": [{}, {"randomize": false}, {"randomize": true}, {"boosting": {"iterations": 10}}, {}],
+      "description": "list of parameters to pass to your predictors (leave empty is using the default model-list)"
     }
   ],
   "outputs": [
