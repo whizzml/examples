@@ -24,7 +24,7 @@
         (= model-name "ensemble") (create-ensemble train-id param)
         (= model-name "logisticregression") (create-logisticregression train-id param)
         (= model-name "lr") (create-logisticregression train-id param)
-        (raise "Predictor name not recognized: " model-name)))
+        (raise (str "Predictor name not recognized: " model-name))))
 
 ;; Auxiliary funtion to successively create batchpredictions using the
 ;; given models over the initial dataset ds-id.  Returns the final
