@@ -40,19 +40,13 @@
 
 ;; Lisp filter to find the most popular/average
 
-(define (popular-filter id obj-id)
-  (let (obj-optype ((fetch id) ["fields" obj-id "optype"]))
+(define (popular-filter id obj-id new-fields)
+  (let (obj-optype ((fetch id) ["fields" obj-id "optype"])
+        n (count new-fields)
+        partial (map (lambda (x) (flatline "(f {{x}})")) new-fields))
     (if (= obj-optype "numeric")
-        (flatline "(/ (+ (f \"model\")              "
-                        "(f \"ensemble-bagging\")   "
-                        "(f \"ensemble-rdf\")       "
-                        "(f \"ensemble-boosted\"))   "
-                     "4)")
-        (flatline "(let (combined (list (f \"model\")              "
-                                       "(f \"ensemble-bagging\")     "
-                                       "(f \"ensemble-rdf\")      "
-                                       "(f \"ensemble-boosted\")   "
-                                       "(f \"logisticregression\")))"
+        (flatline "(/ (+ @{partial}) {n})")
+        (flatline "(let (combined (list @{partial}))"
                   "  (mode combined))"))))
 
 ;; Splits the given dataset, using half of it to create
@@ -66,14 +60,18 @@
 (define (make-stack train-id hold-id model-list params)
   (let (obj-id (dataset-get-objective-id train-id)
         models (map (lambda (x) 
-                      (create-stack-models train-id (nth model-list x) (nth params x)))
+                      (create-stack-models train-id (nth model-list x) 
+                                                    (nth params x)))
                     (range (count model-list)))
         id (create-stack-predictions models hold-id)
         orig-fields (model-inputs (head models))
+        new-fields (filter (lambda (n) 
+                             (not (member? n (keys (resource-fields train-id))))) 
+                           (keys (resource-fields id)))
         popular-id (create-dataset {"origin_dataset" id 
-                                 "new_fields" [{"field" (popular-filter id obj-id)
+                                 "new_fields" [{"field" (popular-filter id obj-id new-fields)
                                                 "name" "popular"}]})
         success? (resource-done? (fetch (wait popular-id))))
     {"models" models "dataset" popular-id "result" success?}))
 
-(define popular-dataset ((make-stack training holdout model-list parameters) "dataset"))
+;;(define popular-dataset ((make-stack training holdout model-list parameters) "dataset"))
