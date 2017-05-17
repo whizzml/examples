@@ -74,4 +74,4 @@
         success? (resource-done? (fetch (wait popular-id))))
     {"models" models "dataset" popular-id "result" success?}))
 
-;;(define popular-dataset ((make-stack training holdout model-list parameters) "dataset"))
+(define popular-dataset ((make-stack training holdout model-list parameters) "dataset"))
