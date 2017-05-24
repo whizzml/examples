@@ -55,7 +55,7 @@
 ;; dataset is categorical, raising an error otherwise.
 (define (get-objective ds-id obj-id)
   (let (obj-id (if (empty? obj-id)
-                   (dataset-get-objective-id dataset-id)
+                   (dataset-get-objective-id ds-id)
                    obj-id)
         otype ((fetch ds-id) ["fields" obj-id "optype"] "missing"))
     (when (not (= "categorical" otype))
