@@ -18,6 +18,11 @@
       "name": "counts",
       "type": "map",
       "description": "A map of field value to sample count"
+    },
+    {
+      "name": "weighted",
+      "type": "boolean",
+      "description": "If False the counts are absolute. If True, the counts are weights"
     }
   ],
   "outputs": [
