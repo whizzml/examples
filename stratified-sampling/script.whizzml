@@ -38,7 +38,7 @@
 ;; intermediate datasets.
 (define (stratified-sampling ds-id field sample-map weighted)
   (let (field-id (get (find-field (resource-fields ds-id) field) "id")
-        sample-count (values sample-map)
+        field-values (keys sample-map)
         sample-count (if weighted 
           (weighted-counts ds-id field-id sample-map)
           (values sample-map))
