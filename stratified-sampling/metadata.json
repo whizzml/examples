@@ -12,7 +12,7 @@
     {
       "name": "field",
       "type": "string",
-      "description": "The field id of the strata"
+      "description": "The field id or name of the strata"
     },
     {
       "name": "counts",

@@ -20,13 +20,13 @@
       (append ds-list (create-dataset ds
                                       {"sample_rate" (/ sample-size ds-size)})))))
 
-;; Putting it together, takes in a dataset, a field id, and a map of
+;; Putting it together, takes in a dataset, a field id/name, and a map of
 ;; field values to sample counts. Breaks the dataset into pieces by
 ;; field value, samples them according to the sample counts, and puts
 ;; them back together into a single returned dataset. Deletes the
 ;; intermediate datasets.
-(define (stratified-sampling ds-id field-id sample-map)
-  (let (field-values (keys sample-map)
+(define (stratified-sampling ds-id field sample-map)
+  (let (field-id (get (find-field (resource-fields ds-id) field) "id")
         sample-count (values sample-map)
         split-list (split-it ds-id field-id field-values)
         sample-list (sample-it split-list sample-count)
