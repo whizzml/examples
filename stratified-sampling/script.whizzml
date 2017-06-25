@@ -5,7 +5,7 @@
   (iterate (ds-list []            
             bucket bucket-list)
     (let (split-filter (flatline "(= (f {{fld-id}}) {{bucket}})")
-          split-ds (create-dataset ds-id
+          split-ds (create-and-wait-dataset ds-id
                                    {"lisp_filter" split-filter}))
       (append ds-list split-ds))))
 
