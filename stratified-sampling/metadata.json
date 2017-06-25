@@ -22,7 +22,8 @@
     {
       "name": "weighted",
       "type": "boolean",
-      "description": "If False the counts are absolute. If True, the counts are weights"
+      "description": "If False the counts are absolute. If True, the counts are weights",
+      "default": false
     }
   ],
   "outputs": [
