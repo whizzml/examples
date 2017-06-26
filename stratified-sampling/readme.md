@@ -22,10 +22,12 @@ categorical field you want to sample at different rates for each class.
   if counts is `{"red": 10, "green": 20}` and weighted is `False`, then the
   dataset sample will have exactly 10 red and 20 green instances. However, if
   weighted is `True` then the sample will have twice as many green as red
-  instances upto the maximum of the smallest weighted class. 
+  instances up to the maximum of the smallest weighted class. 
 
 #Output
 
 - A dataset created from random samples of the desired size from each
   of the indicated strata
 
+Note: The counts are used to compute a sample-rate, which means that round-off
+errors may adjust the counts slightly. 
