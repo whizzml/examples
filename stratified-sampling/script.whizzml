@@ -18,7 +18,7 @@
             sample-size sample-list)
     (let (ds-size ((fetch ds) "rows"))
       (append ds-list (create-dataset ds
-                                      {"sample_rate" (/ sample-size ds-size)})))))
+                      {"sample_rate" (min (/ sample-size ds-size) 1.0 )})))))
 
 ;; Given a dataset-id, a categorical field-id, and a map of weights, computes
 ;; the relative counts from the class distribution
