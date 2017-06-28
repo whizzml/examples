@@ -1,0 +1,97 @@
+;; A simple function to get the max value in a list
+(define (get-max xs) (reduce (lambda (x y) (if (> x y) x y)) (head xs) xs))
+
+;; Get feature names given ids
+(define (feature-names dataset-id ids)
+  (let (fields ((fetch dataset-id) "fields"))
+    (map (lambda (id) (fields [id "name"])) ids)))
+
+;; Create a dataset sample
+(define (sample-dataset ds-id rate oob)
+  (create-and-wait-dataset {"sample_rate" rate
+                            "origin_dataset"  ds-id
+                            "out_of_bag" oob
+                            "seed" "whizzml-example"}))
+
+;; Split a dataset into training and test sets
+(define (split-dataset ds-id rate)
+  (list (sample-dataset ds-id rate false)
+        (sample-dataset ds-id rate true)))
+
+;; Get the default set of input fields for this dataset (all preferred
+;; fields minus the objective field).
+(define (default-inputs dataset-id obj-id)
+  (let (fields ((fetch dataset-id) "fields")
+        fids (keys fields))
+    (filter (lambda (k) (and (fields [k "preferred"] false) (not (= obj-id k))))
+            fids)))
+
+;; Make a list of logistic regressions using the given dataset,
+;; objective field and selected features.  For each lr, add one of the
+;; potential features in potentials to the input feature list.
+
+(define (make-lr dataset-id obj-field selected potentials)
+  (let (lr-req {"dataset" dataset-id "objective_field" obj-field}
+        make-req (lambda (fid)
+                   (assoc lr-req "input_fields" (cons fid selected)))
+        all-reqs (map make-req potentials))
+    (create-and-wait* "logisticregression" all-reqs)))
+
+;; Given a test dataset, a list of potential features, and a list of
+;; model ids corresponding to those features, select the best
+;; potential feature by performing an evaluation on each model and
+;; returning the feature with the best performance.
+(define (select-feature test-dataset-id potentials model-ids)
+  (let (eval-req {"dataset" test-dataset-id}
+        make-req (lambda (mid) (assoc eval-req "model" mid))
+        all-reqs (map make-req model-ids)        
+        evs (map fetch (create-and-wait* "evaluation" all-reqs))
+        vs (map (lambda (ev) (ev ["result" "model" "average_f_measure"] 0)) evs)
+        value-map (make-map potentials vs)
+        max-val (get-max vs)
+        choose-best (lambda (id) (and (= max-val (value-map id)) id)))
+    [(some choose-best potentials) max-val]))
+
+;; Retrieves and checks whether the objective field of the given
+;; dataset is categorical, raising an error otherwise.
+(define (get-objective ds-id obj-id)
+  (let (obj-id (if (empty? obj-id)
+                   (dataset-get-objective-id ds-id)
+                   obj-id)
+        otype ((fetch ds-id) ["fields" obj-id "optype"] "missing"))
+    (when (not (= "categorical" otype))
+      (raise (str "The dataset's objective field must be categorical, "
+                  "but is " otype)))
+    obj-id))
+
+;; Do forward stepwise regression.  Given a dataset and a target
+;; number of features iteratively construct logistic regressions for
+;; each feature, evaluate them, and add the feature corresponding to
+;; the best evaluation to the running set of features.  To avoid
+;; overfitting, a different training and test split is used when
+;; choosing each feature.  Stop when you reach the target number, or
+;; you run out of features.
+(define (select-features dataset-id threshold objective-id)
+  (let (obj-id (get-objective dataset-id objective-id)
+        input-ids (default-inputs dataset-id obj-id))
+    (loop (selected []
+           potentials input-ids
+           f-measure 0)
+      (let (_ (log-info "Splitting dataset...")        
+            splits (split-dataset dataset-id 0.5)
+            train-id (nth splits 0)
+            test-id (nth splits 1)
+            _ (log-info "Making logistic regressions...")
+            model-ids (make-lr train-id obj-id selected potentials)
+            _ (log-info "Selecting feature...")
+            next-feat (select-feature test-id potentials model-ids)
+            _ (log-info "Selected feature is " (next-feat 0))
+            diff (- (next-feat 1) (+ f-measure threshold))
+            _ (log-info "Best f-measure is " (next-feat 1)))
+        (if (or (>= 0 diff) (empty? potentials))
+          (feature-names dataset-id selected)
+          (recur (cons (next-feat 0) selected)
+                 (filter (lambda (id) (not (= id (next-feat 0)))) potentials)
+                 (next-feat 1)))))))
+
+(define output-features (select-features dataset-id n objective-id))
