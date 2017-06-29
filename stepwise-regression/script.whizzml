@@ -49,7 +49,8 @@
         vs (map (lambda (ev) (ev ["result" "model" "average_f_measure"] 0)) evs)
         value-map (make-map potentials vs)
         max-val (get-max vs)
-        choose-best (lambda (id) (and (= max-val (value-map id)) id)))
+        choose-best (lambda (id) (and (= max-val (value-map id)) id))
+        _ (delete* (map (lambda (x) (x "resource")) evs)))
     [(some choose-best potentials) max-val]))
 
 ;; Retrieves and checks whether the objective field of the given
@@ -87,11 +88,12 @@
             next-feat (select-feature test-id potentials model-ids)
             _ (log-info "Selected feature is " (next-feat 0))
             diff (- (next-feat 1) (+ f-measure threshold))
-            _ (log-info "Best f-measure is " (next-feat 1)))
+            _ (log-info "Best f-measure is " (next-feat 1))
+            _ (delete* (concat splits model-ids)))
         (if (or (>= 0 diff) (empty? potentials))
           (feature-names dataset-id selected)
           (recur (cons (next-feat 0) selected)
                  (filter (lambda (id) (not (= id (next-feat 0)))) potentials)
                  (next-feat 1)))))))
 
-(define output-features (select-features dataset-id n objective-id))
+;;(define output-features (select-features dataset-id threshold objective-id))
