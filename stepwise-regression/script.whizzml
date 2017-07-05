@@ -96,4 +96,4 @@
                  (filter (lambda (id) (not (= id (next-feat 0)))) potentials)
                  (next-feat 1)))))))
 
-;;(define output-features (select-features dataset-id threshold objective-id))
+(define output-features (select-features dataset-id threshold objective-id))
