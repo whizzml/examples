@@ -1,0 +1,9 @@
+{
+  "name": "Reduce Quadratically Weight Kappa Statistic",
+  "description": "Scripts to reduce the quadratically weighted kappa (QWK) statistic for a predictor",
+  "kind": "package",
+  "components":[
+    "optimize-offsets",
+    "batch-apply-offsets"
+  ]
+}

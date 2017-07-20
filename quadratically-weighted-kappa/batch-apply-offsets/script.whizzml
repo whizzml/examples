@@ -1,0 +1,69 @@
+;;-------------------------------------------------------
+;; A useful BigML function
+;; From "Auto-complete Missing Fields" script (Charles Parker)
+
+;; Retrieves ID of a field given its name
+(define (id-from-fields fields name)
+  (some (lambda (fid) (when (= ((fields fid) "name") name) fid)) (keys fields)))
+
+;; A useful BigML function
+;;-------------------------------------------------------
+
+
+;; Resolves a field ID given the input.  
+;; Choose the default if it's empty.
+(define (get-field use-field dataset-id name input)
+  (let (fds ((fetch dataset-id) "fields"))
+    (cond (not use-field) false
+          (empty? input) (dataset-get-objective-id dataset-id)
+          (contains? fds input) input
+          (let (oid (id-from-fields fds input))
+            (if oid
+              oid
+              (raise (str name " field '" input "' not found!")))))))
+
+;; Extract offset table from estimation results
+;; Returns a list of offsets
+(define (extract-offsets offsets)
+  (map (lambda (x) [(x "columnk") (x "columnl")]) offsets))
+
+;; Build flatline script (Jao)
+;; Returns the flatline processor
+(define (build-flatline prediction-id offset-table)
+  (let (p prediction-id
+        ts (map head offset-table)
+        vs (map last offset-table)
+        d ((offset-table 0) 1)
+        clauses (map (lambda (t v) (flatline "(>= x {t}) {v}"))                                
+                  (reverse ts) (reverse vs)))
+    (flatline "(let (x (f {{p}})) (cond @{clauses} {d}))")))
+
+;; Apply prediction offsets using flatline
+;; Returns the corrected dataset
+(define (apply-offsets dataset-id prediction-id offset-table)
+  (let (fop (build-flatline prediction-id offset-table))
+    (create-and-wait-dataset {"origin_dataset" dataset-id
+                              "all_fields" true
+                              "new_fields" [{"field" fop "name" "OffsetPrediction"}]})))
+
+;; Fetch execution result
+;; Returns the raw offset information
+(define (fetch-execution-result execution-id)
+  (let (ex (try (fetch execution-id)
+             (catch e
+               (raise (str "Invalid execution: " e))))
+        ofs (try (ex ["execution" "result" "optimized" "offsets"])
+              (catch e
+                (raise (str "Invalid execution: " e)))))
+    ofs))
+
+;; Apply offsets as batch correction
+;; Top level function to sequence process of applying corrections.
+;; Returns the ID of the dataset with corrections.
+(define (batch-corrections dataset-id prediction-field execution-id)
+  (let (prediction-id (get-field true dataset-id "Prediction" prediction-field)
+        ot (extract-offsets (fetch-execution-result execution-id)))
+    (apply-offsets dataset-id prediction-id ot)))
+
+(define corrected-dataset (batch-corrections dataset-id prediction-field execution-id))
+

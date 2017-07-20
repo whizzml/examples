@@ -1,0 +1,470 @@
+;;-------------------------------------------------------
+;; Some useful BigML functions
+;; From "Auto-complete Missing Fields" script (Charles Parker)
+
+;; Retrieves ID of a field given its name
+(define (id-from-fields fields name)
+  (some (lambda (fid) (when (= ((fields fid) "name") name) fid)) (keys fields)))
+
+;; Resolves the objective field ID given the input.  
+;; Choose the default if it's empty but we still want to use an objective.
+(define (get-objective use-objective dataset-id input)
+  (let (fds ((fetch dataset-id) "fields"))
+    (cond (not use-objective) false
+          (empty? input) (dataset-get-objective-id dataset-id)
+          (contains? fds input) input
+          (let (oid (id-from-fields fds input))
+            (if oid
+              oid
+              (raise (str "Objective field '" input "' not found!")))))))
+
+;; Find fields that are missing data.  As a bonus, we'll find
+;; non-preferred fields and exclude them later.
+(define (get-bad-fields fds objective-field)
+  (let (exclude? (lambda (fid) (not (or ((fds fid) "preferred")
+                                        (= fid objective-field))))
+        to-exclude (sort (filter exclude? (keys fds)))
+        repair? (lambda (fid) (and (> (((fds fid) "summary") "missing_count") 0)
+                                   (not (= fid objective-field))
+                                   (not (member? fid to-exclude))))
+        to-repair (sort (filter repair? (keys fds))))
+    [to-repair to-exclude]))
+
+;; Compose a dataset containing only rows for which the specified
+;; field ID isn't missing
+(define (filter-missing dataset-id field-id)
+  (let (fexpr (str "(not (missing \"" field-id "\"))"))
+    (create-dataset {"origin_dataset" dataset-id "lisp_filter" fexpr})))
+
+;; Compose a dataset containing only rows for which the specified
+;; field ID is missing
+(define (filter-not-missing dataset-id field-id)
+  (let (fexpr (str "(missing \"" field-id "\")"))
+    (create-dataset {"origin_dataset" dataset-id "lisp_filter" fexpr})))
+
+
+;; End useful BigML functions
+;;-------------------------------------------------------
+
+;;-------------------------------------------------------
+;; Array math functions
+
+;; Reduce array
+;; This is a somewhat complex routine that sorts array elements into groups with 
+;; matching indices and then returns a single element for each group whose
+;; value is the sum of all the values in the group.
+;; The "filter" argument indicates whether an index element should be
+;; matched (false) or ignored (true).
+;;
+;; fnh - replaces each index that should be ignored in an element to true
+;; fnm - returns a boolean if the indices of an element "hel" matches a pattern "pat"
+;; iv - is the index of the value item in each element
+;; a - is the array sorted by filtered index sequences
+;; p - is the default starting pattern for the matching elements in the current group
+;;
+(define (reduce-array array filter)
+  (let (fnh (lambda (hel) (iterate (o [] e hel f filter) (append o (if f true e))))
+        fnm (lambda (hel, pat) (iterate (o true e hel p pat) (and o (= e p))))
+        iv (- (count (array 0)) 1)
+        a (sort (iterate (o [] a array) (append o (append (fnh (butlast a)) (a iv)))))
+        p (fnh (a 0)))
+    (loop (arr a pat p sum 0 out [])
+      (if (empty? arr)
+        (append out (append pat sum))
+        (let (el (head arr)
+              v (el iv)
+              mt? (fnm (butlast el) pat)
+              outn (if mt? out (append out (append pat sum)))
+              sumn (if mt? (+ sum v) v)
+              patn (if mt? pat (butlast el)))
+          (recur (tail arr) patn sumn outn))))))
+
+;; Sum across the rows of a matrix
+;; Returns a vector of the row sums
+(define (row-sums matrix)
+  (let (rs (reduce-array matrix [false true]))
+    (map (lambda (x) [(x 0) (x 2)]) rs)))
+
+;; Sum across the columns of a matrix
+;; Returns a vector of the row sums
+(define (column-sums matrix)
+  (let (cs (reduce-array matrix [true false]))
+    (map (lambda (x) [(x 1) (x 2)]) cs)))
+
+;; Sum all elements in a matrix
+;; Returns a scalar
+(define (matrix-sum matrix)
+  (let (s (reduce-array matrix [true true]))
+    ((s 0) 2)))
+
+;; Sum all elements in a vector
+;; Returns a scalar
+(define (vector-sum vector)
+  (let (s (reduce-array vector [true]))
+    ((s 0) 1)))
+
+;; Compute the quadratically-weighted kappa weight matrix
+;; The matrix is computed by columns to facilitate
+(define (compute-w-column rowl rowh j)
+  (let (orng (range rowl (+ rowh 1))
+        d (pow (- rowh rowl) 2)
+        fnc (lambda (i) [i j (/ (pow (- i j) 2) d)]))
+    (map fnc orng)))
+
+(define (compute-w rowl rowh)
+  (let (orng (range rowl (+ rowh 1))
+        fnc (lambda (j) (compute-w-column rowl rowh j)))
+    (sort (reduce (lambda (x y) (concat x y)) [] (map fnc orng)))))
+
+
+
+;; Compute the outer product of a column and row vectors
+;; Returns the outer product weighted by a factor alpha
+(define (outer-product u v alpha)
+  (let (fnx (lambda (y) (lambda (x) [(y 0) (x 0) (* (* (x 1) (y 1)) alpha)]))
+        fny (lambda (y) (map (fnx y) u))
+        m (map fny v)
+        uv (reduce (lambda (x y) (concat x y)) [] m))
+    uv))
+
+
+;; Combine two arrays
+;; Returns the elementwise combination of two arrays
+;; Assumes the two arrays are in reduced form such as
+;; computed by (reduce-array array filter) described as:
+;; 1) A single entry [i1 i2 ... iN val] in the array list
+;;    for each index prefix [i1 i2 ... iN].
+;; 2) The list of array elements is sorted in canonical
+;;    order according to index prefix [i1 i2 ...  iN]
+;;    as the (sort list) builtin does.
+
+(define (combine-arrays-cmp op x y)
+  (iterate (o false xn x yn y)
+    (if (= xn yn)
+        o
+        (break (op xn yn)))))
+
+(define (combine-arrays op u v)
+  (let (empty-op (lambda (op l) (if (empty? l) [] (op l)))
+        flt (lambda (x y) (cond (empty? x) false 
+                                (empty? y) true 
+                                (combine-arrays-cmp < x y)))
+        fgt (lambda (x y) (cond (empty? x) true 
+                                (empty? y) false 
+                                (combine-arrays-cmp > x y)))
+        uv (loop (ul u vl v out [])
+             (if (and (empty? ul) (empty? vl))
+               out
+               (let (ui (empty-op head ul)
+                     vi (empty-op head vl)
+                     hu (empty-op butlast ui)
+                     du (empty-op last ui)
+                     hv (empty-op butlast vi)
+                     dv (empty-op last vi)
+                     eul (empty-op tail ul)
+                     evl (empty-op tail vl))
+                 (cond (flt hu hv)
+                         (let (o (append out (append hu (op du 0))))
+                           (recur eul vl o))
+                       (fgt hu hv)
+                         (let (o (append out (append hv (op 0 dv))))
+                           (recur ul evl o))
+                       (let (o (append out (append hu (op du dv))))
+                         (recur eul evl o)))))))
+    uv))
+
+;; Frobenius product of two matrices
+;; Inner product of two matrices M1, M2 treated as vectors
+(define (frobenius-product matrix1 matrix2)
+  (let (wm (combine-arrays * matrix1 matrix2))
+    (matrix-sum wm)))
+
+;; Inner product of two vectors
+(define (inner-product vector1 vector2)
+  (let (wv (combine-arrays * vector1 vector2))
+    (vector-sum wv)))
+
+;; Get a column as a vector from a matrix
+(define (get-column matrix column)
+  (let (cl (map (lambda (x) (if (= (x 1) column) [(x 0) (x 2)])) matrix))
+    (filter (lambda (x) x) cl)))
+
+;; Multiply an array by a constant
+(define (multiply-array array alpha)
+  (map (lambda (x) (append (butlast x) (* (last x) alpha))) array))
+
+;; Change columns in a matrix
+(define (change-columns matrix column)
+  (map (lambda (x) [(x 0) column (x 2)]) matrix))
+
+;; ---- QWK computations ----
+
+;; Cleans up a raw contingency matrix
+;; Bounds predicted values (columns) to the range
+;; of possible decisions (rows).
+;; Maps fractional predicted values to allowable
+;; (integer) decision values.
+;; Returns the final contingency matrix.
+(define (bound-matrix matrix columnl columnh)
+  (let (fnl (lambda (x) (< (x 1) columnl))
+        fnld (lambda (x) (>= (x 1) columnl))
+        fnh (lambda (x) (> (x 1) columnh))
+        fnhd (lambda (x) (<= (x 1) columnh))
+        fnf (lambda (x) [(x 0) (floor (x 1)) (x 2)])
+        ml (filter fnl matrix)
+        mld (filter fnld matrix)
+        mh (filter fnh mld)
+        mhld (filter fnhd mld)
+        cml (change-columns ml columnl)
+        cmh (change-columns mh columnh)
+        mhldf (map fnf mhld)
+        mb (concat mhldf cml cmh))
+    (reduce-array mb [false false])))
+
+;; Computes the expected value matrix in the denominator
+;; of the kappa statistic complement.
+;; Returns the matrix in ordered linear list form.
+(define (expected-value-matrix matrix)
+  (let (rs (row-sums matrix)
+        cs (column-sums matrix)
+        ms (vector-sum rs))
+    (outer-product cs rs (/ 1 ms))))
+
+;; Computes the numerator and denominator
+;; parts of the quadratic weighted kappa metric
+;; (actually the complement value).
+;; Returns these parts in a map.
+(define (compute-kappa-parts mtx emtx w colk coll)
+  (let (cmk (get-column mtx colk)
+        cek (get-column emtx colk)
+        cwl (get-column w coll)
+        kln (inner-product cmk cwl)
+        kld (inner-product cek cwl))
+    {"numer" kln
+     "denom" kld}))
+
+;; Compute the offset values and kappa value when a
+;; a given column is relocated to a new column
+;; Returns a map of the source and new columns,
+;; the offset between the two to be used for new predictions,
+;; and the resulting kappa complement value.                   
+(define (compute-kappa-offset mtx emtx w k0 k0n k0d kkn kkd colk coll)
+  (let (kp (compute-kappa-parts mtx emtx w colk coll)
+        kln (kp "numer")
+        kld (kp "denom")
+        k (/ (+ k0n (- kln kkn)) (+ k0d (- kld kkd))))
+    {"columnk" colk
+     "columnl" coll
+     "offset" (- coll colk)
+     "kappac" k}))
+
+;; Computes the table of optimal offsets for the
+;; columns in a contingency matrix
+;; Returns a list of optimal offsets
+(define (compute-offsets mtx emtx w k0 k0n k0d rows colk)
+  (let (fnq (lambda (x) (floor (min (last rows) (max (head rows) x))))
+        kp (compute-kappa-parts mtx emtx w colk (fnq colk))
+        kkn (kp "numer")
+        kkd (kp "denom")
+        fn (lambda (coll) (compute-kappa-offset mtx emtx w k0 k0n k0d kkn kkd colk coll))
+        klist (map fn rows))
+    (min-key (lambda (x) (x "kappac")) klist)))
+
+;; Computes the complement of the  quadratically weighted kappa statistic 
+;; for a contingency matrix in reduced form
+;; Returns a map with the kappac value and other info
+(define (quadratically-weighted-kappa matrix)
+  (let (rs (row-sums matrix)
+        w (compute-w ((head rs) 0) ((last rs) 0))
+        em (expected-value-matrix matrix)
+        kn (frobenius-product matrix w)
+        kd (frobenius-product em w)
+        k (/ kn kd))
+    {"w" w
+     "ematrix" em
+     "knum" kn
+     "kden" kd
+     "kappac" k}))
+
+;; Extracts just the offset table from the map returned by
+;; the contingency table optimization function.
+;; These are used to offset new predictions.
+;; Returns the table as a list of items: [src-col dst-col]
+(define (extract-offsets offsets)
+  (let (fn (lambda (x) [(x "columnk") (x "columnl")]))
+    (map fn offsets)))
+
+;; Applies offsets to contingency matrix columns
+;; This preserves 0 columns by leaving a 0 column as the
+;; source column and duplicating the moved column as the
+;; new column.
+;; Returns an un-reduced version of the adjusted matrix
+(define (offset-contingency-matrix matrix offsets)
+  (let (fn (lambda (a m0 o0) 
+             (concat a [[(m0 0) (o0 1) (m0 2)][(m0 0) (m0 1) 0]])))
+    (loop (m matrix out [])
+      (if (empty? m)
+        (reduce-array out [false false])
+        (let (l (iterate (a [] m0 m o0 offsets) (fn a m0 o0)))
+          (recur (drop (count offsets) m) (concat out l)))))))
+
+;; Optimize a raw contingency matrix under the QWK statistic
+;; Tests the optimal movement of each column independently
+;; Returns the initial bounded contingency matrix and KappaC
+;; value for the initial matrix and the offset contingency matrix
+;; along with the offset table. 
+(define (optimize-contingency-matrix matrix optimize)
+  (let (rs (row-sums matrix)
+        rows (map (lambda(x) (x 0)) rs)
+        cs (column-sums matrix)
+        cols (map (lambda(x) (x 0)) cs)
+        rct (count rows)
+        cct (count cols)
+        _ (if (> rct cct) 
+            (log-warn "Contingency matrix has more rows (" rct ") than columns (" cct ")"))
+        ematrix (expected-value-matrix matrix)
+        m (bound-matrix matrix (head rows) (last rows))
+        qwk (quadratically-weighted-kappa m)
+        w (qwk "w")
+        em (qwk "ematrix")
+        kn (qwk "knum")
+        kd (qwk "kden")
+        k (qwk "kappac")
+        offs (if optimize 
+               (map (lambda (c) (compute-offsets matrix ematrix w k kn kd rows c)) cols))
+        matrixo (if optimize (offset-contingency-matrix matrix (extract-offsets offs)))
+        mo (if optimize (bound-matrix matrixo (head rows) (last rows)))
+        qwko (if optimize (quadratically-weighted-kappa mo)))
+    {"contingency" m
+     "kappac" (qwk "kappac")
+     "offsets" offs
+     "adj-contingency" mo
+     "adj-kappac" (if optimize (qwko "kappac"))}))
+
+;; End array math functions
+;;-------------------------------------------------------
+
+
+;; Resolves a field ID for a field name string.  
+;; Choose the default if it's empty.
+(define (get-field use-field dataset-id name input)
+  (let (fds ((fetch dataset-id) "fields"))
+    (cond (not use-field) false
+          (empty? input) (dataset-get-objective-id dataset-id)
+          (contains? fds input) input
+          (let (oid (id-from-fields fds input))
+            (if oid
+              oid
+              (raise (str name " field '" input "' not found!")))))))
+
+;; Get the relevant parameters for the dataset
+(define (get-dataset-parameters dataset-id objective-id prediction-id)
+   (let (_ (log-info "Dataset Parameters")
+         pds (fetch dataset-id)
+         ofinfo (pds ["fields" objective-id])
+         odist (field-distribution ofinfo)
+         _ (log-info "Objective Distribution " odist)
+         pfinfo (pds ["fields" prediction-id])
+         pdist (field-distribution pfinfo)
+         _ (log-info "Prediction Distribution " pdist))
+     {"objective_distribution" odist
+      "prediction_distribution" pdist}))
+
+;; Get the range for a field in the dataset
+;; Returns a list spanning the range
+(define (get-range dataset-id field-id)
+  (let (ods (fetch dataset-id)
+        pfinfo (ods ["fields" field-id])
+        xmin (floor (pfinfo ["summary" "minimum"]))
+        xmax (floor (pfinfo ["summary" "maximum"])))
+     (range xmin (+ xmax 1))))
+
+;; Filters out one sub-bin from the dataset
+;; Returns an empty ID string if the dataset would be empty
+(define (filter-bin dataset-id prediction-id low-limit high-limit)
+  (let (fexpr (str "(and (>= (field \"" prediction-id "\") " low-limit 
+                   ") (< (field \"" prediction-id "\") " high-limit "))"))
+    (try (create-and-wait-dataset {"origin_dataset" dataset-id "lisp_filter" fexpr})
+      (catch e 
+        (log-warn "Could not create sub-bin partition (empty?): " e)
+        ((e "cause") "resource")))))
+
+;; Creates a partition of a dataset
+;; Returns a map that identifies the partition
+(define (create-partition dataset-id objective-id prediction-id total-sub-bins bin sub-bin)
+  (let (_ (log-info "Create Partition")
+        _ (log-info "Bin " bin ", Sub-bin " sub-bin)
+        del (/ 1 total-sub-bins)
+        lolim (+ bin (* del (- sub-bin 1)))
+        hilim (if (= sub-bin total-sub-bins) (+ bin 1.0) (+ bin (* del sub-bin)))
+        _ (log-info "Low-limit " lolim ", High-limit " hilim)
+        partition-id (filter-bin dataset-id prediction-id lolim hilim)
+        _ (log-info "Partition ID " partition-id)
+        pprms (try (get-dataset-parameters partition-id objective-id prediction-id)
+                (catch e
+                  {"objective_distribution" [] "prediction_distribution" []})))
+    {"bin" bin
+     "sub_bin" sub-bin
+     "partition_id" partition-id
+     "partition_parameters" pprms
+     "low_limit" lolim
+     "high_limit" hilim}))
+
+;; Build the partitions of the training dataset
+;; Returns a list of metadata maps for the partitions
+(define (build-partitions dataset-id objective-id prediction-id total-sub-bins)
+  (let (_ (log-info "Build Partitions")
+        orng (get-range dataset-id objective-id)
+        prng (get-range dataset-id prediction-id)
+        srng (range 1 (+ total-sub-bins 1))
+        fns (lambda (i) 
+              (lambda (j) 
+                (create-partition dataset-id objective-id prediction-id total-sub-bins i j)))
+        fnb (lambda (i) (map (fns i) srng)))
+    {"objective_range" orng
+     "prediction_range" prng
+     "partitions" (reduce (lambda (x y) (concat x y)) [] (map fnb prng))}))
+
+;; Extracts a contingency matrix from the list of metadata from a list of partitions
+;; Returns just the contingency matrix
+(define (extract-contingency-matrix objective-distribution partitions)
+  (let (_ (log-info "Extract Contingency Matrix")
+        zv (map (lambda (x) [(x 0) 0]) objective-distribution)
+        fna (lambda (x) 
+              (let (bins ((x "partition_parameters") "objective_distribution")
+                    col (x "low_limit")
+                    bins0 (combine-arrays + bins zv))
+                (map (lambda (b) [(b 0) col (b 1)]) bins0)))
+        fnp (lambda (x y) (concat x (fna y)))
+        m (reduce fnp [] partitions))
+    (sort m)))
+
+;; Clean-up the BigML desktop
+(define (clean-up partitions)
+  (let (_ (log-info "Clean Up"))
+    (map (lambda (x) (delete (x "partition_id"))) partitions)))
+
+
+;; Sequences estimation of the optimized contigency matrix
+;; 1) Partitions the training dataset
+;; 2) Extracts the raw contingency matrix
+;; 3) Estimates the offsets and optimized contingency matrix
+;; Returns the offsets and optimized contingency matrix
+
+(define (fit-offset-corrections dataset-id objective-field prediction-field total-sub-bins delete-ds optimize)
+  (let (objective-id (get-field true dataset-id "Objective" objective-field)
+        prediction-id (get-field true dataset-id "Prediction" prediction-field)
+        _ (if (= objective-id prediction-id)
+            (raise "Objective and Prediction fields match, you must specify one or the other differently"))
+        dprms (get-dataset-parameters dataset-id objective-id prediction-id)
+        dprts (build-partitions dataset-id objective-id prediction-id total-sub-bins)
+        cmtx (extract-contingency-matrix (dprms "objective_distribution") (dprts "partitions"))
+        _ (log-info "Optimize Contingency Matrix")
+        cmtxo (optimize-contingency-matrix cmtx optimize)
+        _ (if delete-ds (clean-up (dprts "partitions"))))
+    {"parameters" dprms
+     "partitions" dprts
+     "raw" cmtx
+     "optimized" cmtxo}))
+
+(define offset-results (fit-offset-corrections dataset-id objective-field prediction-field total-sub-bins delete-ds optimize))
