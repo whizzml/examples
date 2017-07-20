@@ -38,7 +38,7 @@ dataset.
 
 ## Routines
 
-The script consists of three sets of routines
+The script consists of four sets of routines
 
 ### BigML utilities
 
@@ -60,7 +60,7 @@ does not include data elements or operations for array operations.
 In addition, the preferred form of arrays for this type of computation
 are vectors and matrices of items representing 2-D and 3-D functions.
 
-This script porovides a library of array routines structured for their
+This script provides a library of array routines structured for their
 explanatory value rather than for their performance. Because the
 vectors and matrices are small, the performance is adequate for this
 application.
