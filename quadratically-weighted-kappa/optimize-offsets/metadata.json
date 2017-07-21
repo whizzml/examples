@@ -1,11 +1,11 @@
 {
   "name": "Optimize Offsets QWK",
-  "description": "Compute offsets for a regression predictor to miminize QWK",
+  "description": "Generate offsets for a dataset regression predictor to miminize QWK",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
     {
-      "name": "dataset",
+      "name": "dataset-id",
       "type": "dataset-id",
       "description": "Prediction dataset from which to derive offsets"
     },
@@ -21,11 +21,11 @@
       "type": "string",
       "default": "",
       "description":
-      "Prediction name or id, or blank to use "Prediction" as default"
+      "Prediction name or id, or blank to use 'Prediction' as default"
     },
     {
       "name": "total-sub-bins",
-      "type": "numeric",
+      "type": "number",
       "default": "1",
       "description": "Number of sub-bins per bin of the offset table"
     },
