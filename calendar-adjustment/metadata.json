@@ -1,0 +1,38 @@
+{
+  "name": "Calendar adjustment for monthly time series",
+  "description": "Given a dataset containing monthly time series data with datestamps, normalizes the time series values by the number of days per month (with leap year detection). Suitable for monthly aggregated data (e.g. total liters per month).",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "id",
+      "type": "dataset-id",
+      "description": "The dataset that contains one or more datestamped monthly time series"
+    },
+    {
+      "name" : "data-fds",
+      "type" : "list",
+      "default" : [],
+      "description" : "List of field IDs which contain unadjusted monthly time series. Defaults to every numeric, parent field."
+    },
+    {
+      "name" : "month-fd",
+      "description" : "Field ID for month field. Defaults to first field with datatype = 'month'",
+      "type" : "string",
+      "default" : ""
+    },
+    {
+      "name" : "year-fd",
+      "description" : "Field ID for year field. Defaults to first field with datatype = 'year'",
+      "type" : "string",
+      "default" : ""
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "type": "dataset-id",
+      "description": "The output dataset extended with calendar-adjusted time series."
+    }
+  ]
+}
