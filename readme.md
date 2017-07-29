@@ -96,10 +96,10 @@ create all of the example's scripts and libraries for you.
 
 ### Using the web UI
 
-- Install each of the libraries seperately, using the urls to each of
+- Install each of the libraries separately, using the urls to each of
   their folders. (For example, https://github.com/whizzml/examples/tree/master/clean-dataset/clean-data)
 
-- Install each of the scripts seperately, using the
+- Install each of the scripts separately, using the
   urls to each of their folders.
 
 - If a script requires a library, you will get the error message

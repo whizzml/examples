@@ -1,0 +1,37 @@
+(define (detect-fields dataset-id)
+  (let (fds (values (resource-fields dataset-id))
+        month-fd (some (lambda (f) (when (= "month" (f "datatype")) (f "name")))
+                       fds)
+        year-fd (some (lambda (f) (when (= "year" (f "datatype")) (f "name")))
+                      fds)
+        num-fds (filter (lambda (f) (and (= "numeric" (f "optype"))
+                                         (not (contains? f "parent_ids")))) fds))
+    [(or month-fd (raise "no month field detected"))
+     (or year-fd (raise "no year field detected"))
+     (map (lambda (f) (f "name")) num-fds)]))
+
+(define (calendar-adjustment dataset-id data-fds month-fd year-fd)
+  (let ([mfd-detect yfd-detect dfds-detect] (detect-fields dataset-id)
+        month-fd (if (= "" month-fd) mfd-detect month-fd)
+        year-fd (if (= "" year-fd) yfd-detect year-fd)
+        data-fds (if (empty? data-fds) dfds-detect data-fds)
+        new-names (map (lambda (n) (str n "-adjusted")) data-fds)
+        expr
+        (flatline "(let (m (f {month-fd})"
+                        "y (f {year-fd})"
+                        "leap-year? (cond (!= 0 (mod y 4)) false "
+                                         "(!= 0 (mod y 100)) true "
+                                         "(!= 0 (mod y 400)) false "
+                                         " true)"
+                        "divisor (cond (and leap-year? (= m 2)) 29"
+                                      "(= m 2) 28"
+                                      "(in m (1 3 5 7 8 10 12)) 31 "
+                                      "(in m (4 6 9 11)) 30))"
+                    "(map (/ _ divisor) (fields @{{data-fds}})))"))
+    (log-info "Applying calendar adjustment to " data-fds " using month field "
+              month-fd " and year field " year-fd)
+    (create-and-wait-dataset {"origin_dataset" dataset-id
+                              "new_fields" [{"fields" expr
+                                             "names" new-names}]})))
+
+(define out (calendar-adjustment id data-fds month-fd year-fd))
