@@ -68,6 +68,8 @@ By convention, when the artifact is a library, the files are called
 - `stacked-predictions` Script that builds several predictors and
   returns a copy of the original dataset with the last field the most
   popular prediction
+- `stepwise-regression` Finds the best features for building a
+  logistic regression using a greedy algorithm
 
 ## How to install
 
