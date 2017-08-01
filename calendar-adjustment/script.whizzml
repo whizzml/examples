@@ -34,4 +34,4 @@
                               "new_fields" [{"fields" expr
                                              "names" new-names}]})))
 
-(define out (calendar-adjustment id data-fds month-fd year-fd))
+(define out (calendar-adjustment id field-ids month-fd-id year-fd-id))
