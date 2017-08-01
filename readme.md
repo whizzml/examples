@@ -62,16 +62,18 @@ By convention, when the artifact is a library, the files are called
   series forecasting as a supervised learning problem.
 - `unify-optype` Script that matches the field optypes to a given dataset
 - `stratified-sampling` Script that implements the stratified sampling
-  technique
+  technique.
 - `low-coverage` Script that removes all the sparse fields that have
   coverage less than a given threshold coverage.
 - `stacked-predictions` Script that builds several predictors and
   returns a copy of the original dataset with the last field the most
-  popular prediction
+  popular prediction.
 - `calendar-adjustment` Given a dataset containing one or more monthly
   time series and a datestamp, scales the time series values by the
   number of days in the corresponding months, returning a dataset
   extended with new fields containing the scaled values.
+- `stepwise-regression` Finds the best features for building a
+  logistic regression using a greedy algorithm.
 
 ## How to install
 

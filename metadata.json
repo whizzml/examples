@@ -27,6 +27,7 @@
     "stacked-generalization",
     "stratified-sampling",
     "stacked-predictions",
-    "quadratically-weighted-kappa"
+    "quadratically-weighted-kappa",
+    "stepwise-regression"
   ]
 }

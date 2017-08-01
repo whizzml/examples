@@ -12,7 +12,7 @@ using a greedy algorithm:
 
 The script takes as inputs the dataset to use and some threshold
 number `d` (zero by default). If the performance is not improved by at
-least `d`, the no new feature is added and the output is returned. For
+least `d`, then no new feature is added and the output is returned. For
 example, if an improvement of 1% is desired, the threshold should be
 0.01. The output is a list of the selected features, as field
 identifiers.
