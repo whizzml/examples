@@ -68,6 +68,10 @@ By convention, when the artifact is a library, the files are called
 - `stacked-predictions` Script that builds several predictors and
   returns a copy of the original dataset with the last field the most
   popular prediction
+- `calendar-adjustment` Given a dataset containing one or more monthly
+  time series and a datestamp, scales the time series values by the
+  number of days in the corresponding months, returning a dataset
+  extended with new fields containing the scaled values.
 
 ## How to install
 
