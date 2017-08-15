@@ -290,7 +290,9 @@
                               id dataset-ids
                               mid models
                               idx (range 1 (+ 1 (count dataset-ids))))
-                      (let (name (str idx "-fold evaluation " dataset-name)
+                      (let (name (str "Evaluation tested with subset "
+                                      idx
+                                      " of " dataset-name)
                             opts (assoc evaluation-options "name" name))
                        (append es (create-evaluation id mid opts)))))
     (wait* evaluations)))

@@ -12,6 +12,12 @@
                                   "randomize"
                                   "number_of_models"
                                   "seed"]))
+(define BOOSTED_ENSEMBLE_OPTIONS (concat MODEL_OPTIONS
+                                         ["boosting"
+                                          "sample_rate"
+                                          "replacement"
+                                          "randomize"
+                                          "seed"])
 (define LOGISTIC_OPTIONS ["balance_fields"
                           "bias"
                           "c"
@@ -255,13 +261,17 @@
                               evaluation-options)
   (let (number-of-models (model-options "number_of_models" 1)
         regularization (model-options "regularization" false)
+        boosting? (not (empty (model-options "boosting" {})))
         k-fold-pairs (pair-k-folds dataset-ids)
         ensemble-options (select-map-keys model-options ENSEMBLE_OPTIONS)
+        boosted-ensemble-options (select-map-keys model-options
+                                                  BOOSTED_ENSEMBLE_OPTIONS)
         model-options (select-map-keys model-options MODEL_OPTIONS)
         logistic-options (select-map-keys model-options LOGISTIC_OPTIONS)
         evaluation-options (select-map-keys evaluation-options
                                             EVALUATION_OPTIONS)
-        type (if (> number-of-models 1) "ensemble" "model")
+        type (if (or (> number-of-models 1)
+                     boosting?) "ensemble" "model")
         multidatasets (map last k-fold-pairs)
         models (cond (> number-of-models 1)
                      (create-k-models type
@@ -273,6 +283,11 @@
                                       multidatasets
                                       objective-name
                                       logistic-options)
+                     boosting?
+                     (create-k-models type
+                                      multidatasets
+                                      objective-name
+                                      boosted-ensemble-options)
                      (create-k-models type
                                       multidatasets
                                       objective-name
@@ -281,7 +296,9 @@
                               id dataset-ids
                               mid models
                               idx (range 1 (+ 1 (count dataset-ids))))
-                      (let (name (str idx "-fold evaluation " dataset-name)
+                      (let (name (str "Evaluation tested with subset "
+                                      idx
+                                      " of " dataset-name)
                             opts (assoc evaluation-options "name" name))
                        (append es (create-evaluation id mid opts)))))
     (wait* evaluations)))

@@ -85,6 +85,24 @@ if [[ " $file_content " =~ $regex ]]
         echo "logistic regression KO:\n $file_content"
         exit 1
 fi
+log "Testing boosted ensemble script -------------------------------"
+# running the execution with the given inputs
+run_bigmler execute --scripts .build/boosted-ensemble/scripts \
+                    --inputs test_inputs.json \
+                    --output-dir cmd/results
+# check the outputs
+declare file="cmd/results/whizzml_results.json"
+declare regex="\"outputs\": \[\[\"cross-validation-output\",\
+ \"evaluation/[a-f0-9]{24}\", \"evaluation\"\]\]"
+declare file_content=$( cat "${file}" )
+if [[ " $file_content " =~ $regex ]]
+    then
+        log "boosted ensemble OK"
+    else
+        echo "boosted ensemble KO:\n $file_content"
+        exit 1
+fi
+
 log "-------------------------------------------------------"
 # remove the created resources
 run_bigmler delete --from-dir cmd --output-dir cmd_del
