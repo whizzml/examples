@@ -17,7 +17,7 @@
                                           "sample_rate"
                                           "replacement"
                                           "randomize"
-                                          "seed"])
+                                          "seed"]))
 (define LOGISTIC_OPTIONS ["balance_fields"
                           "bias"
                           "c"
@@ -261,7 +261,7 @@
                               evaluation-options)
   (let (number-of-models (model-options "number_of_models" 1)
         regularization (model-options "regularization" false)
-        boosting? (not (empty (model-options "boosting" {})))
+        boosting? (not (empty? (model-options "boosting" {})))
         k-fold-pairs (pair-k-folds dataset-ids)
         ensemble-options (select-map-keys model-options ENSEMBLE_OPTIONS)
         boosted-ensemble-options (select-map-keys model-options
