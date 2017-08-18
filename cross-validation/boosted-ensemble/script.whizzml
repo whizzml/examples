@@ -374,7 +374,7 @@
                                    node-threshold)
         options (if (not (empty? boosting))
                     (assoc options "boosting" boosting)
-                    (assoc options "boosting" {"iterations" 10})
+                    (assoc options "boosting" {"iterations" 10}))
         options (merge options {"sample_rate" sample-rate
                                 "replacement" replacement
                                 "randomize" randomize}))
