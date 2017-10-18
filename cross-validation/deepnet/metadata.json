@@ -1,0 +1,122 @@
+{
+  "name": "Deepnet's k-fold cross-validation",
+  "description": "k-fold cross-validation for deepnets",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+        "name": "dataset-id",
+        "type": "dataset-id",
+        "description": "Select the dataset for training/test the model"
+    },
+    {
+        "name": "k-folds",
+        "type": "number",
+        "default": 5,
+        "description": "Select the number of folds to split the dataset"
+    },
+    {
+        "name": "objective-id",
+        "type": "string",
+        "default": "",
+        "description": "Objective field ID"
+    },
+    {
+        "name": "batch-normalization",
+        "type": "boolean",
+        "default": false,
+        "description": "Specifies whether to normalize the outputs of a network before being passed to the activation function or not."
+    },
+    {
+        "name": "default-numeric-value",
+        "type": "string",
+        "default": "",
+        "description": "A number between 0 and 1 specifying the rate at which to drop weights during training to control overfitting"
+    },
+    {
+        "name": "dropout-rate",
+        "type": "number",
+        "default": -1,
+        "description": "A number between 0 and 1 specifying the rate at which to drop weights during training to control overfitting"
+    },
+    {
+        "name": "hidden-layers",
+        "type": "list",
+        "default": [],
+        "description": "List of maps describing the number and type of layers in the network (other than the output layer, which is determined by the type of learning problem)."
+    },
+    {
+        "name": "learn-residuals",
+        "type": "boolean",
+        "default": false,
+        "description": "Specifies whether alternate layers should learn a representation of the residuals for a given layer rather than the layer itself or not."
+    },
+    {
+        "name": "learning-rate",
+        "type": "number",
+        "default": -1,
+        "description": "A number between 0 and 1 specifying the learning rate."
+    },
+    {
+        "name": "max-iterations",
+        "type": "number",
+        "default": -1,
+        "description": "A number between 100 and 100000 for the maximum number of gradient steps to take during the optimization."
+    },
+    {
+        "name": "max-training-time",
+        "type": "number",
+        "default": -1,
+        "description": "The maximum wall clock training time, in seconds, for which to train the network."
+    },
+    {
+        "name": "missing-numerics",
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to create an additional binary predictor each numeric field which denotes a missing value. If false, these predictors are not created, and rows containing missing numeric values are dropped."
+    },
+    {
+        "name": "number-of-hidden-layers",
+        "type": "number",
+        "default": -1,
+        "description": "The number of hidden layers to use in the network. If the number is greater than the length of the list of hidden_layers, the list is cycled until the desired number is reached. If the number is smaller than the length of the list of hidden_layers, the list is shortened."
+    },
+    {
+        "name": "number-of-model-candidates",
+        "type": "number",
+        "default": -1,
+        "description": "An integer specifying the number of models to try during the model search."
+    },
+    {
+        "name": "search",
+        "type": "boolean",
+        "default": false,
+        "description": "An integer specifying the number of models to try during the model search."
+    },
+    {
+        "name": "suggest-structure",
+        "type": "boolean",
+        "default": false,
+        "description": "An alternative to the search technique that is usually a more efficient way to quickly train and iterate deepnets and it can reach similar results. BigML has learned some general rules about what makes one network structure better than another for a given dataset. Given your dataset, BigML will automatically suggest a structure and a set of parameter values that are likely to perform well for your dataset. This option only builds one network."
+    },
+    {
+        "name": "tree-embedding",
+        "type": "boolean",
+        "default": false,
+        "description": "Specify whether to learn a tree-based representation of the data as engineered features along with the raw features, essentially by learning trees over slices of the input space and a small amount of the training data. The theory is that these engineered features will linearize obvious non-linear dependencies before training begins, and so make learning proceed more quickly."
+    },
+    {
+        "name": "seed",
+        "type": "string",
+        "default": "cross-validation",
+        "description": "Seed for deterministic samples"
+    }
+  ],
+  "outputs": [
+    {
+        "name": "cross-validation-output",
+        "type": "evaluation-id",
+        "description": "Average of evaluations results"
+    }
+  ]
+}

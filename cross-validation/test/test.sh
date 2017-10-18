@@ -47,7 +47,7 @@ declare regex="\"outputs\": \[\[\"cross-validation-output\",\
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        log "model OK"
+        echo "model OK"
     else
         echo "model KO:\n $file_content"
         exit 1
@@ -64,7 +64,7 @@ declare regex="\"outputs\": \[\[\"cross-validation-output\",\
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        log "ensemble OK"
+        echo "ensemble OK"
     else
         echo "ensemble KO:\n $file_content"
         exit 1
@@ -80,7 +80,7 @@ declare regex="\"outputs\": \[\[\"cross-validation-output\",\
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        log "logistic regression OK"
+        echo "logistic regression OK"
     else
         echo "logistic regression KO:\n $file_content"
         exit 1
@@ -97,9 +97,25 @@ declare regex="\"outputs\": \[\[\"cross-validation-output\",\
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
-        log "boosted ensemble OK"
+        echo "boosted ensemble OK"
     else
         echo "boosted ensemble KO:\n $file_content"
+        exit 1
+fi
+log "Testing deepnet script --------------------"
+# running the execution with the given inputs
+run_bigmler execute --scripts .build/deepnet/scripts \
+                    --inputs test_inputs.json  --output-dir cmd/results
+# check the outputs
+declare file="cmd/results/whizzml_results.json"
+declare regex="\"outputs\": \[\[\"cross-validation-output\",\
+ \"evaluation/[a-f0-9]{24}\", \"evaluation\"\]\]"
+declare file_content=$( cat "${file}" )
+if [[ " $file_content " =~ $regex ]]
+    then
+        echo "deepnet OK"
+    else
+        echo "deepnet KO:\n $file_content"
         exit 1
 fi
 

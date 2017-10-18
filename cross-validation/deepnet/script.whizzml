@@ -1,0 +1,517 @@
+;; This code will eventually be defined as a library.
+
+(define DEEPNET_OPTIONS ["batch_normalization"
+                         "default_numeric_value"
+                         "dropout_rate"
+                         "hidden_layers"
+                         "learn_residuals"
+                         "learning_rate"
+                         "max_iterations"
+                         "max_training_time"
+                         "missing_numerics"
+                         "number_of_hidden_layers"
+                         "number_of_model_candidates"
+                         "search"
+                         "suggest_structure"
+                         "tree_embedding"])
+(define EVALUATION_OPTIONS ["sample_rate"
+                            "out_of_bag"
+                            "range"
+                            "replacement"
+                            "ordering"
+                            "seed"
+                            "missing_strategy"
+                            "combiner"])
+;; cross-validation
+;;
+;; creates k-fold cross-validation for a dataset
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;   model-options: (map) Options to use in model/ensemble
+;;   evaluation-options: (map) Options to use in evaluation creation
+;;
+;; Output: (map) Average of evaluations results
+;;
+;; Raises:
+;;  101: The dataset-id argument is not a string
+;;  102: The dataset-id is not a valid dataset ID
+;;  103: The k-folds argument is not an integer
+;;  104: The k-folds argument is not >= 2
+;;  106: The objective field ID is not in the selectable IDs list
+;;
+(define (cross-validation dataset-id
+                          k-folds
+                          objective-id
+                          model-options
+                          evaluation-options)
+  (check-resource-id dataset-id "dataset")
+  (check-integer k-folds 2 false)
+  (let (dataset (fetch dataset-id)
+        dataset-name (dataset "name" false))
+    (check-dataset-objective-id objective-id dataset)
+    (let (k-fold-datasets (create-k-folds dataset-id k-folds)
+         objective-name (get-objective-name dataset objective-id)
+         evaluations (create-k-evaluations k-fold-datasets
+                                           objective-name
+                                           dataset-name
+                                           model-options
+                                           evaluation-options))
+     (create-and-wait-evaluation {"evaluations" evaluations}))))
+
+;; check-resource-id
+;;
+;; Validates that the argument is a resource ID and its type. Raises an error
+;; if otherwise.
+;;
+;; Inputs:
+;;   resource-id: (string) Resource ID
+;;   type: (string) Type of resource
+;;
+;; Output: (string) Checked resource ID
+(define (check-resource-id resource-id type)
+  (when (not (string? resource-id))
+    (raise {"message" (str "Resource ID string expected. Found "
+                           resource-id " instead.")
+            "code" 101}))
+  (when (not (= (resource-type resource-id) type))
+    (raise {"message" (str "Failed to find a correct " type " ID.")
+            "code" 102}))
+  resource-id)
+
+
+;; check-integer
+;;
+;; Validates that the argument is an integer. Raises error if otherwise.
+;;
+;; Inputs:
+;;  value: (number) Integer to be checked
+;;  minimum: (number) Minimum value (false if not set)
+;;  maximum: (number) Maximum value (false if not set)
+;;
+;; Output: (number) Checked integer
+(define (check-integer value minimum maximum)
+  (when (not (integer? value))
+    (raise {"message" (str "Integer value expected. Found " value " instead.")
+            "code" 103}))
+  (when (and minimum (< value minimum))
+    (raise {"message" (str "Minimum accepted value is " minimum ". " value
+                           " found.")
+            "code" 104}))
+  (when (and maximum (> value maximum))
+    (raise {"message" (str "Maximum accepted value is " maximum ". " value
+                           " found.")
+            "code" 105}))
+  value)
+
+;; choosable-objective-ids
+;;
+;; List of IDs of the fields in the dataset that can be chosen as objective
+;; field.
+;;
+;; Inputs:
+;;  fields: (map) Fields structure
+;; Output: (list) list of field IDs
+(define (choosable-objective-ids fields)
+  (let (field-val (lambda (fid k) (fields [fid k] false))
+        objective-types ["categorical", "numeric"]
+        pref? (lambda (k) (field-val k "preferred"))
+        pred? (lambda (k) (member? (field-val k "optype") objective-types)))
+    (filter (lambda (x) (and (pref? x) (pred? x))) (keys fields))))
+
+
+;; check-dataset-objective-id
+;;
+;; Validates that the argument is a valid objective id in the reference
+;; dataset.
+;;
+;; Inputs:
+;;  objective-id: (string) ID of the objective field
+;;  dataset: (map) Dataset resource information
+;;
+;; Output: (string) Checked objective field ID
+(define (check-dataset-objective-id objective-id dataset)
+  (let (fields (dataset "fields" {})
+        objective-ids (choosable-objective-ids fields))
+    (when (not (member? objective-id objective-ids))
+      (raise {"message" (str "Failed to find the objective ID in the dataset"
+                             " choosable fields.")
+              "code" 106}))))
+
+;; get-objective-name
+;;
+;; Returns the name of the field used as objective field
+;;
+;; Inputs:
+;;  dataset: (map) Dataset resource info
+;;  objective-id: (string) ID of the objective field
+;;
+;; Outputs: (string) Name of the objective field
+
+(define (get-objective-name dataset objective-id)
+  (let (fields (dataset "fields" {}))
+    (fields [objective-id "name"] false)))
+
+
+;; create-k-folds
+;;
+;; creating k-fold splits from a dataset
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;
+;; Output: (list) List of dataset IDs
+;;
+(define (create-k-folds dataset-id k-folds)
+  (let (k-fold-fn (lambda (x)
+                    (create-dataset {"origin_dataset" dataset-id
+                                     "row_offset" x
+                                     "row_step" k-folds
+                                     "new_fields" [{"name" "k_fold"
+                                                    "field" (str x)}]}))
+        dataset-ids (map k-fold-fn (range 0 k-folds)))
+    (wait* dataset-ids)))
+
+;; pair-k-folds
+;;
+;; Builds a list of pairs of hold-out and complementary datasets for all
+;; the k-fold dataset IDs.
+;;
+;; Inputs:
+;;   dataset-ids: (list) List of the k-fold dataset IDs
+;;
+;; Output: (list) List of pairs [hold-out dataset, multidataset with the rest]
+;;
+(define (pair-k-folds dataset-ids)
+  (map (lambda(x)
+         [(nth dataset-ids x)
+          (concat (take x dataset-ids)
+          (drop (+ x 1) dataset-ids))])
+       (range 0 (count dataset-ids))))
+
+
+;; select-map-keys
+;;
+;; Filters the keys in a map, keeping only the ones that appear in the list.
+;;
+;; Inputs:
+;;   map: (map) Key, value maps
+;;   keys-list: (list) List of keys to be kept in the map
+;; Output: (map) filtered map with only the keys in the keys-list
+;;
+(define (select-map-keys a-map keys-list)
+  (reduce (lambda (x y) (let (value (a-map y false))
+                          (cond value (assoc x y value) x)))
+          {}
+          keys-list))
+
+;; create-k-models
+;;
+;; Creates the models for a set of k-fold datasets
+;;
+;; Inputs:
+;;   type: (string) type of model (model or ensemble)
+;;   multidatasets: (list) List of lists of datset IDs once a k-fold is
+;;                         excluded
+;;   objective-name: (string) name of the objective field
+;;   model-options: (map) Options for the model or ensemble
+;;
+;; Output: (list) model IDs
+;;
+(define (create-k-models type multidatasets objective-name model-options)
+  (let (models (map (lambda (x)
+                      (create type
+                              (merge {"datasets" x
+                                      "objective_field" objective-name}
+                                     model-options)))
+                     multidatasets))
+    (wait* models)))
+
+;; create-k-evaluations
+;;
+;; Creates the models/ensembles and evaluations for a set of k-fold datasets
+;;
+;; Inputs:
+;;   dataset-ids: (list) List of the k-fold dataset IDs
+;;   objective-name: (string) Objective field name
+;;   dataset-name: (string) Name of the origin dataset
+;;   model-options: (map) Options used to build the models/ensembles
+;;   evaluation-options: (map) Options used to build evaluations
+;;
+;; Output: (list) List of evaluation IDs
+;;
+(define (create-k-evaluations dataset-ids
+                              objective-name
+                              dataset-name
+                              model-options
+                              evaluation-options)
+  (let (number-of-models (model-options "number_of_models" 1)
+        k-fold-pairs (pair-k-folds dataset-ids)
+        deepnet-options (select-map-keys model-options DEEPNET_OPTIONS)
+        evaluation-options (select-map-keys evaluation-options
+                                            EVALUATION_OPTIONS)
+        multidatasets (map last k-fold-pairs)
+        models  (create-k-models "deepnet"
+                                  multidatasets
+                                  objective-name
+                                  deepnet-options)
+        evaluations (iterate (es []
+                              id dataset-ids
+                              mid models
+                              idx (range 1 (+ 1 (count dataset-ids))))
+                      (let (name (str "Evaluation tested with subset "
+                                      idx
+                                      " of " dataset-name)
+                            opts (assoc evaluation-options "name" name))
+                       (append es (create-evaluation id mid opts)))))
+    (wait* evaluations)))
+
+
+;; Script
+
+;;get_deepnet_options
+;;
+;; maps the options to be used in deepnets
+;; Inputs:
+;;   batch_normalization: (boolean) Whether to scale each numeric field
+;;                        (optional)
+;;   default-numeric-value: (string) It accepts any of the following strings
+;;                          to substitute missing numeric values across all
+;;                          the numeric fields in the dataset: "mean", "median",
+;;                          "minimum", "maximum", "zero".(optional)
+;;   dropout-rate: (number) A number between 0 and 1 specifying the rate at
+;;                 which to drop weights during training to control
+;;                 overfitting (optional)
+;;   hidden-layers: (list) List of maps describing the number and type of
+;;                  layers in the network (other than the output layer, which
+;;                  is determined by the type of learning problem).
+;;                  (optional, default=[])
+;;   learn-residuals: (list) Specifies whether alternate layers should learn a
+;;                    representation of the residuals for a given layer
+;;                    rather than the layer itself or not. (optional)
+;;   learning-rate: (list) A number between 0 and 1 specifying the learning
+;;                  rate (optional)
+;;   max-iterations: (number) A number between 100 and 100000 for the maximum
+;;                   number of gradient steps to take during the
+;;                   optimization. (optional)
+;;   max-training-time: (number) The maximum wall-clock training time, in
+;;                      seconds, for which to train the network. (optional)
+;;   missing-numerics: (boolean) Sets the deepnet missing_numerics
+;;                     flag (optional)
+;;   number-of-hidden-layers: (number) The number of hidden layers to use in
+;;                            the network. If the number is greater than the
+;;                            length of the list of hidden_layers, the list is
+;;                            cycled until the desired number is reached. If
+;;                            the number is smaller than the length of the list
+;;                            of hidden_layers, the list is shortened.
+;;                            (optional)
+;;   number-of-model-candidates: (number) An integer specifying the number of
+;;                               models to try during the model search.
+;;                               (optional)
+;;   search: (boolean) An integer specifying the number of models to try during
+;;           the model search. (optional)
+;;   suggest-structure: (boolean) An alternative to the search technique that
+;;                      is usually a more efficient way to quickly train and
+;;                      iterate deepnets and it can reach similar results.
+;;                      BigML has learned some general rules about what makes
+;;                      one network structure better than another for a given
+;;                      dataset. Given your dataset, BigML will automatically
+;;                      suggest a structure and a set of parameter values that
+;;                      are likely to perform well for your dataset. This option
+;;                      only builds one network. (optional)
+;;   tree-embedding: (boolean) An alternative to the search technique that
+;;                   is usually a more efficient way to quickly train and
+;;                   iterate deepnets and it can reach similar results.
+;;                   BigML has learned some general rules about what makes
+;;                   one network structure better than another for a given
+;;                   dataset. Given your dataset, BigML will automatically
+;;                   suggest a structure and a set of parameter values that
+;;                   are likely to perform well for your dataset. This option
+;;                   only builds one network. (optional)
+;;   seed: (string) Seed used in random samplings (optional)
+;;
+;; Output: (map) options map
+;;
+(define (get_deepnet_options batch_normalization
+                             default-numeric-value
+                             dropout-rate
+                             hidden-layers
+                             learn-residuals
+                             learning-rate
+                             max-iterations
+                             max-training_time
+                             missing-numerics
+                             number-of-hidden-layers
+                             number-of-model-candidates
+                             search
+                             suggest-structure
+                             tree-embedding
+                             seed)
+  (let (options {"tree_embedding" tree-embedding
+                 "suggest_structure" suggest-structure
+                 "search" search
+                 "missing_numerics" missing-numerics
+                 "learn_residuals" learn-residuals}
+        options (if (empty? seed)
+                    options
+                    (assoc options "seed" seed))
+        options (if (positive? number-of-model-candidates)
+                    (assoc options "number_of_model_candidates"
+                                   number-of-model-candidates)
+                    options)
+        options (if (positive? number-of-hidden-layers)
+                    (assoc options "number_of_hidden_layers"
+                                   number-of-hidden-layers)
+                    options)
+        options (if (positive? max-training-time)
+                    (assoc options "max_training_time"
+                                   max-training-time)
+                    options)
+        options (if (positive? max-iterations)
+                    (assoc options "max_iterations"
+                                   max-iterations)
+                    options)
+        options (if (positive? learning-rate)
+                    (assoc options "learning_rate"
+                                   learning-rate)
+                    options)
+        options (if (empty? hidden-layers)
+                     options
+                     (assoc options "hidden_layers"
+                                    hidden-layers))
+        options (if (positive? dropout-rate)
+                    (assoc options "dropout_rate"
+                                   dropout-rate)
+                     options))
+    (if (empty? default-numeric-value)
+        options
+        (assoc options "default_numeric_value"
+                       default-numeric-value))))
+
+
+;; deepnet-cross-validation
+;;
+;; creates k-fold cross-validation for a dataset using deepnets
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;   objective-id: (string) ID of the objective field
+;;   batch_normalization: (boolean) Whether to scale each numeric field
+;;                        (optional)
+;;   default-numeric-value: (string) It accepts any of the following strings
+;;                          to substitute missing numeric values across all
+;;                          the numeric fields in the dataset: "mean", "median",
+;;                          "minimum", "maximum", "zero".(optional)
+;;   dropout-rate: (number) A number between 0 and 1 specifying the rate at
+;;                 which to drop weights during training to control
+;;                 overfitting (optional)
+;;   hidden-layers: (list) List of maps describing the number and type of
+;;                  layers in the network (other than the output layer, which
+;;                  is determined by the type of learning problem).
+;;                  (optional, default=[])
+;;   learn-residuals: (list) Specifies whether alternate layers should learn a
+;;                    representation of the residuals for a given layer
+;;                    rather than the layer itself or not. (optional)
+;;   learning-rate: (list) A number between 0 and 1 specifying the learning
+;;                  rate (optional)
+;;   max-iterations: (number) A number between 100 and 100000 for the maximum
+;;                   number of gradient steps to take during the
+;;                   optimization. (optional)
+;;   max-training-time: (number) The maximum wall-clock training time, in
+;;                      seconds, for which to train the network. (optional)
+;;   missing-numerics: (boolean) Sets the deepnet missing_numerics
+;;                     flag (optional)
+;;   number-of-hidden-layers: (number) The number of hidden layers to use in
+;;                            the network. If the number is greater than the
+;;                            length of the list of hidden_layers, the list is
+;;                            cycled until the desired number is reached. If
+;;                            the number is smaller than the length of the list
+;;                            of hidden_layers, the list is shortened.
+;;                            (optional)
+;;   number-of-model-candidates: (number) An integer specifying the number of
+;;                               models to try during the model search.
+;;                               (optional)
+;;   search: (boolean) An integer specifying the number of models to try during
+;;           the model search. (optional)
+;;   suggest-structure: (boolean) An alternative to the search technique that
+;;                      is usually a more efficient way to quickly train and
+;;                      iterate deepnets and it can reach similar results.
+;;                      BigML has learned some general rules about what makes
+;;                      one network structure better than another for a given
+;;                      dataset. Given your dataset, BigML will automatically
+;;                      suggest a structure and a set of parameter values that
+;;                      are likely to perform well for your dataset. This option
+;;                      only builds one network. (optional)
+;;   tree-embedding: (boolean) An alternative to the search technique that
+;;                   is usually a more efficient way to quickly train and
+;;                   iterate deepnets and it can reach similar results.
+;;                   BigML has learned some general rules about what makes
+;;                   one network structure better than another for a given
+;;                   dataset. Given your dataset, BigML will automatically
+;;                   suggest a structure and a set of parameter values that
+;;                   are likely to perform well for your dataset. This option
+;;                   only builds one network. (optional)
+;;   seed: (string) Seed used in random samplings (optional)
+;;
+;; Output: (map) Average of evaluations results
+;;
+(define (deepnet-cross-validation dataset-id
+                                  k-folds
+                                  objective-id
+                                  batch-normalization
+                                  default-numeric-value
+                                  dropout-rate
+                                  hidden-layers
+                                  learn-residuals
+                                  learning-rate
+                                  max-iterations
+                                  max-training-time
+                                  missing-numerics
+                                  number-of-hidden-layers
+                                  number-of-model-candidates
+                                  search
+                                  suggest-structure
+                                  tree-embedding
+                                  seed)
+  (let (options (get_deepnet_options batch-normalization
+                                     default-numeric-value
+                                     dropout-rate
+                                     hidden-layers
+                                     learn-residuals
+                                     learning-rate
+                                     max-iterations
+                                     max-training-time
+                                     missing-numerics
+                                     number-of-hidden-layers
+                                     number-of-model-candidates
+                                     search
+                                     suggest-structure
+                                     tree-embedding
+                                     seed)
+        xxx (log-info "***" options)
+        objective-id (if (empty? objective-id)
+                         (dataset-get-objective-id dataset-id)
+                         objective-id))
+    (cross-validation dataset-id k-folds objective-id options {})))
+
+
+(define cross-validation-output
+  (deepnet-cross-validation dataset-id
+                            k-folds
+                            objective-id
+                            batch-normalization
+                            default-numeric-value
+                            dropout-rate
+                            hidden-layers
+                            learn-residuals
+                            learning-rate
+                            max-iterations
+                            max-training-time
+                            missing-numerics
+                            number-of-hidden-layers
+                            number-of-model-candidates
+                            search
+                            suggest-structure
+                            tree-embedding
+                            seed))

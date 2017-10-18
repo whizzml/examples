@@ -2,5 +2,5 @@
   "name": "Cross validation",
   "description": "A collection of whizzml scripts performing k-fold cross-validation",
   "kind": "package",
-  "components": ["basic", "model", "ensemble", "logistic-regression", "boosted-ensemble"]
+  "components": ["basic", "model", "ensemble", "logistic-regression", "boosted-ensemble", "deepnet"]
 }
