@@ -340,7 +340,7 @@
                              learn-residuals
                              learning-rate
                              max-iterations
-                             max-training_time
+                             max-training-time
                              missing-numerics
                              number-of-hidden-layers
                              number-of-model-candidates
@@ -489,7 +489,6 @@
                                      suggest-structure
                                      tree-embedding
                                      seed)
-        xxx (log-info "***" options)
         objective-id (if (empty? objective-id)
                          (dataset-get-objective-id dataset-id)
                          objective-id))
