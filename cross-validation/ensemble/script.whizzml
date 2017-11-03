@@ -44,6 +44,7 @@
 ;;   k-folds: (integer) Number of folds
 ;;   model-options: (map) Options to use in model/ensemble
 ;;   evaluation-options: (map) Options to use in evaluation creation
+;;   delete-resources: (boolean) Whether to delete all intermediate resources
 ;;
 ;; Output: (map) Average of evaluations results
 ;;
@@ -58,7 +59,8 @@
                           k-folds
                           objective-id
                           model-options
-                          evaluation-options)
+                          evaluation-options
+                          delete-resources)
   (check-resource-id dataset-id "dataset")
   (check-integer k-folds 2 false)
   (let (dataset (fetch dataset-id)
@@ -70,8 +72,12 @@
                                            objective-name
                                            dataset-name
                                            model-options
-                                           evaluation-options))
-     (create-and-wait-evaluation {"evaluations" evaluations}))))
+                                           evaluation-options
+                                           delete-resources)
+         evaluations-average (create-and-wait-evaluation {"evaluations" evaluations}))
+      (when delete-resources
+        (map safe-delete (concat k-fold-datasets evaluations)))
+      evaluations-average)))
 
 ;; check-resource-id
 ;;
@@ -251,6 +257,7 @@
 ;;   dataset-name: (string) Name of the origin dataset
 ;;   model-options: (map) Options used to build the models/ensembles
 ;;   evaluation-options: (map) Options used to build evaluations
+;;   delete-resources: (boolean) Whether to delete all intermediate resources   
 ;;
 ;; Output: (list) List of evaluation IDs
 ;;
@@ -258,7 +265,8 @@
                               objective-name
                               dataset-name
                               model-options
-                              evaluation-options)
+                              evaluation-options
+                              delete-resources)
   (let (number-of-models (model-options "number_of_models" 1)
         regularization (model-options "regularization" false)
         boosting? (not (empty? (model-options "boosting" {})))
@@ -301,7 +309,10 @@
                                       " of " dataset-name)
                             opts (assoc evaluation-options "name" name))
                        (append es (create-evaluation id mid opts)))))
-    (wait* evaluations)))
+    (wait* evaluations)
+    (when delete-resources
+      (map safe-delete models))
+    evaluations))
 
 ;; Script
 
@@ -321,7 +332,7 @@
                            stat-pruning
                            balance-objective
                            weight-field
-                           objetive-weights
+                           objective-weights
                            node-threshold)
   (let (options {}
     options (assoc options "missing_splits" missing-splits)
@@ -360,7 +371,7 @@
                               stat-pruning
                               balance-objective
                               weight-field
-                              objetive-weights
+                              objective-weights
                               node-threshold
                               sample-rate
                               replacement
@@ -382,6 +393,19 @@
         options
         (assoc options "seed" seed))))
 
+;; safe-delete
+;;
+;; deletes resources ignoring errors
+;; Inputs:
+;;   id: (resource-id) resource to be deleted
+;;
+;; Output: (boolean) true if successful, false if not
+;;   
+(define (safe-delete id)
+  (try (delete id)
+       (catch e 
+         (log-info (str "Error deleting resource " id " ignored"))
+         false)))
 
 ;; ensemble-cross-validation
 ;;
@@ -401,6 +425,7 @@
 ;;   replacement: (boolean) Sets the replacement flag
 ;;   randomize: (boolean) Sets the randomize flag
 ;;   seed: (string) Seed used in random samplings
+;;   delete-resources: (boolean) Whether to delete all intermediate resources
 ;;
 ;; Output: (evaluation-id) Average of evaluations results
 ;;
@@ -417,7 +442,8 @@
                                    sample-rate
                                    replacement
                                    randomize
-                                   seed)
+                                   seed
+                                   delete-resources)
   (let (options (get-ensemble-options number-of-models
                                       missing-splits
                                       stat-pruning
@@ -432,7 +458,7 @@
         objective-id (if (empty? objective-id)
                          (dataset-get-objective-id dataset-id)
                          objective-id))
-    (cross-validation dataset-id k-folds objective-id options {})))
+    (cross-validation dataset-id k-folds objective-id options {} delete-resources)))
 
 
 (define cross-validation-output (ensemble-cross-validation
@@ -449,4 +475,5 @@
                                  sample-rate
                                  replacement
                                  randomize
-                                 seed))
+                                 seed
+                                 delete-resources))

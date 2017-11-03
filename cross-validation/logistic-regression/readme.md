@@ -36,6 +36,7 @@ The **inputs** for the script are:
                              default="l2")
 * `seed`: (string) Seed used in random samplings (optional,
                    default="cross-validation")
+* `delete-resources`: (boolean) Whether to delete intermediate resources (optional, default=true)
 
 As you can see, most of the inputs are optional. They default to the defaults
 in the platform. The `objective-id` will also be inferred from the one in
@@ -58,7 +59,8 @@ One just needs to call
                            field-codings
                            normalize
                            regularization
-                           seed)
+                           seed
+                           delete-resources)
 ```
 
 using the previously described inputs.

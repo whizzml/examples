@@ -76,7 +76,7 @@ The **inputs** for the script are:
                     are likely to perform well for your dataset. This option
                     only builds one network. (optional)
 * seed: (string) Seed used in random samplings (optional)
-
+* `delete-resources`: (boolean) Whether to delete intermediate resources (optional, default=true)
 
 As you can see, most of the inputs are optional. They default to the defaults
 in the platform. The `objective-id` will also be inferred from the one in
@@ -104,7 +104,8 @@ One just needs to call
                           search
                           suggest_structure
                           tree_embedding
-                          seed)
+                          seed
+                          delete-resources)
 ```
 
 using the previously described inputs.

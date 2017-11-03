@@ -28,6 +28,7 @@ The **inputs** for the script are:
 * `replacement`: (boolean) Sets the ensemble replacement flag -- sample with replacement -- (optional, default=true)
 * `randomize`: (boolean) Sets the ensemble randomize flag --random forest -- (optional, default=false)
 * `seed`: (string) Seed used in random sampling (optional, default="cross-validation")
+* `delete-resources`: (boolean) Whether to delete intermediate resources (optional, default=true)
 
 as you can see, most of the inputs are optional. They default to the defaults
 in the platform. The `objective-id` will also be inferred from the one in
@@ -51,7 +52,8 @@ One just needs to call
                            sample-rate
                            replacement
                            randomize
-                           seed)
+                           seed
+                           delete-resources)
 ```
 
 using the previously described inputs.
