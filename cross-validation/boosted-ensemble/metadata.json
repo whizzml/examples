@@ -1,22 +1,6 @@
 {
   "name": "Boosted ensemble's k-fold cross-validation",
-  "description": "The objective of this script is to perform a k-fold cross validation of a
-boosted ensemble built from a dataset. The algorithm:
-
-- Divides the dataset in k parts
-- Holds out the data in one of the parts and builds a boosted ensemble
-  with the rest of data
-- Evaluates the boosted ensemble with the hold out data
-- The second and third steps are repeated with each of the k parts, so that
-  k evaluations are generated
-- Finally, the evaluation metrics are averaged to provide the cross-validation
-  metrics.
-
-The **output** of the script will be an `evaluation ID`. This evaluation is a
-cross-validation, meaning that its metrics are averages of the k evaluations
-created in the cross-validation process.
-
-For more information, please see the [readme](https://github.com/whizzml/examples/tree/master/cross-validation/boosted-ensemble).",
+  "description": "The objective of this script is to perform a k-fold cross validation of a\n boosted ensemble built from a dataset. The algorithm:\n\n - Divides the dataset in k parts\n - Holds out the data in one of the parts and builds a boosted ensemble\n with the rest of data\n - Evaluates the boosted ensemble with the hold out data\n - The second and third steps are repeated with each of the k parts, so that\n k evaluations are generated\n - Finally, the evaluation metrics are averaged to provide the cross-validation\n metrics.\n\n The **output** of the script will be an `evaluation ID`. This evaluation is a\n cross-validation, meaning that its metrics are averages of the k evaluations\n created in the cross-validation process.\n\n For more information, please see the [readme](https://github.com/whizzml/examples/tree/master/cross-validation/boosted-ensemble).",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
