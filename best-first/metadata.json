@@ -16,6 +16,12 @@
       "description": "The number of features to select"
     },
     {
+      "name": "split-fraction",
+      "type": "number",
+      "default": 0.5,
+      "descript": "Train/test split ratio used for training/evaluation of models"
+    },
+    {
       "name": "objective-id",
       "type": "string",
       "default": "",

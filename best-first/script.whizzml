@@ -13,11 +13,6 @@
                             "out_of_bag" oob
                             "seed" "whizzml-example"}))
 
-;; Split a dataset into training and test sets
-(define (split-dataset ds-id rate)
-  (list (sample-dataset ds-id rate false)
-        (sample-dataset ds-id rate true)))
-
 ;; Get the default set of input fields for this dataset (all preferred
 ;; fields minus the objective field).
 (define (default-inputs dataset-id obj-id)
@@ -68,22 +63,21 @@
 ;; evaluate them, and add the feature corresponding to the best
 ;; evaluation to the running set of features.  Stop when you reach the
 ;; target number, or you run out of features.
-(define (select-features dataset-id nfeatures objective-id)
+(define (select-features dataset-id nfeatures rate objective-id)
   (let (obj-id (get-objective dataset-id objective-id)
         input-ids (default-inputs dataset-id obj-id)
-        splits (split-dataset dataset-id 0.5)
-        train-id (nth splits 0)
-        test-id (nth splits 1))
+        [train-id test-id] (create-random-dataset-split dataset-id rate))
     (loop (selected []
            potentials input-ids)
       (if (or (>= (count selected) nfeatures) (empty? potentials))
         (feature-names dataset-id selected)
         (let (_ (log-info "Making models...")
-              model-ids (make-models dataset-id obj-id selected potentials)
+              model-ids (make-models train-id obj-id selected potentials)
               _ (log-info "Selecting feature...")
               next-feat (select-feature test-id potentials model-ids)
               _ (log-info "Selected feature is " next-feat))
           (recur (cons next-feat selected)
                  (filter (lambda (id) (not (= id next-feat))) potentials)))))))
 
-(define output-features (select-features dataset-id n objective-id))
+(define output-features
+  (select-features dataset-id n split-fraction objective-id))
