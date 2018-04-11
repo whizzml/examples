@@ -6,13 +6,6 @@
   (let (fields ((fetch dataset-id) "fields"))
     (map (lambda (id) (fields [id "name"])) ids)))
 
-;; Create a dataset sample
-(define (sample-dataset ds-id rate oob)
-  (create-and-wait-dataset {"sample_rate" rate
-                            "origin_dataset"  ds-id
-                            "out_of_bag" oob
-                            "seed" "whizzml-example"}))
-
 ;; Get the default set of input fields for this dataset (all preferred
 ;; fields minus the objective field).
 (define (default-inputs dataset-id obj-id)
