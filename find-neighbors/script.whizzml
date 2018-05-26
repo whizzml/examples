@@ -52,6 +52,7 @@
                   (create-and-wait-dataset {"cluster" cluster-id "centroid" id})
                   (str "dataset/" ds-id)))
     (create-and-wait-dataset {"origin_dataset" ds-id
+                              "refresh_objective" true
                               "new_fields" [{"name" "distance" "field" fl}]})))
 
 ;; Given an extended centroid dataset (created by
