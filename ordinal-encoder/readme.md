@@ -1,12 +1,6 @@
-# Filter a dataset on row population percentange
+# Encode categorical fields using ordinal encoding
 
-Script to remove rows from a dataset that are less than `n` percent populated.
-Returns a new dataset with the specified filter applied.
+This script takes as inputs a dataset, and optionally a list of categorical fields and mappings from field classes to integers.  It then creates a new dataset, with additional fields containing ordinal encodings of the categorical fields.
 
-Given an input dataset:
+Ordinal encoding uses a single column of integers to represent field classes. If classes have a known order (such as Like, Like Somewhat, Neutral, Dislike, and Somewhat Dislike), the integer mapping can be supplied; otherwise, integers are assigned at random.
 
-- Retrieves information about each field.
-- Determines whether or not each field is greater than `n` percent populated.
-- Creates a list of field names that do not meet the criteria.
-- Creates and returns a new dataset, excluding the fields that did not
-  meet the criteria.

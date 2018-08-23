@@ -8,31 +8,45 @@
 ;; Output: (dataset-id) ID of the new dataset
 
 
-;; "new_fields" [{"name" "foo" "field" "bar"}]
-
 
 ;; Get a flatline generator for encoding the specified field using the given
 ;; mapping.
-(define (field-flatline field mapping)
+(define (get-field-flatline field mapping)
   (let (f (lambda (k) (str "(= x \"" k "\") " (mapping k)))
         conds (join " " (map f (keys mapping))))
     (flatline "(let (x (f {{field}})) (cond {conds}))")))
 
-(define (new-field field)
-  (let (classes (field-categories field)
-        mapping (make-map classes (range (count classes))))
-        {"name" (str (field "name") "_ordinal")
-         "field" (field-flatline (field "name") mapping)}))
+;; Get an argument map to encode the specified field as a new field.
+(define (get-new-field field mappings)
+  (let (mapping
+         (cond
+           (contains? mappings (field "name")) (mappings (field "name"))
+           (contains? mappings (field "id")) (mappings (field "id"))
+           (let (classes (field-categories field))
+             (make-map classes (range (count classes))))))
+    {"name" (str (field "name") "_ordinal")
+     "field" (get-field-flatline (field "name") mapping)}))
 
-(define (ordinal-encode dataset-id)
+(define (ordinal-encode dataset-id target-fields mappings)
   (let (ds (fetch dataset-id)
-        fields (values (resource-fields ds))
-        new-fields (map new-field (filter categorical-field? fields))
-        args {"origin_dataset" dataset-id
-              "name" (str (ds "name") " - ordinal encoded")
-              "new_fields" new-fields})
-    (create "dataset" args)))
+        fields (resource-fields ds)
+        fields
+          (reduce (lambda (m k) (assoc-in m [k "id"] k))
+                   fields
+                   (keys fields))
+        fields
+          (if (= 0 (count target-fields))
+              (values fields)
+              (filter (lambda (x) x)
+                      (map (lambda (x) (find-field fields x)) target-fields)))
+        fields (filter categorical-field? fields)
+        new-fields (map (lambda (x) (get-new-field x mappings)) fields)
+        args
+        {"origin_dataset" dataset-id
+         "name" (str (ds "name") " - ordinal encoded")
+         "new_fields" new-fields})
+    (if (= 0 (count fields)) "" (create "dataset" args))))
 
-
-(define output-dataset-id (ordinal-encode input-dataset-id))
+(define output-dataset-id
+  (ordinal-encode input-dataset-id target-fields mappings))
 

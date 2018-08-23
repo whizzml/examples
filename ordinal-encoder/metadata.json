@@ -1,6 +1,6 @@
 {
-    "name": "Encodes categorical features using ordinal ecoding.",
-    "description": "Given a dataset, encodes categorical features using ordinal ecoding. Ordinal encoding uses a single column of integers to represent the feature classes (levels).",
+    "name": "Ordinal encoder.",
+    "description": "Given a dataset, encodes categorical fields using ordinal ecoding, which uses a single column of integers to represent field classes (levels).",
     "kind": "script",
     "source_code": "script.whizzml",
     "inputs": [
@@ -13,13 +13,13 @@
             "name": "target-fields",
             "type": "list",
             "default": [],
-            "description": "[Optional] A list of field names or identifiers to encode. If not supplied, or an empty list, all categorical columns are encoded."
+            "description": "[Optional] A list of field names or identifiers to encode. Non-categorical fields are ignored. If not supplied, or an empty list, all categorical columns are encoded."
         },
         {
-            "name": "orderings",
+            "name": "mappings",
             "type": "map",
             "default": {},
-            "description": "[Optional]"
+            "description": "[Optional] A map for the encoding of each field. Top-level keys are field names or identifiers. Values are maps of classes to integers. For example, {'col1': {'A': 0, 'B': 1, 'C': 2}}. If no mapping is given for a field, classes are assumed to have no true order and integers are assigned at random. An incomplete mapping for a field results in missing values in the new (ordinal) field."
         }
     ],
     "outputs": [
