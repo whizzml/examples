@@ -1,12 +1,4 @@
-;; foo
-;;
-;; Creates a new dataset from the one given as argument...
-;;
-;; Inputs:
-;;   dataset-id: (dataset-id) ID of the origin dataset
-;;
-;; Output: (dataset-id) ID of the new dataset
-
+;; Ordinal encoder for categorical fields.
 
 
 ;; Get a flatline generator for encoding the specified field using the given
@@ -27,6 +19,7 @@
     {"name" (str (field "name") "_ordinal")
      "field" (get-field-flatline (field "name") mapping)}))
 
+;; Main workflow function
 (define (ordinal-encode dataset-id target-fields mappings)
   (let (ds (fetch dataset-id)
         fields (resource-fields ds)
@@ -47,6 +40,7 @@
          "new_fields" new-fields})
     (if (= 0 (count fields)) "" (create "dataset" args))))
 
+;; Inputs and outputs
 (define output-dataset-id
   (ordinal-encode input-dataset-id target-fields mappings))
 
