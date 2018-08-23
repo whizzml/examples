@@ -19,7 +19,7 @@ function run_test {
   inputs=$2
   expected=$3
 
-  log "Removing stale resources (if any)"
+  log "Removing stale resources (if any)..."
   cleanup
 
   run_bigmler whizzml --package-dir ../ --output-dir ./.build
@@ -29,19 +29,19 @@ function run_test {
   run_bigmler --train "data.csv" --no-model --output-dir $outdir/ds
   [ $? != 0 ] && echo "KO: Failed to create dataset" && exit 1
   dataset_id=$(<$outdir/ds/dataset)
-  log "Dataset $dataset_id created"
+  log "Dataset $dataset_id created."
 
   log "Executing script..."
   echo "${inputs/\%DATASET_ID\%/$dataset_id}" > test_inputs.json
   run_bigmler execute --scripts .build/scripts  --inputs test_inputs.json \
       --output-dir $outdir/results
-
-  log "Downloading output dataset..."
   output_dataset_id=$(cat $outdir/results/whizzml_results.txt | grep "\'result\'" | cut -f4 -d\')
+
+  log "Downloading output dataset $output_dataset_id..."
   run_bigmler --dataset "$output_dataset_id" --to-csv "output_dataset.csv" --no-model --output-dir $outdir/results
   actual=$(cat $outdir/results/output_dataset.csv)
 
-  log "Comparing actual result to expected..."
+  log "Comparing actual to expected result..."
   if [ "$actual" = "$expected" ]; then
     log "PASS"
   else

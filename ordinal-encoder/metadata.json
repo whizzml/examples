@@ -19,7 +19,7 @@
             "name": "mappings",
             "type": "map",
             "default": {},
-            "description": "[Optional] A map for the encoding of each field. Top-level keys are field names or identifiers. Values are maps of classes to integers. For example, {'col1': {'A': 0, 'B': 1, 'C': 2}}. If no mapping is given for a field, classes are assumed to have no true order and integers are assigned at random. An incomplete mapping for a field results in missing values in the new (ordinal) field."
+            "description": "[Optional] A map for the encoding of each field. Top-level keys are field names or identifiers. Values are maps of classes to integers. For example, {'col1': {'A': 0, 'B': 1, 'C': 2}}. If no mapping is given for a field, classes are assumed to have no true order and integers are assigned at random. An incomplete mapping for a field causes missing values in the new (ordinal) field."
         }
     ],
     "outputs": [
