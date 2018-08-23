@@ -1,0 +1,32 @@
+{
+    "name": "Encodes categorical features using ordinal ecoding.",
+    "description": "Given a dataset, encodes categorical features using ordinal ecoding. Ordinal encoding uses a single column of integers to represent the feature classes (levels).",
+    "kind": "script",
+    "source_code": "script.whizzml",
+    "inputs": [
+        {
+            "name": "input-dataset-id",
+            "type": "dataset-id",
+            "description": "Dataset to be encoded."
+        },
+        {
+            "name": "target-fields",
+            "type": "list",
+            "default": [],
+            "description": "[Optional] A list of field names or identifiers to encode. If not supplied, or an empty list, all categorical columns are encoded."
+        },
+        {
+            "name": "orderings",
+            "type": "map",
+            "default": {},
+            "description": "[Optional]"
+        }
+    ],
+    "outputs": [
+        {
+            "name": "output-dataset-id",
+            "type": "dataset-id",
+            "description": "New dataset with categorical fields encoded."
+        }
+    ]
+}

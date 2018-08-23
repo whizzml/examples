@@ -1,0 +1,38 @@
+;; foo
+;;
+;; Creates a new dataset from the one given as argument...
+;;
+;; Inputs:
+;;   dataset-id: (dataset-id) ID of the origin dataset
+;;
+;; Output: (dataset-id) ID of the new dataset
+
+
+;; "new_fields" [{"name" "foo" "field" "bar"}]
+
+
+;; Get a flatline generator for encoding the specified field using the given
+;; mapping.
+(define (field-flatline field mapping)
+  (let (f (lambda (k) (str "(= x \"" k "\") " (mapping k)))
+        conds (join " " (map f (keys mapping))))
+    (flatline "(let (x (f {{field}})) (cond {conds}))")))
+
+(define (new-field field)
+  (let (classes (field-categories field)
+        mapping (make-map classes (range (count classes))))
+        {"name" (str (field "name") "_ordinal")
+         "field" (field-flatline (field "name") mapping)}))
+
+(define (ordinal-encode dataset-id)
+  (let (ds (fetch dataset-id)
+        fields (values (resource-fields ds))
+        new-fields (map new-field (filter categorical-field? fields))
+        args {"origin_dataset" dataset-id
+              "name" (str (ds "name") " - ordinal encoded")
+              "new_fields" new-fields})
+    (create "dataset" args)))
+
+
+(define output-dataset-id (ordinal-encode input-dataset-id))
+
