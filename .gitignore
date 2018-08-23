@@ -6,3 +6,4 @@
 */test/test_inputs.json
 *~
 /model-per-category/test/.bigmler
+/ordinal-encoder/test/.python-version
