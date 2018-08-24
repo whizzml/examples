@@ -434,7 +434,7 @@
     (loop (selected []
            potentials input-ids)
       (if (or (>= (count selected) nfeatures) (empty? potentials))
-        (feature-names dataset-id selected)
+        (response dataset-id selected)
         (let (_ (log-info "Making new candidates...")
               candidates (make-candidates selected potentials)
               _ (log-info "Selecting feature..." candidates)
@@ -449,6 +449,13 @@
 
 ;; A simple function to get the max value in a list
 (define (get-max xs) (reduce (lambda (x y) (if (> x y) x y)) (head xs) xs))
+
+
+;; Clean the created datasets and deliver a human-readable response
+(define (response dataset-id k-fold-datasets selected)
+  (map safe-delete k-fold-datasets)
+  (feature-names dataset-id selected))
+
 
 ;; Get feature names given ids
 (define (feature-names dataset-id ids)
