@@ -82,7 +82,7 @@
           _ (log-info "*** average phi:" average-phi))
       (when delete-resources
         (map safe-delete evaluations))
-      evaluations-average)))
+      average-phi)))
 
 
 (define (get-average-phi evaluations)
@@ -495,7 +495,8 @@
                                                      e-attrs
                                                      {}
                                                      true)) all-reqs)
-        vs (map (lambda (ev) (ev ["result" "model" "average_phi"] 0)) cvs)
+        ;;vs (map (lambda (ev) (ev ["result" "model" "average_phi"] 0)) cvs)
+        vs cvs
         value-map (make-map potentials vs)
         max-val (get-max vs)
         choose-best (lambda (id) (and (= max-val (value-map id)) id)))
