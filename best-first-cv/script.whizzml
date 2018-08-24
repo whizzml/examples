@@ -63,23 +63,20 @@
                           model-options
                           evaluation-options
                           delete-resources)
-  (log-info "*** " model-options)
   (let (dataset (fetch (k-fold-datasets 0))
         dataset-name (dataset "name" false))
     (check-dataset-objective-id objective-id dataset)
     (let (objective-name (get-objective-name dataset objective-id)
-          _ (log-info "*** pre evaluations")
           evaluations (create-k-evaluations k-fold-datasets
                                             objective-name
                                             dataset-name
                                             model-options
                                             evaluation-options
                                             delete-resources)
-          _ (log-info "*** post evaluations")
           ;; commented out till wintermute's new version
           ;; evaluations-average (create-and-wait-evaluation {"evaluations" evaluations})
           average-phi (get-average-phi evaluations)
-          _ (log-info "*** average phi:" average-phi))
+          _ (log-info "average phi:" average-phi))
       (when delete-resources
         (map safe-delete evaluations))
       average-phi)))
@@ -163,7 +160,6 @@
 ;; Output: (string) Checked objective field ID
 (define (check-dataset-objective-id objective-id dataset)
   (let (fields (dataset "fields" {})
-        _ (log-info "*** objective:" objective-id)
         objective-ids (choosable-objective-ids fields))
     (when (not (member? objective-id objective-ids))
       (raise {"message" (str "Failed to find the objective ID in the dataset"
@@ -251,17 +247,11 @@
 ;; Output: (list) model IDs
 ;;
 (define (create-k-models type multidatasets objective-name model-options)
-  (for (multidataset (reverse multidatasets))
-    (log-info "** type " type)
-    (log-info "** md " multidataset)
-    (log-info "** model-options: " model-options)
-    (log-info "** objective_field: " objective-name)
-    (let (model (create type
-                  (merge {"datasets" multidataset
-                          "objective_field" objective-name}
-                          model-options)))
-      (log-info "** creating model: " model)
-      (wait model))))
+  (wait* (for (multidataset (reverse multidatasets))
+            (create type
+                    (merge {"datasets" multidataset
+                            "objective_field" objective-name}
+                            model-options)))))
 
 
 ;; create-k-evaluations
@@ -298,7 +288,6 @@
         type (if (or (> number-of-models 1)
                      boosting?) "ensemble" "model")
         multidatasets (map last k-fold-pairs)
-        _ (log-info "*** multidatasets" multidatasets)
         models (cond (> number-of-models 1)
                      (create-k-models type
                                       multidatasets
@@ -318,12 +307,10 @@
                                       multidatasets
                                       objective-name
                                       model-options))
-        _ (log-info "*** models" models)
         evaluations (iterate (es []
                               id dataset-ids
                               mid models
                               idx (range 1 (+ 1 (count dataset-ids))))
-                      (log-info "*** evaluating " mid idx)
                       (let (name (str "Evaluation tested with subset "
                                       idx
                                       " of " dataset-name)
@@ -422,7 +409,6 @@
 ;; Output: (boolean) true if successful, false if not
 ;;
 (define (safe-delete id)
-  (log-info "*** deleting id: " id)
   (try (delete id)
        (catch e
          (log-info (str "Error deleting resource " id " ignored"))
