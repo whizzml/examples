@@ -1,6 +1,6 @@
 {
     "name": "Ordinal encoder.",
-    "description": "Given a dataset, encodes categorical fields using ordinal ecoding, which uses a single column of integers to represent field classes (levels).",
+    "description": "Given a dataset, encodes categorical fields using ordinal encoding, which uses a single column of integers to represent field classes (levels). It then creates a new dataset, with additional fields containing ordinal encodings of the categorical fields.\n\nIf classes have a known order (such as Like, Somewhat Like, Neutral, Somewhat Dislike, and Dislike), the integer mapping can be supplied; otherwise, integers are assigned to classes arbitrarily.\n\nFor more information, please see the [readme](https://github.com/whizzml/examples/tree/master/ordinal-encoder).",
     "kind": "script",
     "source_code": "script.whizzml",
     "inputs": [
