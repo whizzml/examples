@@ -1,6 +1,6 @@
 {
     "name": "Ordinal encoder.",
-    "description": "Given a dataset, encodes categorical fields using ordinal encoding, which uses a single column of integers to represent field classes (levels). It then creates a new dataset, with additional fields containing ordinal encodings of the categorical fields.\n\nIf classes have a known order (such as Like, Somewhat Like, Neutral, Somewhat Dislike, and Dislike), the integer mapping can be supplied; otherwise, integers are assigned to classes arbitrarily.\n\nFor more information, please see the [readme](https://github.com/whizzml/examples/tree/master/ordinal-encoder).",
+    "description": "Given a dataset, encodes categorical fields using ordinal encoding, which uses a single column of integers to represent field classes (levels). It then creates a new dataset, with additional fields containing ordinal encodings of the categorical fields.\n\nIf classes have a known order (such as Like, Somewhat Like, Neutral, Somewhat Dislike, and Dislike), the integer mapping can be supplied; otherwise, integers are assigned by class count, in descending order (in the case of ties, classes are ordered alphabetically).\n\nFor more information, please see the [readme](https://github.com/whizzml/examples/tree/master/ordinal-encoder).",
     "kind": "script",
     "source_code": "script.whizzml",
     "inputs": [
@@ -19,7 +19,7 @@
             "name": "mappings",
             "type": "map",
             "default": {},
-            "description": "[Optional] A map for the encoding of each field. Top-level keys are field names or identifiers. Values are maps of classes to integers. For example, {'col1': {'A': 0, 'B': 1, 'C': 2}}. If no mapping is given for a field, integers are assigned to classes arbitrarily. An incomplete mapping for a field causes missing values in the new (ordinal) field."
+            "description": "[Optional] A map for the encoding of each field. Top-level keys are field names or identifiers. Values are maps of classes to integers. For example, {'col1': {'A': 0, 'B': 1, 'C': 2}}. If no mapping is given for a field, integers are assigned by class count, in descending order (in the case of ties, classes are ordered alphabetically). An incomplete mapping for a field causes missing values in the new (ordinal) field."
         }
     ],
     "outputs": [
