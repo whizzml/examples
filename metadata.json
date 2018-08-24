@@ -18,6 +18,7 @@
     "model-or-ensemble",
     "model-per-category",
     "model-per-cluster",
+    "ordinal-encoder",
     "remove-anomalies",
     "unify-optype",
     "seeded-best-k",

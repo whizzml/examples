@@ -23,10 +23,9 @@
 (define (ordinal-encode dataset-id target-fields mappings)
   (let (ds (fetch dataset-id)
         fields (resource-fields ds)
-        fields
-          (reduce (lambda (m k) (assoc-in m [k "id"] k))
-                   fields
-                   (keys fields))
+        fields (reduce (lambda (m k) (assoc-in m [k "id"] k))
+                       fields
+                       (keys fields))
         fields
           (if (= 0 (count target-fields))
               (values fields)
@@ -34,10 +33,9 @@
                       (map (lambda (x) (find-field fields x)) target-fields)))
         fields (filter categorical-field? fields)
         new-fields (map (lambda (x) (get-new-field x mappings)) fields)
-        args
-        {"origin_dataset" dataset-id
-         "name" (str (ds "name") " - ordinal encoded")
-         "new_fields" new-fields})
+        args {"origin_dataset" dataset-id
+              "name" (str (ds "name") " - ordinal encoded")
+              "new_fields" new-fields})
     (if (= 0 (count fields)) "" (create "dataset" args))))
 
 ;; Inputs and outputs

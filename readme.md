@@ -74,6 +74,9 @@ By convention, when the artifact is a library, the files are called
   extended with new fields containing the scaled values.
 - `stepwise-regression` Finds the best features for building a
   logistic regression using a greedy algorithm.
+- `ordinal-encoder` Given a dataset, encodes categorical fields using ordinal
+  ecoding, which uses a single column of integers to represent field classes
+  (levels).
 
 ## How to install
 
