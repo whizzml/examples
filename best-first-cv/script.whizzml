@@ -1,8 +1,7 @@
-(define K-FOLDS 5)
-
 ;; This code will eventually be defined as a library.
 
 (define MODEL_OPTIONS ["balance_objective"
+                       "input_fields"
                        "missing_splits"
                        "pruning"
                        "weight_field"
@@ -21,6 +20,7 @@
                                           "randomize"
                                           "seed"]))
 (define LOGISTIC_OPTIONS ["balance_fields"
+                          "input_fields"
                           "bias"
                           "c"
                           "missing_numerics"
@@ -31,6 +31,7 @@
                           "regularization"
                           "seed"])
 (define EVALUATION_OPTIONS ["sample_rate"
+                            "input_fields"
                             "out_of_bag"
                             "range"
                             "replacement"
@@ -75,11 +76,18 @@
                                             evaluation-options
                                             delete-resources)
           _ (log-info "*** post evaluations")
-          evaluations-average (create-and-wait-evaluation {"evaluations" evaluations})
-          _ (log-info "*** average phi:" ((fetch evaluations-average) ["result" "model" "average_phi"])))
+          ;; commented out till wintermute's new version
+          ;; evaluations-average (create-and-wait-evaluation {"evaluations" evaluations})
+          average-phi (get-average-phi evaluations)
+          _ (log-info "*** average phi:" average-phi))
       (when delete-resources
         (map safe-delete evaluations))
       evaluations-average)))
+
+
+(define (get-average-phi evaluations)
+  (iterate (acc 0 ev evaluations)
+    (+ acc (ev ["result" "model" "average_phi"]))))
 
 ;; check-resource-id
 ;;
@@ -431,9 +439,9 @@
 ;; evaluate them, and add the feature corresponding to the best
 ;; cv to the running set of features.  Stop when you reach the
 ;; target number, or you run out of features.
-(define (select-features dataset-id nfeatures objective-id options)
+(define (select-features dataset-id nfeatures objective-id options k-folds)
   (let (obj-id (get-objective dataset-id objective-id)
-        k-fold-datasets (create-k-folds dataset-id K-FOLDS)
+        k-fold-datasets (create-k-folds dataset-id k-folds)
         input-ids (default-inputs dataset-id obj-id))
     (loop (selected []
            potentials input-ids)
@@ -506,4 +514,4 @@
     obj-id))
 
 (define output-features
-  (select-features dataset-id n objective-id options))
+  (select-features dataset-id n objective-id options k-folds))

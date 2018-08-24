@@ -26,6 +26,12 @@
       "type": "map",
       "default": {},
       "descript": "Additional configuration options for the models"
+    },
+    {
+      "name": "k-folds",
+      "type": "number",
+      "default": 5,
+      "descript": "Number of k-folds in the cross-validation"
     }
   ],
   "outputs": [
