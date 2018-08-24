@@ -247,7 +247,7 @@
 ;; Output: (list) model IDs
 ;;
 (define (create-k-models type multidatasets objective-name model-options)
-  (wait* (for (multidataset (reverse multidatasets))
+  (wait* (for (multidataset multidatasets)
             (create type
                     (merge {"datasets" multidataset
                             "objective_field" objective-name}
