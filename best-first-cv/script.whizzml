@@ -76,7 +76,8 @@
           ;; commented out till wintermute's new version
           ;; evaluations-average (create-and-wait-evaluation {"evaluations" evaluations})
           average-phi (get-average-phi evaluations)
-          _ (log-info "average phi:" average-phi))
+          _ (log-info "model options: " model-options)
+          _ (log-info "average phi: " average-phi))
       (when delete-resources
         (map safe-delete evaluations))
       average-phi)))
