@@ -86,8 +86,9 @@
 
 
 (define (get-average-phi evaluations)
-  (iterate (acc 0 ev evaluations)
-    (+ acc ((fetch ev) ["result" "model" "average_phi"]))))
+  (/ (iterate (acc 0 ev evaluations)
+       (+ acc ((fetch ev) ["result" "model" "average_phi"])))
+     (count evaluations)))
 
 ;; check-resource-id
 ;;
