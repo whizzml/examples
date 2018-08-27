@@ -430,31 +430,41 @@
 (define (select-features dataset-id nfeatures objective-id options k-folds)
   (let (obj-id (get-objective dataset-id objective-id)
         k-fold-datasets (create-k-folds dataset-id k-folds)
-        input-ids (default-inputs dataset-id obj-id))
+        ;; input-ids (default-inputs dataset-id obj-id)
+        important-ids (important-fields dataset-id obj-id))
     (loop (selected []
-           potentials input-ids)
+           potentials important-ids
+           queue [])
       (if (or (>= (count selected) nfeatures) (empty? potentials))
-        (response dataset-id k-fold-datasets selected)
+        (response dataset-id k-fold-datasets selected queue)
         (let (_ (log-info "Making new candidates...")
-              candidates (make-candidates selected potentials)
+              candidates (make-candidates selected
+                                          (map (lambda (x) (x "feature"))
+                                          potentials))
               _ (log-info "Selecting feature..." candidates)
-              next-feat (select-feature k-fold-datasets
-                                        obj-id
-                                        options
-                                        candidates
-                                        potentials)
-              _ (log-info "Next selected feature: " next-feat))
-          (recur (cons next-feat selected)
-                 (filter (lambda (id) (not (= id next-feat))) potentials)))))))
+              next-feat-info (select-feature k-fold-datasets
+                                             obj-id
+                                             options
+                                             candidates
+                                             potentials)
+              _ (log-info "Next selected feature: " (next-feat-info "feature")))
+          (recur (append selected (next-feat-info "feature"))
+                 (filter (lambda (id) (not (= (id "feature")
+                                              (next-feat-info "feature"))))
+                         potentials)
+                 (cons {"features" (append selected
+                                           (next-feat-info "feature"))
+                              "phi" (next-feat-info "phi")} queue)))))))
 
 ;; A simple function to get the max value in a list
 (define (get-max xs) (reduce (lambda (x y) (if (> x y) x y)) (head xs) xs))
 
 
 ;; Clean the created datasets and deliver a human-readable response
-(define (response dataset-id k-fold-datasets selected)
+(define (response dataset-id k-fold-datasets selected queue)
   (map safe-delete k-fold-datasets)
-  (feature-names dataset-id selected))
+  {"selected-fields" (feature-names dataset-id selected)
+   "iterations-info" queue})
 
 
 ;; Get feature names given ids
@@ -470,6 +480,20 @@
     (filter (lambda (k) (and (fields [k "preferred"] false) (not (= obj-id k))))
             fids)))
 
+
+;; Get the set of input fields for this dataset by using the importance of the
+;; fields in a random decision forest
+(define (important-fields dataset-id obj-id)
+  (let (ensemble-id (create-and-wait-ensemble dataset-id
+                                              {"randomize" true
+                                               "objective_field" obj-id})
+        ensemble (fetch ensemble-id)
+        importance (ensemble "importance")
+        importance (for (key (keys importance))
+                     {"feature" key "phi" (importance key)}))
+    (reverse (sort-by-key "phi" importance))))
+
+
 ;; Make a list of input fields candidates given the potential
 ;; features in potentials.
 (define (make-candidates selected potentials)
@@ -484,6 +508,7 @@
 (define (select-feature k-fold-datasets objective-id options candidates potentials)
   (let (make-attrs (lambda (inp) (merge {"input_fields" inp}
                                         options))
+        potentials (map (lambda (x) (x "feature")) potentials)
         all-reqs (map make-attrs candidates)
         cvs (map (lambda (e-attrs) (cross-validation k-fold-datasets
                                                      objective-id
@@ -495,7 +520,8 @@
         value-map (make-map potentials vs)
         max-val (get-max vs)
         choose-best (lambda (id) (and (= max-val (value-map id)) id)))
-    (some choose-best potentials)))
+    {"feature" (some choose-best potentials)
+     "phi" max-val}))
 
 ;; Retrieves and checks whether the objective field of the given
 ;; dataset is categorical, raising an error otherwise.
