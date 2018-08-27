@@ -434,7 +434,7 @@
     (loop (selected []
            potentials input-ids)
       (if (or (>= (count selected) nfeatures) (empty? potentials))
-        (response dataset-id selected)
+        (response dataset-id k-fold-datasets selected)
         (let (_ (log-info "Making new candidates...")
               candidates (make-candidates selected potentials)
               _ (log-info "Selecting feature..." candidates)
