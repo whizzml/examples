@@ -20,6 +20,18 @@
             "type": "map",
             "default": {},
             "description": "[Optional] A map for the encoding of each field. Top-level keys are field names or identifiers. Values are maps of classes to integers. For example, {'col1': {'A': 0, 'B': 1, 'C': 2}}. If no mapping is given for a field, integers are assigned by class count, in descending order (in the case of ties, classes are ordered alphabetically). An incomplete mapping for a field causes missing values in the new (ordinal) field."
+        },
+        {
+            "name": "remove-original?",
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to remove the original, unencoded target fields from the resulting dataset."
+        },
+        {
+            "name": "mark-non-preferred?",
+            "type": "boolean",
+            "default": false,
+            "description": "Whether to mark the original, unencoded target fields as non-preferred in the resulting dataset. Has no effect if remove-original?=true."
         }
     ],
     "outputs": [

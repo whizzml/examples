@@ -19,26 +19,43 @@
     {"name" (str (field "name") "_ordinal")
      "field" (get-field-flatline (field "name") mapping)}))
 
-;; Main workflow function
-(define (ordinal-encode dataset-id target-fields mappings)
-  (let (ds (fetch dataset-id)
-        fields (resource-fields ds)
-        fields (reduce (lambda (m k) (assoc-in m [k "id"] k))
+;; Selects the fields to encode from the given fields map. If target-fields is
+;; empty, use all non-categorical fields; otherwise, use the specified
+;; (non-categorical) fields.
+(define (get-fields-to-encode fields target-fields)
+  (let (fields (reduce (lambda (m k) (assoc-in m [k "id"] k))
                        fields
                        (keys fields))
-        fields
-          (if (= 0 (count target-fields))
-              (values fields)
-              (filter (lambda (x) x)
-                      (map (lambda (x) (find-field fields x)) target-fields)))
-        fields (filter categorical-field? fields)
-        new-fields (map (lambda (x) (get-new-field x mappings)) fields)
-        args {"origin_dataset" dataset-id
-              "name" (str (ds "name") " - ordinal encoded")
-              "new_fields" new-fields})
-    (if (= 0 (count fields)) "" (create "dataset" args))))
+        fields (if (= 0 (count target-fields))
+                   (values fields)
+                   (filter (lambda (x) x)
+                           (map (lambda (x) (find-field fields x))
+                           target-fields))))
+    (filter categorical-field? fields)))
+
+;; Main workflow function
+(define (ordinal-encode dataset-id target-fields mappings remove-original?
+                        mark-non-preferred?)
+  (let (ds (fetch dataset-id)
+        fields (get-fields-to-encode (resource-fields ds) target-fields))
+    (if (= 0 (count fields))
+        ""
+        (let (old-ids (map (lambda (k) (k "id")) fields)
+              f (lambda (x) (get-new-field x mappings))
+              args {"origin_dataset" dataset-id
+                    "name" (str (ds "name") " - ordinal encoded")
+                    "new_fields" (map f fields)}
+              args (if remove-original? (assoc args "all_but" old-ids) args)
+              ds-id (create "dataset" args))
+          (when (and mark-non-preferred? (not remove-original?))
+            (update ds-id {
+              "fields"
+              (make-map old-ids
+                        (repeat (count old-ids) {"preferred" false}))}))
+          ds-id))))
 
 ;; Inputs and outputs
 (define output-dataset-id
-  (ordinal-encode input-dataset-id target-fields mappings))
+  (ordinal-encode input-dataset-id target-fields mappings remove-original?
+                  mark-non-preferred?))
 

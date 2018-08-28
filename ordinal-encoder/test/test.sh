@@ -18,6 +18,7 @@ function run_test {
   data=$1
   inputs=$2
   expected=$3
+  preferred=$4
 
   log "Removing stale resources (if any)..."
   cleanup
@@ -52,6 +53,26 @@ function run_test {
     echo "$actual"
     exit 1
   fi
+
+  if [ ! -z "$preferred" ]; then
+
+    log "Fetching metadata for output dataset $output_dataset_id..."
+    url="https://bigml.io/${output_dataset_id}?$BIGML_AUTH"
+    p=$(curl -s "$url" | jq '.fields | to_entries[] | .value.preferred')
+
+    log "Checking perferred state of fields..."
+    if [ "$p" = "$preferred" ]; then
+      log "PASS"
+    else
+      log "FAIL"
+      echo "Expected"
+      echo "$preferred"
+      echo "Actual"
+      echo "$p"
+      exit 1
+    fi
+  fi
+
   cleanup
 }
 
@@ -260,5 +281,56 @@ EOF
 )
 run_test "$data" "$inputs" "$expected"
 
+log "Test: Remove original"
+inputs=$(cat <<EOF
+[["input-dataset-id", "%DATASET_ID%"],
+ ["remove-original?", true]]
+EOF
+)
+expected=$(cat <<'EOF'
+id,size_ordinal,code_ordinal
+0,2,0
+1,1,1
+2,0,0
+3,0,2
+4,1,2
+5,3,0
+6,2,0
+7,0,1
+EOF
+)
+pref=$(cat <<'EOF'
+false
+true
+true
+EOF
+)
+run_test "$data" "$inputs" "$expected"
 
-
+log "Test: Mark non-preferred"
+inputs=$(cat <<EOF
+[["input-dataset-id", "%DATASET_ID%"],
+ ["mark-non-preferred?", true]]
+EOF
+)
+expected=$(cat <<'EOF'
+id,size,code,size_ordinal,code_ordinal
+0,XL,C,2,0
+1,S,A,1,1
+2,M,C,0,0
+3,M,B,0,2
+4,S,B,1,2
+5,L,C,3,0
+6,XL,C,2,0
+7,M,A,0,1
+EOF
+)
+pref=$(cat <<'EOF'
+false
+false
+false
+true
+true
+EOF
+)
+run_test "$data" "$inputs" "$expected" "$pref"

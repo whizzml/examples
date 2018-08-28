@@ -4,3 +4,5 @@ This script takes as inputs a dataset, and optionally a list of categorical fiel
 
 Ordinal encoding uses a single column of integers to represent field classes. If classes have a known order (such as Like, Somewhat Like, Neutral, Somewhat Dislike, and Dislike), the integer mapping can be supplied; otherwise, integers are assigned by class count, in descending order (in the case of ties, classes are ordered alphabetically).
 
+Original fields can optionally be removed or marked as non-preferred.
+
