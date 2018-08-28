@@ -39,28 +39,26 @@ function run_test {
   output_dataset_id=$(cat $outdir/results/whizzml_results.txt | grep "\'result\'" | cut -f4 -d\')
 
   log "Downloading output dataset $output_dataset_id..."
-  run_bigmler --dataset "$output_dataset_id" --to-csv "output_dataset.csv" --no-model --output-dir $outdir/results
-  actual=$(cat $outdir/results/output_dataset.csv)
-
-  log "Comparing actual to expected result..."
-  if [ "$actual" = "$expected" ]; then
-    log "PASS"
-  else
-    log "FAIL"
-    echo "Expected"
-    echo "$expected"
-    echo "Actual"
-    echo "$actual"
-    exit 1
+  run_bigmler --dataset "$output_dataset_id" --store \
+      --to-csv "output_dataset.csv" --no-model --output-dir $outdir/results
+  if [ -f $outdir/results/output_dataset.csv ]; then
+    actual=$(cat $outdir/results/output_dataset.csv)
+    log "Comparing actual to expected result..."
+    if [ "$actual" = "$expected" ]; then
+      log "PASS"
+    else
+      log "FAIL"
+      echo "Expected"
+      echo "$expected"
+      echo "Actual"
+      echo "$actual"
+      exit 1
+    fi
   fi
 
   if [ ! -z "$preferred" ]; then
-
-    log "Fetching metadata for output dataset $output_dataset_id..."
-    url="https://bigml.io/${output_dataset_id}?$BIGML_AUTH"
-    p=$(curl -s "$url" | jq '.fields | to_entries[] | .value.preferred')
-
     log "Checking perferred state of fields..."
+    p=$(cat $outdir/results/${output_dataset_id//\//_} | jq '.object.fields | keys[] as $k | .[$k].preferred')
     if [ "$p" = "$preferred" ]; then
       log "PASS"
     else
