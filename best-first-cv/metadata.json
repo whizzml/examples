@@ -25,13 +25,19 @@
       "name": "options",
       "type": "map",
       "default": {},
-      "descript": "Additional configuration options for the models"
+      "description": "Additional configuration options for the models"
     },
     {
       "name": "k-folds",
       "type": "number",
       "default": 5,
-      "descript": "Number of k-folds in the cross-validation"
+      "description": "Number of k-folds in the cross-validation"
+    },
+    {
+      "name": "pre-selected",
+      "type": "list",
+      "default": [],
+      "description": "List of field IDs to be pre-selected"
     }
   ],
   "outputs": [

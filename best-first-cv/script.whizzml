@@ -421,20 +421,27 @@
 
 
 
-
 ;; Do best-first feature selection.  Given a dataset and a target
 ;; number of features iteratively construct models for each feature,
 ;; evaluate them, and add the feature corresponding to the best
 ;; cv to the running set of features.  Stop when you reach the
 ;; target number, or you run out of features.
-(define (select-features dataset-id nfeatures objective-id options k-folds)
+(define (select-features dataset-id
+                         nfeatures
+                         objective-id
+                         options
+                         k-folds
+                         pre-selected)
   (let (obj-id (get-objective dataset-id objective-id)
         k-fold-datasets (create-k-folds dataset-id k-folds)
-        ;; input-ids (default-inputs dataset-id obj-id)
-        important-ids (important-fields dataset-id obj-id))
-    (loop (selected []
-           potentials important-ids
+        input-ids (default-inputs dataset-id obj-id)
+        important-ids (important-fields dataset-id obj-id)
+        _ (log-info important-ids)
+        potentials (make-complementary important-ids pre-selected))
+    (loop (selected pre-selected
+           potentials potentials
            queue [])
+
       (if (or (>= (count selected) nfeatures) (empty? potentials))
         (response dataset-id k-fold-datasets selected queue)
         (let (_ (log-info "Making new candidates...")
@@ -449,15 +456,20 @@
                                              potentials)
               _ (log-info "Next selected feature: " (next-feat-info "feature")))
           (recur (append selected (next-feat-info "feature"))
-                 (filter (lambda (id) (not (= (id "feature")
-                                              (next-feat-info "feature"))))
-                         potentials)
+                 (make-complementary potentials [(next-feat-info "feature")])
                  (cons {"features" (append selected
                                            (next-feat-info "feature"))
                               "phi" (next-feat-info "phi")} queue)))))))
 
 ;; A simple function to get the max value in a list
 (define (get-max xs) (reduce (lambda (x y) (if (> x y) x y)) (head xs) xs))
+
+
+;; Filters the features in one list to be complementary with the ones in
+;; another list
+(define (make-complementary y-list x-list)
+  (iterate (acc y-list x x-list)
+    (filter (lambda (y) (not (= x (y "feature")))) acc)))
 
 
 ;; Clean the created datasets and deliver a human-readable response
@@ -536,4 +548,4 @@
     obj-id))
 
 (define output-features
-  (select-features dataset-id n objective-id options k-folds))
+  (select-features dataset-id n objective-id options k-folds pre-selected))
