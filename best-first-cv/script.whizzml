@@ -83,6 +83,12 @@
       average-phi)))
 
 
+(define (safe-create type args)
+  (try
+    (create type args)
+    (catch e
+      (create type args))))
+
 (define (get-average-phi evaluations)
   (/ (iterate (acc 0 ev evaluations)
        (+ acc ((fetch ev) ["result" "model" "average_phi"])))
@@ -193,11 +199,12 @@
 ;;
 (define (create-k-folds dataset-id k-folds)
   (let (k-fold-fn (lambda (x)
-                    (create-dataset {"origin_dataset" dataset-id
-                                     "row_offset" x
-                                     "row_step" k-folds
-                                     "new_fields" [{"name" "k_fold"
-                                                    "field" (str x)}]}))
+                    (safe-create "dataset"
+                                 {"origin_dataset" dataset-id
+                                  "row_offset" x
+                                  "row_step" k-folds
+                                  "new_fields" [{"name" "k_fold"
+                                                 "field" (str x)}]}))
         dataset-ids (map k-fold-fn (range 0 k-folds)))
     (wait* dataset-ids)))
 
@@ -249,10 +256,10 @@
 ;;
 (define (create-k-models type multidatasets objective-name model-options)
   (wait* (for (multidataset multidatasets)
-            (create type
-                    (merge {"datasets" multidataset
-                            "objective_field" objective-name}
-                            model-options)))))
+            (safe-create type
+                         (merge {"datasets" multidataset
+                                 "objective_field" objective-name}
+                                model-options)))))
 
 
 ;; create-k-evaluations
@@ -316,7 +323,10 @@
                                       idx
                                       " of " dataset-name)
                             opts (assoc evaluation-options "name" name))
-                       (append es (create-evaluation id mid opts)))))
+                       (append es (safe-create "evaluation"
+                                               (merge {"dataset" id
+                                                       "model" mid}
+                                                      opts))))))
     (wait* evaluations)
     (when delete-resources
       (map safe-delete models))
