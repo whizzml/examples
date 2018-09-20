@@ -13,9 +13,19 @@ using a greedy algorithm:
   - Greedily select the feature `f'` with the best performance and add
     it to S
 
-The script takes as inputs the dataset to use and the number of
-features (that is, dataset fields) to return and yields as output a
-list of the `n` selected features, as field identifiers.
+The script takes as inputs
+
+- the dataset to use
+- the number of features (that is, dataset fields) to return
+- the objective field (target)
+- the configuration options for the models
+- the number of k-folds to use in the cross-validation
+- the subset of pre-selected features that will be used to append any other
+  available feature
+
+and yields as output a
+list of the `n` selected features, as field identifiers plus the subsets
+and evaluations for each iteration step.
 
 To select the best performance, the script uses the metric
 `average_phi` in the evaluations it performs, which is only available
