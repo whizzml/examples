@@ -79,6 +79,11 @@ By convention, when the artifact is a library, the files are called
   (levels).
 - `batch-explanations` A simple way to perform many predictions with
   explanations
+- `best-first-cv` Extends the `best-first` code to find the list of
+  fields in your dataset that produce the best models. Allows iteration and
+  uses cross-validation.
+- `multi-label` Classification for datasets with a
+   multi-label (items) objective field.
 
 ## How to install
 

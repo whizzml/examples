@@ -31,5 +31,7 @@
     "quadratically-weighted-kappa",
     "stepwise-regression",
     "batch-explanations"
+    "best-first-cv",
+    "multi-label"
   ]
 }
