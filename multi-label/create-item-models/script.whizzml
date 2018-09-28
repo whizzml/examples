@@ -1,0 +1,63 @@
+;; Given a dataset, an items field and a model kind, generates a new
+;; binary field per item and
+;; uses the result to create models of the given kind per item.
+
+;; Find field by either name or id
+(define (find-field* fields field)
+  (or (when (contains? fields field) [(fields field) field])
+      (loop (ids (keys fields))
+        (cond (empty? ids)
+              (raise (str "Field not found: " field))
+              (= field (fields [(head ids) "name"] ""))
+              [(fields (head ids)) (head ids)]
+              (recur (tail ids))))))
+
+;; Given a dataset and a items field id or name, find
+;; the associated list of items and the missing count.
+(define (list-items dataset-id field-id)
+  (let ([f id] (find-field* ((fetch dataset-id) "fields") field-id))
+    (when (not (= "items" (f "optype")))
+      (raise (str "Field '" field-id "' has not the items type")))
+    (let (items (map head (f ["summary" "items"] [])))
+      (when (empty? items)
+        (raise (str "Field '" field-id "' does not contain any item")))
+      [items (f ["summary" "missing_count"] 0) id (f "name")])))
+
+
+;; Given a dataset and an items field, create binary features per item
+
+(define (expand-ds dataset field)
+  (let (script (head (list-scripts {"limit" 1 "name" "Items to features"}))
+        ex-items (create-and-wait-execution
+                   {"script" (script "resource")
+                    "inputs" [["input-dataset" dataset]
+                              ["items-field" field]
+                              ["true-value" "Y"]
+                              ["false-value" "N"]]}))
+    ((fetch ex-items) ["execution" "result"])))
+
+
+;; Adapt parameters to each items objective field
+(define (per-item-conf item items parms objective)
+  (let (other-items (filter (lambda (x) (not (= x item))) items))
+    (merge parms {"objective_field" item
+                  "excluded_fields" (append other-items objective)})))
+
+;; Final workflow for multi-label models generation
+(define (m-l-models dataset objective kind parameters)
+  (let ([items missings id name] (list-items dataset objective)
+        ds-name ((fetch dataset) "name")
+        ext-ds (expand-ds dataset objective)
+        ps (map (lambda (x) (per-item-conf x items parameters objective)) items)
+        ms (map (lambda (p) (create kind ext-ds p)) ps))
+    (wait* ms)
+    {"items" items
+     "objective-id" id
+     "objective-name" name
+     "models" ms
+     "kind" kind}))
+
+(define multi-label-models (m-l-models dataset
+                                       objective
+                                       model-kind
+                                       model-parameters))

@@ -1,0 +1,9 @@
+{
+  "name": "Multi-label models and predictions",
+  "description": "Scripts library to model data with an items objective field and make predictions using the resulting per-items models",
+  "kind": "package",
+  "components":[
+    "create-item-models",
+    "ml-batch-prediction",
+  ]
+}

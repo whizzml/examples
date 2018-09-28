@@ -1,0 +1,57 @@
+;; Find field
+(define (find-field-id fields field)
+  (or (fields field false)
+      (loop (ids (keys fields))
+        (cond (empty? ids) false
+              (= field (fields [(head ids) "name"] "")) (head ids)
+              (recur (tail ids))))))
+
+
+;; Extracts the result of the given execution, signaling an
+;; error if it's not of the expected kind.
+(define (exec-result eid)
+  (let (res ((fetch eid) ["execution" "result"] {}))
+    (when (not (contains? res "items"))
+      (raise (str "Invalid execution: Missing  items in result")))
+    res))
+
+;; Delete resources ignoring errors
+(define (safe-delete id)
+  (try (delete id)
+       (catch e (log-info (str "Error deleting resource " id " ignored")))))
+
+;; Create the chain of batch predictions and datasets accumulating predictions
+(define (bp-datasets batch-predictions datasets models items objective-name)
+  (if (empty? models)
+      [batch-predictions datasets]
+      (let (bp (create-and-wait-batchprediction
+                (head datasets)
+                (head models)
+                {"output_dataset" true
+                "all_fields" true
+                "confidence" true
+                "output_dataset" true
+                "prediction_name" (str objective-name
+                                       ": "
+                                       (head items))})
+            ds ((fetch bp) "output_dataset_resource"))
+       (bp-datasets (cons bp batch-predictions)
+                    (cons ds datasets)
+                    (tail models)
+                    (tail items)
+                    objective-name))))
+
+
+;; Final workflow
+(define (multi-label-predict eid dataset del?)
+  (let (res (exec-result eid)
+        objective-name (res "objective-name")
+        items (res "items")
+        ms (res "models")
+        [bps dss] (bp-datasets [] [dataset] ms items objective-name)
+        ds (head dss))
+     (when del? (map safe-delete bps))
+     (when del? (map safe-delete (tail dss)))
+     ds))
+
+(define result (multi-label-predict execution dataset clean-up?))

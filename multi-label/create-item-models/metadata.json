@@ -1,0 +1,39 @@
+{
+  "name": "Create item models",
+  "description":
+  "Generate models for a multi-labeled items field",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "The data to model"
+    },
+    {
+      "name": "objective",
+      "type": "string",
+      "description":
+      "The objective name or id"
+    },
+    {
+      "name": "model-kind",
+      "type": "string",
+      "default": "model",
+      "description": "The kind of ML model to create: model, ensemble, deepnet or logistic regression"
+    },
+    {
+      "name": "model-parameters",
+      "type": "map",
+      "default": {},
+      "description": "Additional parameters to use when creating models"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "multi-label-models",
+      "type": "map",
+      "description": "A map with items and models, as lists"
+    }
+  ]
+}
