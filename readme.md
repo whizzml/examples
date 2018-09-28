@@ -77,6 +77,8 @@ By convention, when the artifact is a library, the files are called
 - `ordinal-encoder` Given a dataset, encodes categorical fields using ordinal
   ecoding, which uses a single column of integers to represent field classes
   (levels).
+- `batch-explanations` A simple way to perform many predictions with
+  explanations
 
 ## How to install
 

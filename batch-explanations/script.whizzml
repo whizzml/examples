@@ -1,0 +1,36 @@
+;; Given a dataset of points to be predicted and a model id, creates a
+;; prediction (with explanations) from the model for every instance in
+;; the dataset. Returns a list of prediction resources.
+
+;; The sample server only returns 1000 instances at a time. The
+;; function `sample-all` retrieves all of them through multiple calls
+;; in groups of 100 and returns a list of all the samples.
+
+(define (sample-all smpl-id total-length)
+  (loop (rows total-length smpl-list [])
+    (let (first-rows (fetch smpl-id {"index" true
+                                     "mode" "linear"
+                                     "row_offset" (* 100 (count smpl-list))
+                                     "rows" 100}))
+      (if (<= rows 100)
+        (append smpl-list first-rows)
+        (recur (- rows 100) (append smpl-list first-rows))))))
+
+(define (batch-explanations ds-id model-id)
+  (let (smpl-id (create-and-wait-sample ds-id)
+        smpl (fetch smpl-id)
+        smpl-max (smpl "max_rows")
+        smpl-list (sample-all smpl-id smpl-max)
+        instances (reduce (lambda (x y) (concat x ((y "sample") "rows"))) 
+                          [] smpl-list)
+        field-names (smpl "input_fields")
+        prediction-arg (map (lambda (x) (make-map field-names x)) 
+                            instances)
+        predictions (map (lambda (x) 
+                           (create-prediction model-id {"input_data" x
+                                                        "explain" true}))
+                         prediction-arg))
+    (delete smpl-id)
+    predictions))
+
+(define prediction-list (batch-explanations dataset-id model-id))

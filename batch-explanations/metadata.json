@@ -1,0 +1,25 @@
+{
+  "name": "Batch explanations",
+  "description": "This script is an easy way to create multiple predictions with explanations at once. Given a dataset and a supervised learning model, every instance in the dataset is predicted (with explanations) with the given model. It outputs a list of the prediction ids.",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "The dataset of instances"
+    },
+    {
+      "name": "model-id",
+      "type": "supervised-model-id",
+      "description": "The model to make predictions"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "prediction-list",
+      "type": "list",
+      "description": "The list of prediction ids"
+    }
+  ]
+}
