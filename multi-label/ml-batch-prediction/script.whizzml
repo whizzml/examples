@@ -1,12 +1,3 @@
-;; Find field
-(define (find-field-id fields field)
-  (or (fields field false)
-      (loop (ids (keys fields))
-        (cond (empty? ids) false
-              (= field (fields [(head ids) "name"] "")) (head ids)
-              (recur (tail ids))))))
-
-
 ;; Extracts the result of the given execution, signaling an
 ;; error if it's not of the expected kind.
 (define (exec-result eid)

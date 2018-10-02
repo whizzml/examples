@@ -75,9 +75,9 @@
                                             delete-resources)
           ;; commented out till wintermute's new version
           ;; evaluations-average (create-and-wait-evaluation {"evaluations" evaluations})
-          average-phi (get-average-phi evaluations)
-          _ (log-info "model options: " model-options)
-          _ (log-info "average phi: " average-phi))
+          average-phi (get-average-phi evaluations))
+      (log-info "model options: " model-options)
+      (log-info "average phi: " average-phi)
       (when delete-resources
         (map safe-delete evaluations))
       average-phi)))
@@ -105,7 +105,7 @@
 ;;
 ;; Output: (string) Checked resource ID
 (define (check-resource-id resource-id type)
-  (when (not (string? resource-id))
+  (when (not (resource-id? resource-id))
     (raise {"message" (str "Resource ID string expected. Found "
                            resource-id " instead.")
             "code" 101}))
@@ -219,27 +219,10 @@
 ;; Output: (list) List of pairs [hold-out dataset, multidataset with the rest]
 ;;
 (define (pair-k-folds dataset-ids)
-  (map (lambda(x)
-         [(nth dataset-ids x)
-          (concat (take x dataset-ids)
-          (drop (+ x 1) dataset-ids))])
+  (map (lambda(x) [(nth dataset-ids x) (concat (take x dataset-ids)
+                                               (drop (+ x 1) dataset-ids))])
        (range 0 (count dataset-ids))))
 
-
-;; select-map-keys
-;;
-;; Filters the keys in a map, keeping only the ones that appear in the list.
-;;
-;; Inputs:
-;;   map: (map) Key, value maps
-;;   keys-list: (list) List of keys to be kept in the map
-;; Output: (map) filtered map with only the keys in the keys-list
-;;
-(define (select-map-keys a-map keys-list)
-  (reduce (lambda (x y) (let (value (a-map y false))
-                          (cond value (assoc x y value) x)))
-          {}
-          keys-list))
 
 ;; create-k-models
 ;;
@@ -286,13 +269,13 @@
         regularization (model-options "regularization" false)
         boosting? (not (empty? (model-options "boosting" {})))
         k-fold-pairs (pair-k-folds dataset-ids)
-        ensemble-options (select-map-keys model-options ENSEMBLE_OPTIONS)
-        boosted-ensemble-options (select-map-keys model-options
-                                                  BOOSTED_ENSEMBLE_OPTIONS)
-        model-options (select-map-keys model-options MODEL_OPTIONS)
-        logistic-options (select-map-keys model-options LOGISTIC_OPTIONS)
-        evaluation-options (select-map-keys evaluation-options
-                                            EVALUATION_OPTIONS)
+        ensemble-options (select-keys model-options ENSEMBLE_OPTIONS)
+        boosted-ensemble-options (select-keys model-options
+                                              BOOSTED_ENSEMBLE_OPTIONS)
+        model-options (select-keys model-options MODEL_OPTIONS)
+        logistic-options (select-keys model-options LOGISTIC_OPTIONS)
+        evaluation-options (select-keys evaluation-options
+                                        EVALUATION_OPTIONS)
         type (if (or (> number-of-models 1)
                      boosting?) "ensemble" "model")
         multidatasets (map last k-fold-pairs)
@@ -444,6 +427,10 @@
                          pre-selected)
   (let (obj-id (get-objective dataset-id objective-id)
         k-fold-datasets (create-k-folds dataset-id k-folds)
+        fields (resource-fields dataset-id)
+        pre-selected (map (lambda (x) ((find-field fields x) "id"))
+                          pre-selected)
+        _ (log-info pre-selected)
         input-ids (default-inputs dataset-id obj-id)
         important-ids (important-fields dataset-id obj-id)
         _ (log-info important-ids)
@@ -499,7 +486,7 @@
 (define (default-inputs dataset-id obj-id)
   (let (fields ((fetch dataset-id) "fields")
         fids (keys fields))
-    (filter (lambda (k) (and (fields [k "preferred"] false) (not (= obj-id k))))
+    (filter (lambda (k) (and (fields [k "preferred"] true) (not (= obj-id k))))
             fids)))
 
 
@@ -527,9 +514,12 @@
 ;; model ids corresponding to those features, select the best
 ;; potential feature by performing an evaluation on each model and
 ;; returning the feature with the best performance.
-(define (select-feature k-fold-datasets objective-id options candidates potentials)
-  (let (make-attrs (lambda (inp) (merge {"input_fields" inp}
-                                        options))
+(define (select-feature k-fold-datasets
+                        objective-id
+                        options
+                        candidates
+                        potentials)
+  (let (make-attrs (lambda (inp) (assoc options "input_fields" inp))
         potentials (map (lambda (x) (x "feature")) potentials)
         all-reqs (map make-attrs candidates)
         cvs (map (lambda (e-attrs) (cross-validation k-fold-datasets
@@ -551,7 +541,9 @@
   (let (obj-id (if (empty? obj-id)
                    (dataset-get-objective-id ds-id)
                    obj-id)
-        otype ((fetch ds-id) ["fields" obj-id "optype"] "missing"))
+        fields (resource-fields ds-id)
+        obj-id ((find-field fields obj-id) "id")
+        otype (fields [obj-id "optype"] "missing"))
     (when (not (= "categorical" otype))
       (raise (str "The dataset's objective field must be categorical, "
                   "but is " otype)))
