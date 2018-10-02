@@ -42,7 +42,7 @@
         [bps dss] (bp-datasets [] [dataset] ms items objective-name)
         ds (head dss))
      (when del? (map safe-delete bps))
-     (when del? (map safe-delete (tail dss)))
+     (when del? (map safe-delete (tail (butlast dss))))
      ds))
 
 (define result (multi-label-predict execution dataset clean-up?))

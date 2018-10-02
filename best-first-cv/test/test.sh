@@ -35,8 +35,14 @@ if [[ " $file_content " =~ $regex ]]
         echo "best-first-cv KO:\n $file_content"
         exit 1
 fi
+
+
 # remove the created resources
-run_bigmler delete --from-dir cmd --output-dir cmd_del
+run_bigmler delete --from-dir cmd/pre_test --output-dir cmd_del
 run_bigmler delete --from-dir .build --output-dir cmd_del
+cat cmd/results/execution | while read execution
+do
+run_bigmler delete --id "$execution" --output-dir cmd_del
+done
 rm -f -R test_inputs.json cmd cmd_del
 rm -f -R .build .bigmler*
