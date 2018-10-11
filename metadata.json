@@ -30,7 +30,7 @@
     "stacked-predictions",
     "quadratically-weighted-kappa",
     "stepwise-regression",
-    "batch-explanations"
+    "batch-explanations",
     "best-first-cv",
     "multi-label"
   ]

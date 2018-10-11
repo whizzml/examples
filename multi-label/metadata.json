@@ -4,6 +4,6 @@
   "kind": "package",
   "components":[
     "create-item-models",
-    "ml-batch-prediction",
+    "ml-batch-prediction"
   ]
 }
