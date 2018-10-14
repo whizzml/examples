@@ -16,22 +16,21 @@
   (if (empty? models)
       [batch-predictions datasets]
       (let (bp (create-and-wait-batchprediction
-                (head datasets)
-                (head models)
-                {"output_dataset" true
-                "all_fields" true
-                "confidence" true
-                "output_dataset" true
-                "prediction_name" (str objective-name
-                                       ": "
-                                       (head items))})
+                {"model" (head models)
+                 "dataset" (head datasets)
+                 "output_dataset" true
+                 "all_fields" true
+                 "confidence" true
+                 "output_dataset" true
+                 "prediction_name" (str objective-name
+                                        ": "
+                                        (head items))})
             ds ((fetch bp) "output_dataset_resource"))
        (bp-datasets (cons bp batch-predictions)
                     (cons ds datasets)
                     (tail models)
                     (tail items)
                     objective-name))))
-
 
 ;; Final workflow
 (define (multi-label-predict eid dataset del?)

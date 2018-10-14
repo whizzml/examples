@@ -12,6 +12,7 @@
               [(fields (head ids)) (head ids)]
               (recur (tail ids))))))
 
+
 ;; Given a dataset and a items field id or name, find
 ;; the associated list of items and the missing count.
 (define (list-items dataset-id field-id)
@@ -25,7 +26,6 @@
 
 
 ;; Given a dataset and an items field, create binary features per item
-
 (define (expand-ds dataset field)
   (let (script (head (list-scripts {"limit" 1 "name" "Items to features"}))
         ex-items (create-and-wait-execution
@@ -43,19 +43,30 @@
     (merge parms {"objective_field" item
                   "excluded_fields" (append other-items objective)})))
 
+
+;; Creates a model and returns the corresponding ID. When the kind of model
+;; is an optiml, the best model is returned
+(define (model-create kind dataset parameters)
+  (let (model (create kind dataset parameters))
+    (if (= kind "optiml")
+        (head ((fetch (wait model)) "models"))
+        model)))
+
+
 ;; Final workflow for multi-label models generation
 (define (m-l-models dataset objective kind parameters)
   (let ([items missings id name] (list-items dataset objective)
         ds-name ((fetch dataset) "name")
         ext-ds (expand-ds dataset objective)
         ps (map (lambda (x) (per-item-conf x items parameters objective)) items)
-        ms (map (lambda (p) (create kind ext-ds p)) ps))
+        ms (map (lambda (p) (model-create kind ext-ds p)) ps))
     (wait* ms)
     {"items" items
      "objective-id" id
      "objective-name" name
      "models" ms
      "kind" kind}))
+
 
 (define multi-label-models (m-l-models dataset
                                        objective
