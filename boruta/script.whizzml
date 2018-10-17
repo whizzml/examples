@@ -249,7 +249,7 @@ let(
         unimportant (concat unimportant undecided-unimportant)
 
         ; Remove created resources
-        _ (for (id (created-resources)) (delete id))
+        _ (for (id (created-resources)) (safe-delete id))
 
         )
     {"important" important
