@@ -112,15 +112,15 @@
             ;; logging each run results
             (log-info "Number of runs: " (+ runs 1))
             (log-info "---------------------------------------------------------")
-            (log-info "- Max importance for the shadow fields: " max-sh)
-            (log-info " - Important: " (select-by-importance f-rank
+            (log-info "Max importance for the shadow fields: " max-sh)
+            (log-info "Important: " (select-by-importance f-rank
                                                           IMPORTANCE_INC
                                                           to-name))
-            (log-info "- Unimportant: " (select-by-importance f-rank
+            (log-info "Unimportant: " (select-by-importance f-rank
                                                             IMPORTANCE_DEC
                                                             to-name))
-            (log-info "- Undecided: " (select-by-importance f-rank 0 to-name))
-            (log-info "- Remaining fields: " (map to-name (keys fields)))
+            (log-info "Undecided: " (select-by-importance f-rank 0 to-name))
+            (log-info "Remaining fields: " (map to-name (keys fields)))
             (log-info "---------------------------------------------------------")
             (recur f-rank fields sh-ds-id max-shadows f-importances (+ runs 1)))))))
 
