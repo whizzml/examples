@@ -62,6 +62,7 @@
         field-ids (keys ori-fields)
         f-names (map (lambda (x) (ori-fields [x "name"] false))
                      field-ids)
+        ;; Map from field ID to imporance flag
         init-rank (iterate (r {} id field-ids)
                     (assoc r (ori-fields [id "name"] false) 0))
         objective (if (= objective "")
@@ -69,7 +70,7 @@
                        [(dataset-get-objective-id dataset-id) "name"]
                        false)
                       (validate-objective-name objective ds)))
-    (loop (f-rank init-rank fields ori-fields ds-id dataset-id runs 0)
+    (loop (f-rank init-rank fields ori-fields ds-id dataset-id max-shadows [] f-importances [] runs 0)
       ;; Repeats the procedure until the importance is assigned for all
       ;; the attributes, or the algorithm has reached the previously set
       ;; limit of the random forest runs.
@@ -77,7 +78,7 @@
           ;; as runs go by, the fields structure is modified and unimportant
           ;; fields are removed. Thus we need f-names to contain the original
           ;; list of names to know which are unimportant
-          (group-importance f-rank fields f-names objective)
+          (group-importance f-rank fields f-names objective (median max-shadows) f-importances)
           ;; Loop body: Extends the information system by adding copies of all
           ;; variables (the information system is always extended by at least
           ;; 5 shadow attributes, even if the number of attributes in the
@@ -98,25 +99,68 @@
                 ;; by more than the min-gain margin or worst by less than the
                 ;; min-gain margin.
                 imps (get-importances (fetch rf-id))
+                ;; f-importances contains importances of fields at each iteration
+                f-importances (append f-importances imps) 
                 max-sh (maximum-shadow-importance imps sh-ids)
+                ;; max-shadows contains maximum importance of shadows fields at each iteration
+                max-shadows (append max-shadows max-sh) 
                 field-ids (filter (lambda (x) (!= objective (to-name x)))
                                   (keys fields))
                 f-rank (rank-field-ids imps field-ids max-sh min-gain)
-                fields (remove-unimportant fields f-rank))
+                ;; Removes unimportant fields
+                fields (remove-unimportant fields f-rank)) 
             ;; logging each run results
             (log-info "Number of runs: " (+ runs 1))
-            (log-info "------------------------------------------------")
-            (log-info "Max importance for the shadow fields: " max-sh)
-            (log-info "Important: " (select-by-importance f-rank
+            (log-info "---------------------------------------------------------")
+            (log-info "- Max importance for the shadow fields: " max-sh)
+            (log-info " - Important: " (select-by-importance f-rank
                                                           IMPORTANCE_INC
                                                           to-name))
-            (log-info "Unimportant: " (select-by-importance f-rank
+            (log-info "- Unimportant: " (select-by-importance f-rank
                                                             IMPORTANCE_DEC
                                                             to-name))
-            (log-info "Undecided: " (select-by-importance f-rank 0 to-name))
-            (log-info "remaining fields: " (map to-name (keys fields)))
-            (log-info "------------------------------------------------")
-            (recur f-rank fields sh-ds-id (+ runs 1)))))))
+            (log-info "- Undecided: " (select-by-importance f-rank 0 to-name))
+            (log-info "- Remaining fields: " (map to-name (keys fields)))
+            (log-info "---------------------------------------------------------")
+            (recur f-rank fields sh-ds-id max-shadows f-importances (+ runs 1)))))))
+
+
+;; median-importances
+;; Obtains median importance of a field from a list of maps (field -> importance)
+;;
+;; Inputs:
+;;   f-importances: (list) List of maps from field ID to imporance flag
+;;                         from each iteration
+;;
+;; Output: (number) Median importance
+;;
+(define (median-importances f-importances field)
+ (median (map (lambda (x) (x field 0)) f-importances)))
+
+;; median
+;; Returns median value of list of numbers
+;; If the list contains an even number of elements,
+;; it returns the average of both central elements
+;;
+;; Inputs:
+;;   myList: (list) List of numbers
+;;
+;; Output: (number) Median importance
+;;
+(define (median mylist)(
+let(
+    mylist (sort mylist)
+    med-item (floor (/ (count mylist) 2))
+    prev-item  (- med-item 1)
+    prev-item (if (> prev-item 0) prev-item 0)
+    value (if (empty? mylist)
+           0
+          (if(odd? (count mylist))
+              (mylist med-item)
+              (/ (+ (mylist med-item)  (mylist prev-item) )2)))
+    )value
+))
+
 
 ;; full
 ;; Checks whether all the fields are marked as important or unimportant
@@ -168,24 +212,65 @@
 ;;   fields: (map) Fields information structure
 ;;   f-names: (list) Fields names
 ;;   objective: (string) objective field name
+;;   median-shadows: (number) Median value of the list of maximum shadow importances of all executions
+;;   f-importanes: (list) Field importances from all executions
 ;;
 ;; Output:  (map) Map from categories (important, unimportant or undecided) to
 ;;                list of field names
 ;;
-(define (group-importance f-rank fields f-names objective)
+(define (group-importance f-rank fields f-names objective, median-shadows, f-importances)
   (let (to-name (lambda (x) (fields [x "name"] false))
         important (iterate (r [] k (keys f-rank))
                     (if (positive? (f-rank k)) (append r (to-name k)) r))
-        important (append important objective)
+        ;; Objective is also an important field
+        important (append important objective) 
         undecided (iterate (r [] k (keys f-rank))
                     (if (zero? (f-rank k)) (append r (to-name k)) r))
         unimportant (filter (lambda (x)
                               (not (or (member? x important)
                                        (member? x undecided))))
-                            f-names))
+                            f-names)
+        ;; Obtain id of undecided fields
+        undecided-ids (iterate (r [] k (keys f-rank))
+                    (if (zero? (f-rank k)) (append r k) r))
+        ;; Calculating if undecided fields are important or unimportant
+        undecided-unimportant (undecided-unimportance undecided-ids median-shadows f-importances fields)
+        undecided-important  (filter (lambda (x) (not  (member? x undecided-unimportant) )) undecided)
+        
+        _ (log-info " ---- Final results: ----- ")
+        _ (log-info " Important: "important)
+        _ (log-info " Unimportant" unimportant)
+        _ (log-info " Undecided-important" undecided-important)
+        _ (log-info " Undecided-unimportant" undecided-unimportant)
+
+        ;; Add undecided-important and undecided-unimportant fields to
+        ;; important and unimportant lists
+        important (concat important undecided-important)
+        unimportant (concat unimportant undecided-unimportant)
+
+        ; Remove created resources
+        _ (for (id (created-resources)) (delete id))
+
+        )
     {"important" important
-     "unimportant" unimportant
-     "undecided" undecided}))
+     "unimportant" unimportant}))
+
+;; undecided-unimportance
+;;
+;; Returns fields whose median importance (from all executions) is lower than median-shadows importance
+;;
+;; Inputs:
+;;   undecided: (list) List of field IDs of undecided fields
+;;   median-shadows: (number) Median value of the list of maximum shadow importances of all executions
+;;   f-importanes: (list) Field importances from all executions
+;;   fields: (map) Fields information structure
+;;
+;; Output:  (list) Field ID from fields whose median importance (from all executions) is lower than median-shadows importance
+;;
+(define (undecided-unimportance undecided median-shadows f-importances fields)
+    (iterate (r [] k undecided)
+      (if (< (median-importances f-importances k) median-shadows ) (append r (fields [k "name"] false)) r))
+ )
 
 ;; filter-map
 ;; Filters a map by applying the corresponding filter function to its keys
@@ -310,6 +395,23 @@
                 (imp 0)
                 (/ (imp 1) m-num))))))
 
+
+;; safe-delete
+;;
+;; deletes resources ignoring errors
+;; Inputs:
+;;   id: (resource-id) resource to be deleted
+;;
+;; Output: (boolean) true if successful, false if not
+;;
+(define (safe-delete id)
+  (try (delete id)
+       (catch e
+         (log-info (str "Error deleting resource " id " ignored"))
+         false)))
+
+
+
 ;; maximum-shadow-importance
 ;;
 ;; Selects the maximum importance for the shadow fields
@@ -336,8 +438,8 @@
 ;;   field-ids: (list) List of original IDs to be checked against the random
 ;;                     forest importance list.
 ;;   max-sh: (number) Maximum importance of shadow fields
-;;   min-gain: (number) Interval of minimum gain over the shadow fields
-;;                      importance
+;;   min-gain: (number) Range around the maximum shadow importance
+;; where the field cannot be ranked as important or unimportant
 ;;
 ;; Output: (map) Field ID - rank map
 
@@ -359,19 +461,16 @@
 ;; them
 ;;
 ;; Inputs:
+;;   results: (map) Map with list of important and unimportant fields
 ;;   dataset-id: (dataset-id) ID of the origin dataset
-;;   objective: (string) Name of the objective field
-;;   max-runs: (integer) Maximum number of iterations
-;;   min-gain: (number) Increment to define the interval of minimum gain
-;;                      around the maximum importance of shadow fields
+;;   
 ;;
 ;; Output: (dataset-id) ID of the filtered dataset
 
-(define (boruta-feature-select dataset-id)
-  (let (fields-rank (boruta dataset-id "" 10 0.01)
-        ds (fetch dataset-id)
+(define (boruta-feature-select results dataset-id)
+  (let (ds (fetch dataset-id)
         name (ds "name")
-        exclude-fields (fields-rank "unimportant")
+        exclude-fields (results "unimportant") 
         args {"origin_dataset" dataset-id
               "name" (str name " - feature selected")}
         args (if (empty? exclude-fields)
@@ -379,4 +478,7 @@
                  (assoc args "excluded_fields" exclude-fields)))
     (create "dataset" args)))
 
-(define feature-selected-dataset (boruta-feature-select dataset-id))
+(define results (boruta dataset-id "" max-runs min-gain))
+
+
+(define feature-selected-dataset (boruta-feature-select results dataset-id))
