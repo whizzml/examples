@@ -8,13 +8,30 @@
           "name": "dataset-id",
           "type": "dataset-id",
           "description": "Dataset to be analyzed"
-      }
+      },
+      {
+          "name": "min-gain",
+          "type": "number",
+          "default": 0.01,
+          "description": "Defines a range around the maximum importance of shadow fields to use as threshold for undecided/important/unimportant field classification"
+      },
+      {
+        "name": "max-runs",
+        "type": "number",
+        "default": 10,
+        "description": "Maximum number of iterations"
+    }
   ],
   "outputs": [
       {
           "name": "feature-selected-dataset",
           "type": "dataset-id",
           "description": "Feature-selected dataset"
-      }
+      },
+      {
+        "name": "results",
+        "type": "map",
+        "description": "Algorithm results"
+    }
   ]
 }
