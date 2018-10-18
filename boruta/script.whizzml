@@ -70,7 +70,8 @@
                        [(dataset-get-objective-id dataset-id) "name"]
                        false)
                       (validate-objective-name objective ds)))
-    (loop (f-rank init-rank fields ori-fields ds-id dataset-id max-shadows [] f-importances [] runs 0)
+    (loop (f-rank init-rank fields ori-fields ds-id dataset-id 
+           max-shadows [] f-importances [] runs 0)
       ;; Repeats the procedure until the importance is assigned for all
       ;; the attributes, or the algorithm has reached the previously set
       ;; limit of the random forest runs.
@@ -102,7 +103,8 @@
                 ;; f-importances contains importances of fields at each iteration
                 f-importances (append f-importances imps) 
                 max-sh (maximum-shadow-importance imps sh-ids)
-                ;; max-shadows contains maximum importance of shadows fields at each iteration
+                ;; max-shadows contains maximum importance of shadows 
+                ;; fields at each iteration
                 max-shadows (append max-shadows max-sh) 
                 field-ids (filter (lambda (x) (!= objective (to-name x)))
                                   (keys fields))
@@ -148,19 +150,16 @@
 ;; Output: (number) Median importance
 ;;
 (define (median mylist)(
-let(
-    mylist (sort mylist)
+let(mylist (sort mylist)
     med-item (floor (/ (count mylist) 2))
     prev-item  (- med-item 1)
     prev-item (if (> prev-item 0) prev-item 0)
     value (if (empty? mylist)
-           0
+          0
           (if(odd? (count mylist))
               (mylist med-item)
-              (/ (+ (mylist med-item)  (mylist prev-item) )2)))
-    )value
-))
-
+              (/ (+ (mylist med-item)(mylist prev-item)) 2)))
+    )value))
 
 ;; full
 ;; Checks whether all the fields are marked as important or unimportant
@@ -212,13 +211,13 @@ let(
 ;;   fields: (map) Fields information structure
 ;;   f-names: (list) Fields names
 ;;   objective: (string) objective field name
-;;   median-shadows: (number) Median value of the list of maximum shadow importances of all executions
-;;   f-importanes: (list) Field importances from all executions
+;;   median-shadows: (number) Median value of the list of maximum shadow 
+;;   importances of all executions
+;;   f-importances: (list) Field importances from all executions
 ;;
 ;; Output:  (map) Map from categories (important, unimportant or undecided) to
 ;;                list of field names
-;;
-(define (group-importance f-rank fields f-names objective, median-shadows, f-importances)
+(define (group-importance f-rank fields f-names objective median-shadows f-importances)
   (let (to-name (lambda (x) (fields [x "name"] false))
         important (iterate (r [] k (keys f-rank))
                     (if (positive? (f-rank k)) (append r (to-name k)) r))
@@ -234,43 +233,43 @@ let(
         undecided-ids (iterate (r [] k (keys f-rank))
                     (if (zero? (f-rank k)) (append r k) r))
         ;; Calculating if undecided fields are important or unimportant
-        undecided-unimportant (undecided-unimportance undecided-ids median-shadows f-importances fields)
-        undecided-important  (filter (lambda (x) (not  (member? x undecided-unimportant) )) undecided)
-        
-        _ (log-info " ---- Final results: ----- ")
-        _ (log-info " Important: "important)
-        _ (log-info " Unimportant" unimportant)
-        _ (log-info " Undecided-important" undecided-important)
-        _ (log-info " Undecided-unimportant" undecided-unimportant)
-
+        undecided-unimportant (undecided-unimportance undecided-ids 
+                              median-shadows f-importances fields)
+        undecided-important  (filter (lambda (x) (not  (member? x undecided-unimportant) )) 
+                              undecided)
         ;; Add undecided-important and undecided-unimportant fields to
         ;; important and unimportant lists
         important (concat important undecided-important)
-        unimportant (concat unimportant undecided-unimportant)
-
-        ; Remove created resources
-        _ (for (id (created-resources)) (safe-delete id))
-
-        )
-    {"important" important
-     "unimportant" unimportant}))
+        unimportant (concat unimportant undecided-unimportant))
+      (log-info " ---- Final results: ----- ")
+      (log-info " Important: "important)
+      (log-info " Unimportant" unimportant)
+      (log-info " Undecided-important" undecided-important)
+      (log-info " Undecided-unimportant" undecided-unimportant)
+      ; Remove created resources
+      (for (id (created-resources)) (safe-delete id)) 
+      {"important" important
+      "unimportant" unimportant}))
 
 ;; undecided-unimportance
 ;;
-;; Returns fields whose median importance (from all executions) is lower than median-shadows importance
+;; Returns fields whose median importance (from all executions) is lower 
+;; than median-shadows importance
 ;;
 ;; Inputs:
 ;;   undecided: (list) List of field IDs of undecided fields
-;;   median-shadows: (number) Median value of the list of maximum shadow importances of all executions
-;;   f-importanes: (list) Field importances from all executions
+;;   median-shadows: (number) Median value of the list of maximum shadow 
+;;   importances of all executions
+;;   f-importances: (list) Field importances from all executions
 ;;   fields: (map) Fields information structure
 ;;
-;; Output:  (list) Field ID from fields whose median importance (from all executions) is lower than median-shadows importance
+;; Output:  (list) Field ID from fields whose median importance 
+;;  (from all executions) is lower than median-shadows importance
 ;;
 (define (undecided-unimportance undecided median-shadows f-importances fields)
     (iterate (r [] k undecided)
-      (if (< (median-importances f-importances k) median-shadows ) (append r (fields [k "name"] false)) r))
- )
+      (if (< (median-importances f-importances k) median-shadows ) 
+       (append r (fields [k "name"] false)) r)))
 
 ;; filter-map
 ;; Filters a map by applying the corresponding filter function to its keys

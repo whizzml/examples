@@ -1,7 +1,9 @@
 # Boruta algorithm
 
 In this package you'll find a script implementing feature selection using
-a version of the [Boruta algorithm](https://www.jstatsoft.org/article/view/v036i11/v36i11.pdf) to detect important and unimportant fields in your dataset. The algorithm:
+a version of the [Boruta algorithm]
+(https://www.jstatsoft.org/article/view/v036i11/v36i11.pdf) 
+to detect important and unimportant fields in your dataset. The algorithm:
 
 - Retrieves the dataset information.
 - Creates a new extended dataset. In the new dataset, each field has a
@@ -25,12 +27,15 @@ a version of the [Boruta algorithm](https://www.jstatsoft.org/article/view/v036i
 The **inputs** for the script are:
 
 * `dataset-id`: (dataset-id) Dataset ID for the original data
-* `min-gain`:  (integer) Defines a range around the maximum importance of shadow fields to use as threshold for undecided/important/unimportant field classification
+* `min-gain`:  (float) Defines a range around the maximum importance of 
+shadow fields to use as threshold for undecided/important/unimportant 
+field classification
 * `max-runs:` (integer) Maximum number of iterations
 
 The **outputs** for the script are:
 * `results`: (map) List of important and unimportant fields
-* `feature-selected-dataset`: (dataset-id) Result Dataset ID with unimportant fields removed
+* `feature-selected-dataset`: (dataset-id) Result Dataset ID with 
+unimportant fields removed
 
 ## Tests
 
@@ -39,9 +44,11 @@ which uses `BigMLer` to perform a basic test of the WhizzML code. To run the
 test:
 
 - BigMLer must be installed. For instructions to install BigMLer please refer
-to the [BigMLer documentation](http://bigmler.readthedocs.io/en/latest/#bigmler-installation).
+to the [BigMLer documentation]
+(http://bigmler.readthedocs.io/en/latest/#bigmler-installation).
 - Your credentials must be set as environment variables. Please refer to
-the [BigML Authentication](http://bigmler.readthedocs.io/en/latest/#bigml-authentication)
+the [BigML Authentication]
+(http://bigmler.readthedocs.io/en/latest/#bigml-authentication)
 section of docs for details.
 
 Once the setup is complete, go to the test directory and run the shell script
