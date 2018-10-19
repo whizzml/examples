@@ -149,17 +149,16 @@
 ;;
 ;; Output: (number) Median importance
 ;;
-(define (median mylist)(
-let(mylist (sort mylist)
-    med-item (floor (/ (count mylist) 2))
-    prev-item  (- med-item 1)
-    prev-item (if (> prev-item 0) prev-item 0)
-    value (if (empty? mylist)
-          0
-          (if(odd? (count mylist))
-              (mylist med-item)
-              (/ (+ (mylist med-item)(mylist prev-item)) 2)))
-    )value))
+(define (median mylist)
+  (let (mylist (sort mylist)
+        prev-item (- med-item 1)
+        prev-item ...
+        value (if (empty? list)
+                  0
+                  (if (odd? (count mylist))
+                    (mylist med-item)
+                    (/ (+ (mylist med-item)(mylist prev-item)) 2))))
+  value))
 
 ;; full
 ;; Checks whether all the fields are marked as important or unimportant
