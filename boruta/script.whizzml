@@ -230,12 +230,15 @@
                             f-names)
         ;; Obtain id of undecided fields
         undecided-ids (iterate (r [] k (keys f-rank))
-                    (if (zero? (f-rank k)) (append r k) r))
+                        (if (zero? (f-rank k)) (append r k) r))
         ;; Calculating if undecided fields are important or unimportant
-        undecided-unimportant (undecided-unimportance undecided-ids 
-                              median-shadows f-importances fields)
+        undecided-unimportant (undecided-unimportance 
+                               undecided-ids 
+                               median-shadows 
+                               f-importances 
+                               fields)
         undecided-important  (filter (lambda (x) (not  (member? x undecided-unimportant) )) 
-                              undecided)
+                                      undecided)
         ;; Add undecided-important and undecided-unimportant fields to
         ;; important and unimportant lists
         important (concat important undecided-important)
