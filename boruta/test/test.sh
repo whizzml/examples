@@ -26,7 +26,7 @@ run_bigmler execute --scripts .build/scripts --inputs test_inputs.json \
                     --output-dir cmd/results
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
-declare regex="\"outputs\": \[\[\"feature-selected-dataset\", "
+declare regex="\"outputs\": \[\[\"feature-selected-dataset\", .*\[\"results\", {"
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then

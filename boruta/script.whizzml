@@ -151,14 +151,14 @@
 ;;
 (define (median mylist)
   (let (mylist (sort mylist)
+        med-item (floor (/ (count mylist) 2))
         prev-item (- med-item 1)
-        prev-item ...
         value (if (empty? list)
                   0
                   (if (odd? (count mylist))
-                    (mylist med-item)
-                    (/ (+ (mylist med-item)(mylist prev-item)) 2))))
-  value))
+                      (mylist med-item)
+                      (/ (+ (mylist med-item)(mylist prev-item)) 2))))
+    value))
 
 ;; full
 ;; Checks whether all the fields are marked as important or unimportant
@@ -268,7 +268,8 @@
 (define (undecided-unimportance undecided median-shadows f-importances fields)
     (iterate (r [] k undecided)
       (if (< (median-importances f-importances k) median-shadows ) 
-       (append r (fields [k "name"] false)) r)))
+          (append r (fields [k "name"] false)) 
+          r)))
 
 ;; filter-map
 ;; Filters a map by applying the corresponding filter function to its keys
@@ -422,8 +423,8 @@
 (define (maximum-shadow-importance imps sh-ids)
   (iterate (acc 0 imp-k (keys imps))
     (if (member? imp-k sh-ids)
-      (max acc (imps imp-k 0))
-      acc)))
+        (max acc (imps imp-k 0))
+        acc)))
 
 ;; rank-field-ids
 ;;
