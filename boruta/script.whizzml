@@ -232,11 +232,10 @@
         undecided-ids (iterate (r [] k (keys f-rank))
                         (if (zero? (f-rank k)) (append r k) r))
         ;; Calculating if undecided fields are important or unimportant
-        undecided-unimportant (undecided-unimportance 
-                               undecided-ids 
-                               median-shadows 
-                               f-importances 
-                               fields)
+        undecided-unimportant (undecided-unimportance undecided-ids 
+                                                      median-shadows 
+                                                      f-importances 
+                                                      fields)
         undecided-important  (filter (lambda (x) (not  (member? x undecided-unimportant) )) 
                                       undecided)
         ;; Add undecided-important and undecided-unimportant fields to
