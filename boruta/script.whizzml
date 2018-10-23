@@ -220,13 +220,12 @@
   (let (to-name (lambda (x) (fields [x "name"] false))
         important (iterate (r [] k (keys f-rank))
                     (if (positive? (f-rank k)) (append r (to-name k)) r))
-        ;; Objective is also an important field
-        important (append important objective) 
         undecided (iterate (r [] k (keys f-rank))
                     (if (zero? (f-rank k)) (append r (to-name k)) r))
         unimportant (filter (lambda (x)
                               (not (or (member? x important)
-                                       (member? x undecided))))
+                                       (member? x undecided)
+                                       (= x objective))))
                             f-names)
         ;; Obtain id of undecided fields
         undecided-ids (iterate (r [] k (keys f-rank))
@@ -250,7 +249,8 @@
       ; Remove created resources
       (for (id (created-resources)) (safe-delete id)) 
       {"important" important
-      "unimportant" unimportant}))
+      "unimportant" unimportant
+      "objective_field" objective}))
 
 ;; undecided-unimportance
 ;;
