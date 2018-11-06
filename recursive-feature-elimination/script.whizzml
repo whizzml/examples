@@ -1,0 +1,291 @@
+  ;; choosable-objective-ids
+  ;;
+  ;; List of ids of the fields in the dataset that can be chosen as objective
+  ;; field.
+  ;;
+  ;; Inputs:
+  ;;  fields: (map) Fields structure
+  ;; Output: (list) list of field ids
+  (define (choosable-objective-ids fields)
+    (let (field-val (lambda (fid k) (fields [fid k] false))
+          objective-types ["categorical", "numeric"]
+          pref? (lambda (k) (field-val k "preferred"))
+          pred? (lambda (k) (member? (field-val k "optype") objective-types)))
+      (filter (lambda (x) (and (pref? x) (pred? x))) (keys fields))))
+
+
+  ;; safe-delete
+  ;;
+  ;; deletes resource ignoring errors
+  ;; Inputs:
+  ;;   id: (resource-id) resource to be deleted
+  ;;
+  ;; Output: (boolean) true if successful, false if not
+  ;;
+  (define (safe-delete id)
+    (try (delete id)
+         (catch e
+           (log-info (str "Error deleting resource " id " ignored"))
+           false)))
+
+  ;; default-inputs
+  ;;
+  ;; Get the default set of input fields for this dataset (all preferred
+  ;; fields minus the objective field).
+  ;;
+  ;; Inputs:
+  ;;  dataset-id: (dataset-id) Dataset id
+  ;;  obj-id: (string) id of the objective field
+  ;;
+  ;; Output: (list) Inputs field ids for this dataset
+  (define (default-inputs dataset-id obj-id)
+    (let (fields ((fetch dataset-id) "fields")
+          fids (keys fields))
+      (filter (lambda (k) (and (fields [k "preferred"] true) (not (= obj-id k))))
+              fids)))
+
+  ;; random-forest
+  ;; Create a random forest from the dataset
+  ;;
+  ;; Inputs:
+  ;;   ds-id: (dataset-id) Dataset id
+  ;;   obj: (string) Objective field id
+  ;;   run: (integer) Number of run (to change the seed)
+  ;;   input-fields: (list) Specifies the fields to be considered to create the ensemble.
+  ;; Output: (ensemble-id) Random Forest id
+  (define (random-forest ds-id obj run, input-fields)
+    (create-and-wait-ensemble {"dataset" ds-id
+                               "objective_field" obj
+                               "randomize" true
+                               "random_candidate_ratio" 0.33
+                               "sample_rate" 0.8
+                               "seed" (str "BigML Boruta" run)
+                               "input_fields" input-fields
+                               "ensemble_sample" {"rate" 1
+                                                  "replacement" true
+                                                  "seed" (str "BigML Boruta" 
+                                                               run) }}))
+
+;; evaluate-model
+;;
+;; Creates and returns an evaluation for a model
+;;
+;; Inputs:
+;;   model-id: (model-id) Model to evaluate
+;;   test-ds-id: (dataset-id) Test Dataset id
+;; Output:
+;;   evaluation: (evaluation) Result of the model evaluation
+
+  (define (evaluate-model model test-ds-id)
+    (create-and-wait-evaluation {"dataset" test-ds-id
+                                "model" model}))
+
+
+  ;; get-importances
+  ;;
+  ;; Selects the field importances in an ensemble
+  ;;
+  ;; Inputs:
+  ;;   ensemble: (ensemble) Ensemble information
+  ;;
+  ;; Outputs: (map) Importances by field name
+
+  (define (get-importances ensemble)
+    (let (dist (ensemble "distributions" false)
+          imps (map (lambda (x) (x "importance" false)) dist)
+          m-num (count imps))
+      (iterate (acc {} m-imps imps)
+        (iterate (m-acc acc imp m-imps)
+          (assoc+ m-acc
+                  (imp 0)
+                  (/ (imp 1) m-num))))))
+
+
+  ;; assoc+
+  ;;
+  ;; Adds the value in the key-value pair to the one existing in the accumulator
+  ;;
+  ;; Input:
+  ;;   acc: (map) accumulator map
+  ;;   key: (string) key to accumulate
+  ;;   value: (number) value to be added
+  (define (assoc+ acc key value)
+    (assoc acc key (+ value (acc key 0))))
+
+
+
+  ;; recursive-feature-elimination
+  ;;
+  ;; Applies recursive feature elimination algorithm and returns a map with
+  ;; the selected fields names, selected fields ids, and information about
+  ;; each iteration
+  ;;
+  ;; Inputs:
+  ;;   dataset-id: (dataset-id) Dataset id (for training)
+  ;;   nfeatures: (number) Number of features that we want to obtain
+  ;;   objective-id: (string) Objective field id
+  ;;   test-dataset-id: (dataset-id) id of the dataset used to
+  ;;                     evaluate the model
+  ;;   evaluation-metric: (string) Metric  used in the evaluation
+  ;; Output: (map) Map with selected field names, selected field ids, and 
+  ;;         iterations evaluation info (only if test-dataset-id is present)
+  (define (recursive-feature-elimination dataset-id
+                                         nfeatures
+                                         objective-id
+                                         test-dataset-id
+                                         evaluation-metric)
+    (let (do-evaluation (not (empty? test-dataset-id))
+          obj-id (get-objective dataset-id objective-id)
+          fields (resource-fields dataset-id)
+          input-ids (default-inputs dataset-id obj-id))
+      (loop (selected input-ids
+             evaluations []) 
+          ;; Loop until we obtain the desired number of features
+          (if (<= (count selected) nfeatures)
+              (response selected 
+                        (feature-names fields selected) 
+                        evaluations 
+                        do-evaluation)
+              (let (_ (log-info "------- New iteration -------")
+                    _ (log-info "Creating random forest with " 
+                                (count selected) 
+                                " fields")
+                    ;; Create random forest and obtain its importances
+                    rf-id (random-forest dataset-id obj-id 0 selected)
+                    imps (get-importances (fetch rf-id))
+                    ;; Obtaining minimum field importance
+                    min-imp (minimum-importance imps)
+                    removed-field (filter (lambda (n) (= (imps n) min-imp))
+                                          (keys imps))
+                    ;; Obtain first element, just in case there are two ore 
+                    ;; more fields with the minimum importance
+                    removed-field (removed-field 0)
+                    _ (log-info  "Removed-field " 
+                                 removed-field ": "
+                                 ((feature-names fields [removed-field]) 0))
+                    ;; Remove field from selected list
+                    selected (keys (dissoc imps removed-field))
+                    _ (log-info "There are " 
+                                (count selected) 
+                                " fields after filtering")
+                    ev (when do-evaluation 
+                           (fetch(evaluate-model rf-id test-dataset-id)))
+                    ev-result (when ev (ev ["result" "model" evaluation-metric]))
+                    ;; Iterations evaluation info
+                    iterations (when ev {"features" (count selected)
+                              "evaluation"  ev-result})
+                    evaluations (when ev (append evaluations iterations)))
+              (recur selected
+                      evaluations))))))
+
+;; response
+;;
+;; Creates a human-readable response and clean the created resources
+;;
+;; Inputs:
+;;   selected: (list) Selected fields ids
+;;   selected-names: (list) Selected fields names
+;;   evaluations: (list) Result of the evaluations at each iteration
+;;   do-evaluation: (boolean) Whether we performed evaluations
+;;
+;; Output: (map) Map with selected field names, selected field ids, and 
+;;         iterations evaluation info (only if test-dataset-id is present)
+(define (response selected selected-names evaluations do-evaluation)
+  (let( evaluations (if  do-evaluation
+                         evaluations
+                         ["test-dataset-id needed to create evaluations"]))
+    ; Remove all created resources
+    (for (id (created-resources)) (safe-delete id)) 
+    {"selected-fields" selected
+     "selected-fields-names" selected-names
+     "evaluations" evaluations}))
+
+
+;; feature-names
+;;
+;; Returns feature names given ids
+;;
+;; Inputs:
+;;   fieds: (map) Fields map (Output from resource-fields)
+;;   ids: (list) List of field ids
+;;
+;; Output: (list) List with all the field names
+;;
+(define (feature-names fields ids)
+    (map (lambda (id) (fields [id "name"])) ids))
+
+;; minimum-importance
+;;
+;; Selects the minimum importance for all the fields
+;;
+;; Inputs:
+;;   imps: (list) List of field importances
+;;
+;; Output: (number) minimum importance for the fields in the list
+(define (minimum-importance imps )
+  (iterate (acc 1 imp-k (keys imps))
+    (min acc (imps imp-k 0))))
+
+
+;; get-objective-name
+;;
+;; Returns the name of the field used as objective field
+;;
+;; Inputs:
+;;  dataset: (map) Dataset resource info
+;;  objective-id: (string) id of the objective field
+;;
+;; Outputs: (string) Name of the objective field
+;;
+(define (get-objective-name dataset objective-id)
+  (dataset ["fields" objective-id "name"] false))
+
+;; get-objective
+;;
+;; Retrieves and checks whether the objective field of the given
+;; dataset is categorical, raising an error otherwise.
+;;
+;; Inputs:
+;;  ds-id: (dataset-id) Dataset id
+;;  obj-id: (string) id of the objective field
+;;
+;; Outputs: (string) Same objective field id
+;;
+(define (get-objective ds-id obj-id)
+  (let (obj-id (if (empty? obj-id)
+                   (dataset-get-objective-id ds-id)
+                   obj-id)
+        fields (resource-fields ds-id)
+        obj-id ((find-field fields obj-id) "id")
+        otype (fields [obj-id "optype"] "missing"))
+    (when (not (= "categorical" otype))
+      (raise (str "The dataset's objective field must be categorical, "
+                  "but is " otype)))
+    obj-id))
+
+
+;; output-features
+;;
+;; Result from recursive-feature-elimination procedure
+;; Output: (map) Map with selected field names, selected field ids, and 
+;;         iterations evaluation info (only if test-dataset-id is present)
+(define output-features
+  (recursive-feature-elimination dataset-id 
+                                 n 
+                                 objective-id
+                                 test-dataset-id
+                                 evaluation-metric))
+;; output-dataset
+;;
+;; Creates new dataset with only the selected fields from the execution of
+;; the recursive feature elimination algorithm
+;; Output: (dataset) Dataset with the selected fields and the objective id
+(define output-dataset
+  (let (dataset (fetch dataset-id)
+        obj-id (get-objective dataset-id objective-id)
+        obj-name  (get-objective-name dataset obj-id))
+    (create-and-wait-dataset {"origin_dataset" dataset-id
+                              "input_fields"
+			      (append (output-features "selected-fields") obj-name)
+                              "name" (str (dataset "name")
+					  "[RFE-BestFeatures]")})))

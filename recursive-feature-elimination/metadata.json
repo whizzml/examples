@@ -1,0 +1,49 @@
+{
+  "name": "Recursive Feature Elimination",
+  "description": "Feature selection using the Recursive Feature Elimination algorithm",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "dataset-id",
+          "type": "dataset-id",
+          "description": "Dataset to be analyzed"
+      },
+      {
+        "name": "n",
+        "type": "number",
+        "default": 5,
+        "description": "Number of features that we want to obtain"
+      },
+      {
+        "name": "objective-id",
+        "type": "string",
+        "default": "",
+        "description": "Objective field id, or empty for default dataset objective field"
+      },
+      {
+        "name": "test-dataset-id",
+        "type": "string",
+        "default": "",
+        "description": "id of the dataset used to evaluate the model"
+      },
+      {
+        "name": "evaluation-metric",
+        "type": "string",
+        "default": "",
+        "description": "Global metric used in the evaluation"
+      }
+  ],
+  "outputs": [
+    {
+      "name": "output-features",
+      "type": "list",
+      "description": "Map with selected field names, selected field ids, and iterations evaluation info (only if test-dataset-id is present)"
+    },
+    {
+      "name": "output-dataset",
+      "type": "dataset-id",
+      "description": "The new filtered dataset with the selected fields"
+    }
+  ]
+}
