@@ -49,7 +49,7 @@
 ;;   evaluation-options: (map) Options to use in evaluation creation
 ;;   delete-resources: (boolean) Whether to delete all intermediate resources
 ;;
-;; Output: (map) Average of evaluations results
+;; Output: (map) Average and standard deviation of evaluations results
 ;;
 ;; Raises:
 ;;  101: The dataset-id argument is not a string
@@ -75,24 +75,64 @@
                                             delete-resources)
           ;; commented out till wintermute's new version
           ;; evaluations-average (create-and-wait-evaluation {"evaluations" evaluations})
-          average-phi (get-average-phi evaluations))
-      (log-info "model options: " model-options)
-      (log-info "average phi: " average-phi)
+          average-phi (get-average-phi evaluations)
+          standard-deviation  (get-deviation-phi evaluations average-phi)
+          phi-stdev (- average-phi standard-deviation))
+      (log-info "  model options: " model-options)
+      (log-info "    average phi: " average-phi)
+      (log-info "    phi-stdev: " phi-stdev)
       (when delete-resources
         (map safe-delete evaluations))
-      average-phi)))
+      {"phi" average-phi "stdev" standard-deviation "phi-stdev" phi-stdev})))
 
-
+;; safe-create
+;;
+;; Creates a resource catching the error
+;;
+;; Inputs:
+;;   type: (string) Type of resource that we want to create
+;;   args: (map) Maps of arguments
+;;
+;; Output: (resource-id) Created resource id
+;; 
 (define (safe-create type args)
   (try
     (create type args)
     (catch e
       (create type args))))
 
+;; get-average-phi
+;;
+;; Obtains average phi score of all evaluations in a list
+;;
+;; Inputs:
+;;   evaluations: (list) List of evaluatins ids
+;;
+;; Output: (number) Average of all average_phi
+;; 
 (define (get-average-phi evaluations)
   (/ (iterate (acc 0 ev evaluations)
        (+ acc ((fetch ev) ["result" "model" "average_phi"])))
      (count evaluations)))
+
+;; get-deviation-phi
+;;
+;; Obtains the standard deviation of all evaluations phi score in a list
+;;
+;; Inputs:
+;;   evaluations: (list) List of evaluatins ids
+;;   average-phi: (number) Average of all average_phi
+;;
+;; Output: (number) Standard deviation of all evaluations
+;; 
+(define (get-deviation-phi evaluations average-phi)
+  (sqrt
+    (/ (iterate (acc 0 ev evaluations)
+         (+ acc
+            (pow 
+              ( - ((fetch ev) ["result" "model" "average_phi"]) average-phi)
+              2)))
+       (count evaluations))))
 
 ;; check-resource-id
 ;;
@@ -408,55 +448,127 @@
          (log-info (str "Error deleting resource " id " ignored"))
          false)))
 
-
-
 ;-----------------------------------------------------------------
 
 
-
+;; select-features
+;;
 ;; Do best-first feature selection.  Given a dataset and a target
 ;; number of features iteratively construct models for each feature,
 ;; evaluate them, and add the feature corresponding to the best
 ;; cv to the running set of features.  Stop when you reach the
-;; target number, or you run out of features.
+;; target number, you run out of features, or if you don't have enough
+;; performance improvement during some iterations
+;;
+;; Inputs:
+;;  dataset-id: (dataset-id) Dataset ID
+;;  nfeatures: (number) Number of features that we want to obtain
+;;  objective-id: (resource-id) ID of the objective field
+;;  options: (map) Options to use in model/ensemble
+;;  k-folds: (number) Number of folds
+;;  pre-selected: (list) List of IDs of pre-selected fields
+;;  early-stop-performance: (number) (%) Minimum required performance improvement
+;;  max-bad-performance: (number) (%) Maximum number of iterations with bad
+;;                                    performance, as percentage of the number
+;;                                    of initial features
+;;
+;; Output: (map) Response with selected fields names and iterations info
+;;
 (define (select-features dataset-id
                          nfeatures
                          objective-id
                          options
                          k-folds
-                         pre-selected)
+                         pre-selected
+                         early-stop-performance
+                         max-bad-pecentage)
   (let (obj-id (get-objective dataset-id objective-id)
-        k-fold-datasets (create-k-folds dataset-id k-folds)
+	k-fold-datasets (create-k-folds dataset-id k-folds)
         fields (resource-fields dataset-id)
+	max-bad (* (/ max-bad-percentage 100) (count fields))
+	max-bad (if (< max-bad 1)
+		  1
+		  max-bad)
         pre-selected (map (lambda (x) ((find-field fields x) "id"))
                           pre-selected)
         _ (log-info pre-selected)
         input-ids (default-inputs dataset-id obj-id)
         important-ids (important-fields dataset-id obj-id)
-        _ (log-info important-ids)
         potentials (make-complementary important-ids pre-selected))
     (loop (selected pre-selected
+           selected-names (feature-names dataset-id pre-selected)
            potentials potentials
-           queue [])
+           queue []
+           bad-count 0)
 
-      (if (or (>= (count selected) nfeatures) (empty? potentials))
-        (response dataset-id k-fold-datasets selected queue)
-        (let (_ (log-info "Making new candidates...")
+      (if (or (= bad-count max-bad) 
+              (>= (count selected) nfeatures) 
+              (empty? potentials))
+        (response dataset-id k-fold-datasets selected queue bad-count)
+        (let (_ (log-info "Making new candidates...") 
               candidates (make-candidates selected
                                           (map (lambda (x) (x "feature"))
                                           potentials))
-              _ (log-info "Selecting feature..." candidates)
+              _ (log-info "Candidates..." candidates)
               next-feat-info (select-feature k-fold-datasets
                                              obj-id
                                              options
                                              candidates
                                              potentials)
-              _ (log-info "Next selected feature: " (next-feat-info "feature")))
-          (recur (append selected (next-feat-info "feature"))
+              bad-count (check-bad-performance queue 
+                                               next-feat-info 
+                                               early-stop-performance 
+                                               bad-count)
+              _ (log-info "Bad count value is..." bad-count)
+              selected (cons (next-feat-info "feature") selected)
+              selected-names (feature-names dataset-id selected)
+              queue (cons {"features" selected-names
+                            "phi" (next-feat-info "phi")
+                            "stdev" (next-feat-info "stdev")
+                            "phi-stdev" (next-feat-info "phi-stdev")} 
+                          queue))
+	  (if (= bad-count max-bad)
+              (log-info "Finished due to bad performance on " 
+                        max-bad 
+                        " iterations")
+              (log-info "Selected feature: " 
+                        (next-feat-info "feature")))
+          (recur selected
+                 selected-names
                  (make-complementary potentials [(next-feat-info "feature")])
-                 (cons {"features" (append selected
-                                           (next-feat-info "feature"))
-                              "phi" (next-feat-info "phi")} queue)))))))
+                 queue
+                 bad-count))))))
+
+;; check-bad-performance
+;;
+;; Checks if the performance improvement of the  last feature (with respect to 
+;; the last feature with good performance) is higher than 
+;; the threshold value. We understand 'performance' as the evaluation's
+;; average phi minus its standard deviation
+;;
+;; Inputs:
+;;   queue: (list) List of maps with results from previous iterations
+;;   next-feat-info: (map) Results from last selected feature
+;;   early-stop-performance: (number) Minimum required performance improvement
+;;   bad-count: (number) Current number of features with bad performance
+;;
+;; Output: (number) Updated number of features with bad performance
+;;
+(define(check-bad-performance queue 
+                              next-feat-info 
+                              early-stop-performance 
+                              bad-count)
+ (if (< (count queue) 1) 
+     bad-count 
+     (let  (last-est-phi-stdev (next-feat-info "phi-stdev")
+            ;; Last feature with good performance
+            previous-est-phi-stdev ((queue bad-count) "phi-stdev")
+            performance (- (* (/ last-est-phi-stdev previous-est-phi-stdev) 100) 
+                           100))
+       (log-info "Performance improvement of last feature: " performance)
+       (if (< performance early-stop-performance)
+           (+ bad-count 1)
+           0))))
 
 ;; A simple function to get the max value in a list
 (define (get-max xs) (reduce (lambda (x y) (if (> x y) x y)) (head xs) xs))
@@ -468,18 +580,38 @@
   (iterate (acc y-list x x-list)
     (filter (lambda (y) (not (= x (y "feature")))) acc)))
 
-
-;; Clean the created datasets and deliver a human-readable response
-(define (response dataset-id k-fold-datasets selected queue)
-  (map safe-delete k-fold-datasets)
-  {"selected-fields" (feature-names dataset-id selected)
-   "iterations-info" queue})
+;; response
+;;
+;; Clean the created datasets, removes last features with bad performance
+;; and deliver a human-readable response
+;;
+;; Inputs:
+;;    dataset-id: (dataset-id) Dataset id
+;;    k-fold-datasets: (list) List of dataset ids
+;;    selected: (list) List of selected fields ids
+;;    queue: (list) List of maps with results from previous iterations
+;;    bad-count: (number) Current number of features with bad performance
+;;   
+;;
+;; Output: (map) Response with selected fields names and iterations info
+;;
+(define (response dataset-id k-fold-datasets selected queue bad-count)
+ ;; We have to remove fields with bad performance 
+ (let  (selected (if (> bad-count 0)
+                     (reverse (drop  bad-count selected))
+                     (reverse selected )))
+   ;; Clean the created datasets
+   (map safe-delete k-fold-datasets)
+   {"selected-fields" (feature-names dataset-id selected)
+    "iterations-info" queue}))
 
 
 ;; Get feature names given ids
 (define (feature-names dataset-id ids)
   (let (fields ((fetch dataset-id) "fields"))
     (map (lambda (id) (fields [id "name"])) ids)))
+
+
 
 ;; Get the default set of input fields for this dataset (all preferred
 ;; fields minus the objective field).
@@ -510,10 +642,25 @@
                    (cons fid selected)))
     (map make-req potentials)))
 
+
+;; select-feature
+;;
 ;; Given a set of dataset folds, a list of potential features, and a list of
 ;; model ids corresponding to those features, select the best
 ;; potential feature by performing an evaluation on each model and
 ;; returning the feature with the best performance.
+;;
+;; Inputs:
+;;    k-fold-datasets: (list) List of Dataset IDs
+;;    objective-id: (resource-id) Objective field ID
+;;    options: (map) Options to use in model/ensemble
+;;    candidates: (list) List of the candidates fields combinations
+;;                that we want to test
+;;    potentials: (potentials) Potential fields IDs to be selected
+;;   
+;;
+;; Output: (map) Response with selected field info
+;;
 (define (select-feature k-fold-datasets
                         objective-id
                         options
@@ -528,15 +675,36 @@
                                                      {}
                                                      true)) all-reqs)
         ;;vs (map (lambda (ev) (ev ["result" "model" "average_phi"] 0)) cvs)
-        vs cvs
+        ;; Obtains phi-stdev from each cross validation
+        vs (map (lambda (ev) (ev ["phi-stdev"])) cvs)
         value-map (make-map potentials vs)
         max-val (get-max vs)
-        choose-best (lambda (id) (and (= max-val (value-map id)) id)))
+        choose-best (lambda (id) (and (= max-val (value-map id)) id))
+        phi (some (lambda (n) (if (= (n ["phi-stdev"]) max-val)
+                                  (n ["phi"]) 
+                                  false)) 
+             cvs)
+        stdev (some (lambda (n) (if (= (n ["phi-stdev"]) max-val)
+                                    (n ["stdev"]) 
+                                    false)) 
+               cvs))
     {"feature" (some choose-best potentials)
-     "phi" max-val}))
+     "phi" phi
+     "stdev" stdev
+     "phi-stdev" max-val}))
 
+;; get-objective 
+;;
 ;; Retrieves and checks whether the objective field of the given
 ;; dataset is categorical, raising an error otherwise.
+;;
+;; Inputs:
+;;    ds-id: (dataset-id) Dataset ID
+;;    obj-id: (resource-id) ID of objective field
+;;   
+;;
+;; Output: (resource-id): ID of objective field
+;;
 (define (get-objective ds-id obj-id)
   (let (obj-id (if (empty? obj-id)
                    (dataset-get-objective-id ds-id)
@@ -549,5 +717,37 @@
                   "but is " otype)))
     obj-id))
 
+
+
+;; output-features
+;;
+;; Result from best-first feature selection algorithm
+;; Output: (map) Response with selected fields names and iterations info
+;;
 (define output-features
-  (select-features dataset-id n objective-id options k-folds pre-selected))
+  (select-features dataset-id 
+                   n 
+                   objective-id 
+                   options 
+                   k-folds 
+                   pre-selected
+                   early-stop-performance
+                   max-bad-percentage))
+
+;; output-dataset
+;;
+;; Creates new dataset with only the selected fields from the execution of
+;; the best-first feature selection algorithm
+;; Output: (dataset) Dataset with the selected fields and the objective id
+(define output-dataset
+  (let (dataset (fetch dataset-id)
+        obj-id (get-objective dataset-id objective-id)
+        obj-name  (get-objective-name dataset obj-id) )
+    (create-and-wait-dataset {"origin_dataset" dataset-id
+                              "input_fields"
+                              (append (output-features "selected-fields") 
+                                      obj-name)
+                              "name"
+                              (str (dataset "name")
+                                   "[BestFeatures]")})))
+

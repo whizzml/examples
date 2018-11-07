@@ -26,7 +26,7 @@ run_bigmler execute --scripts .build/scripts --inputs test_inputs.json \
                     --output-dir cmd/results --verbosity 1
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
-declare regex="\"selected-fields\": \[\"plasma glucose\", \"bmi\"\]"
+declare regex=".*\"selected-fields\": \[\"plasma glucose\", \"bmi\"\]"
 declare file_content=$( cat "${file}" )
 if [[ " $file_content " =~ $regex ]]
     then
