@@ -486,9 +486,7 @@
 	k-fold-datasets (create-k-folds dataset-id k-folds)
         fields (resource-fields dataset-id)
 	max-bad (* (/ max-bad-percentage 100) (count fields))
-	max-bad (if (< max-bad 1)
-		  1
-		  max-bad)
+	max-bad (max 1 max-bad)
         pre-selected (map (lambda (x) ((find-field fields x) "id"))
                           pre-selected)
         _ (log-info pre-selected)
@@ -554,10 +552,10 @@
 ;;
 ;; Output: (number) Updated number of features with bad performance
 ;;
-(define(check-bad-performance queue 
-                              next-feat-info 
-                              early-stop-performance 
-                              bad-count)
+(define (check-bad-performance queue 
+                               next-feat-info 
+                               early-stop-performance 
+                               bad-count)
  (if (< (count queue) 1) 
      bad-count 
      (let  (last-est-phi-stdev (next-feat-info "phi-stdev")
@@ -599,7 +597,7 @@
  ;; We have to remove fields with bad performance 
  (let  (selected (if (> bad-count 0)
                      (reverse (drop  bad-count selected))
-                     (reverse selected )))
+                     (reverse selected)))
    ;; Clean the created datasets
    (map safe-delete k-fold-datasets)
    {"selected-fields" (feature-names dataset-id selected)
@@ -684,9 +682,7 @@
                                   (n ["phi"]) 
                                   false)) 
              cvs)
-        stdev (some (lambda (n) (if (= (n ["phi-stdev"]) max-val)
-                                    (n ["stdev"]) 
-                                    false)) 
+        stdev (some (lambda (n) (when (= max-val (n "phi-stdev")) (n "phi"))) 
                cvs))
     {"feature" (some choose-best potentials)
      "phi" phi

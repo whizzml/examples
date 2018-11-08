@@ -49,7 +49,7 @@
       "name": "max-bad-percentage",
       "type": "number",
       "default": 20,
-      "description": "(%) Maximum number of iterations with bad performance, as percentage of the number of initial features"
+      "description": "Maximum number of iterations with bad performance, as percentage of the number of initial features"
     }
   ],
   "outputs": [
