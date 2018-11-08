@@ -120,11 +120,18 @@
                     ;; Create random forest and obtain its importances
                     rf-id (random-forest dataset-id obj-id 0 selected)
                     imps ((fetch rf-id) "importance")
+		    ;; Obtain fields with importance 0
+		    ;; (they  doesnt appear in "importance")
+		    no-imp-fields (filter (lambda (n)
+					    (not (member? n (keys imps))))
+					  selected)
                     ;; Obtaining minimum field importance
                     removed-field (min-key (lambda (x) (imps x)) (keys imps))
-                    _ (log-info  "Removed-field " 
-                                 removed-field ": "
-                                 ((feature-names fields [removed-field]) 0))
+		    removed-fields (cons removed-field no-imp-fields)
+		    removed-fields-names (feature-names fields removed-fields)
+                    _ (log-info  "Removed-fields " 
+                                 removed-fields ": "
+                                 removed-fields-names)
                     ;; Remove field from selected list
                     selected (keys (dissoc imps removed-field))
                     _ (log-info "There are " 
@@ -135,7 +142,8 @@
                     ev-result (when ev (ev ["result" "model" evaluation-metric]))
                     ;; Iterations evaluation info
                     iterations (when ev {"features" (count selected)
-					 "evaluation"  ev-result})
+					 "evaluation"  ev-result
+					 "last-removed" removed-fields-names})
                     evaluations (when ev (append evaluations iterations)))
               (recur selected
                       evaluations))))))
