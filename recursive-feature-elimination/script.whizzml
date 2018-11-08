@@ -81,39 +81,6 @@
                                 "model" model}))
 
 
-  ;; get-importances
-  ;;
-  ;; Selects the field importances in an ensemble
-  ;;
-  ;; Inputs:
-  ;;   ensemble: (ensemble) Ensemble information
-  ;;
-  ;; Outputs: (map) Importances by field name
-
-  (define (get-importances ensemble)
-    (let (dist (ensemble "distributions" false)
-          imps (map (lambda (x) (x "importance" false)) dist)
-          m-num (count imps))
-      (iterate (acc {} m-imps imps)
-        (iterate (m-acc acc imp m-imps)
-          (assoc+ m-acc
-                  (imp 0)
-                  (/ (imp 1) m-num))))))
-
-
-  ;; assoc+
-  ;;
-  ;; Adds the value in the key-value pair to the one existing in the accumulator
-  ;;
-  ;; Input:
-  ;;   acc: (map) accumulator map
-  ;;   key: (string) key to accumulate
-  ;;   value: (number) value to be added
-  (define (assoc+ acc key value)
-    (assoc acc key (+ value (acc key 0))))
-
-
-
   ;; recursive-feature-elimination
   ;;
   ;; Applies recursive feature elimination algorithm and returns a map with
@@ -152,14 +119,9 @@
                                 " fields")
                     ;; Create random forest and obtain its importances
                     rf-id (random-forest dataset-id obj-id 0 selected)
-                    imps (get-importances (fetch rf-id))
+                    imps ((fetch rf-id) "importance")
                     ;; Obtaining minimum field importance
-                    min-imp (minimum-importance imps)
-                    removed-field (filter (lambda (n) (= (imps n) min-imp))
-                                          (keys imps))
-                    ;; Obtain first element, just in case there are two ore 
-                    ;; more fields with the minimum importance
-                    removed-field (removed-field 0)
+                    removed-field (min-key (lambda (x) (imps x)) (keys imps))
                     _ (log-info  "Removed-field " 
                                  removed-field ": "
                                  ((feature-names fields [removed-field]) 0))
@@ -173,14 +135,14 @@
                     ev-result (when ev (ev ["result" "model" evaluation-metric]))
                     ;; Iterations evaluation info
                     iterations (when ev {"features" (count selected)
-                              "evaluation"  ev-result})
+					 "evaluation"  ev-result})
                     evaluations (when ev (append evaluations iterations)))
               (recur selected
                       evaluations))))))
 
 ;; response
 ;;
-;; Creates a human-readable response and clean the created resources
+;; Creates a human-readable response and cleans the created resources
 ;;
 ;; Inputs:
 ;;   selected: (list) Selected fields ids
@@ -191,11 +153,11 @@
 ;; Output: (map) Map with selected field names, selected field ids, and 
 ;;         iterations evaluation info (only if test-dataset-id is present)
 (define (response selected selected-names evaluations do-evaluation)
+  ;; Remove created resources
+  (map safe-delete (created-resources))
   (let( evaluations (if  do-evaluation
                          evaluations
                          ["test-dataset-id needed to create evaluations"]))
-    ; Remove all created resources
-    (for (id (created-resources)) (safe-delete id)) 
     {"selected-fields" selected
      "selected-fields-names" selected-names
      "evaluations" evaluations}))
@@ -214,18 +176,6 @@
 (define (feature-names fields ids)
     (map (lambda (id) (fields [id "name"])) ids))
 
-;; minimum-importance
-;;
-;; Selects the minimum importance for all the fields
-;;
-;; Inputs:
-;;   imps: (list) List of field importances
-;;
-;; Output: (number) minimum importance for the fields in the list
-(define (minimum-importance imps )
-  (iterate (acc 1 imp-k (keys imps))
-    (min acc (imps imp-k 0))))
-
 
 ;; get-objective-name
 ;;
@@ -243,7 +193,7 @@
 ;; get-objective
 ;;
 ;; Retrieves and checks whether the objective field of the given
-;; dataset is categorical, raising an error otherwise.
+;; dataset exists, raising an error otherwise.
 ;;
 ;; Inputs:
 ;;  ds-id: (dataset-id) Dataset id
@@ -258,9 +208,8 @@
         fields (resource-fields ds-id)
         obj-id ((find-field fields obj-id) "id")
         otype (fields [obj-id "optype"] "missing"))
-    (when (not (= "categorical" otype))
-      (raise (str "The dataset's objective field must be categorical, "
-                  "but is " otype)))
+    (when (= "missing" otype)
+      (raise (str "The dataset's doesn't exist")))
     obj-id))
 
 
