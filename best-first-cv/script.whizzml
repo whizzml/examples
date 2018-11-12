@@ -682,7 +682,7 @@
                                   (n ["phi"]) 
                                   false)) 
              cvs)
-        stdev (some (lambda (n) (when (= max-val (n "phi-stdev")) (n "phi"))) 
+        stdev (some (lambda (n) (when (= max-val (n "phi-stdev")) (n "stdev"))) 
                cvs))
     {"feature" (some choose-best potentials)
      "phi" phi
