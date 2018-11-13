@@ -1,0 +1,55 @@
+{
+  "name": "K-means minus two",
+  "description": "Implementation of the k-means-- algorithm",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "The dataset of interest"
+    },
+    {
+      "name": "k",
+      "type": "number",
+      "description": "Number of clusters"
+    },
+    {
+      "name": "l",
+      "type": "number",
+      "description": "Number of anomalies"
+    },
+    {
+      "name": "threshold",
+      "type": "number",
+      "description": "Minimum cutoff similarity between sets of anomalies"
+    },
+    {
+      "name": "maximum",
+      "type": "number",
+      "description": "Maximum number of iterations"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "cluster",
+      "type": "cluster-id",
+      "description": "The final cluster id"
+    },
+    {
+      "name": "dataset-id",
+      "type": "dataset-id",
+      "description": "The appended dataset"
+    },
+    {
+      "name": "anomalies",
+      "type": "list",
+      "description": "The list of anomalies"
+    },
+    {
+      "name": "similarities",
+      "type": "list",
+      "description": "The list of similarities"
+    }
+  ]
+}
