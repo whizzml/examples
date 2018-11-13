@@ -38,7 +38,7 @@ if [[ " $file_content " =~ $regex ]]
     then
         log "k-means minus two OK"
     else
-        log "k-means minus two KO:\n $file_content"
+        echo "k-means minus two KO:\n $file_content"
 fi
 
 
