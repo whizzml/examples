@@ -26,8 +26,8 @@ The script takes as inputs:
 
 and yields as output:
 - The dataset with the selected fields
-- Information about the features selected and the evaluation on 
-  each iteration (only if test-dataset id given)
+- Selected fields names and (if test-dataset id given) the evaluation
+  and removed features on each iteration 
 
 One common approach is to execute the script with a very low `n`.
 In this way, observing the evaluation info, we will be able to guess

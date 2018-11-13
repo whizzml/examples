@@ -22,7 +22,7 @@
         "description": "Objective field id, or empty for default dataset objective field"
       },
       {
-        "name": "test-dataset-id",
+        "name": "test-ds-id",
         "type": "string",
         "default": "",
         "description": "id of the dataset used to evaluate the model"
