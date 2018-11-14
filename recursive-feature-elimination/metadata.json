@@ -31,7 +31,7 @@
         "name": "evaluation-metric",
         "type": "string",
         "default": "",
-        "description": "Global metric used in the evaluation"
+        "description": "Global metric used in the evaluation. Leave blank to use default metrics"
       }
   ],
   "outputs": [

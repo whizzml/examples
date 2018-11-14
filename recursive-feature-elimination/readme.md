@@ -20,9 +20,12 @@ The script takes as inputs:
   - the objective field (target)
   - the test dataset that should be used in the evaluation 
     If it is not given, the script won't perform evaluations.
-  - the metric that we want to use for the evaluations
-    - Possible metrics: accuracy, average_f_measure, 
-    average_phi, average_precision, and average_recall 
+  - the metric that we want to use for the evaluations. Can be
+    left blank for default metrics
+    - Possible classification  metrics: accuracy, average_f_measure, 
+    average_phi (default), average_precision, and average_recall 
+    - Possible regression metrics: mean_absolute_error, mean_squared_error,
+    r_squared (default)
 
 and yields as output:
 - The dataset with the selected fields

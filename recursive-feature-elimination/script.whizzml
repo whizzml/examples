@@ -88,7 +88,9 @@
   (let (do-evaluation (not (empty? test-ds-id))
         obj-id (get-objective dataset-id objective-id)
         fields (resource-fields dataset-id)
-        input-ids (default-inputs dataset-id obj-id))
+        otype (fields [obj-id "optype"] false)
+        input-ids (default-inputs dataset-id obj-id)
+        evaluation-metric (choose-eval-metric evaluation-metric otype))
     (loop (selected input-ids
            evaluations []) 
         ;; Loop until we obtain the desired number of features
@@ -119,8 +121,31 @@
                                        "evaluation"  ev-result
                                        "last-removed" removed-fields-names})
                   evaluations (when ev (append evaluations iterations)))
-            (recur selected
-                    evaluations))))))
+              (recur selected
+                     evaluations))))))
+
+;; choose-eval-metric
+;;
+;; Sets the metric that will be use in evaluation
+;;
+;; Inputs:
+;;   evaluation-metric: (string): Evaluation metric chosen by the user
+;;                                (could be empty)
+;;   otype: (string) Objective field type
+;;
+;; Outputs: (string) Chosen evaluation-metric 
+(define (choose-eval-metric evaluation-metric otype)
+  (let (empty-eval (empty? evaluation-metric)
+        classification (= "categorical" otype)
+        eval (if empty-eval
+               (if classification
+                 "average_phi"
+                 "r_squared"
+                 evaluation-metric)))
+    eval))
+
+
+
 ;; check-no-imp
 ;;
 ;; Checks fields with no importance  
