@@ -135,7 +135,7 @@
 ;;
 ;; Outputs: (string) Chosen evaluation-metric 
 (define (choose-eval-metric evaluation-metric otype)
-  (cond (empty? evaluation-metric) evaluation-metric
+  (cond (not (empty? evaluation-metric)) evaluation-metric
         (= "categorical" otype) "average_phi"
         "r_squared"))
 
