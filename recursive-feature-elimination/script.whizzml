@@ -135,14 +135,11 @@
 ;;
 ;; Outputs: (string) Chosen evaluation-metric 
 (define (choose-eval-metric evaluation-metric otype)
-  (let (empty-eval (empty? evaluation-metric)
-        classification (= "categorical" otype)
-        eval (if empty-eval
-               (if classification
-                 "average_phi"
-                 "r_squared"
-                 evaluation-metric)))
-    eval))
+  (if (empty? evaluation-metric)
+    (if (= "categorical" otype)
+      "average_phi"
+      "r_squared")
+    evaluation-metric))
 
 
 

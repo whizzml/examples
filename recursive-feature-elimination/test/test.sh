@@ -63,6 +63,36 @@ if [[ " $file_content " =~ $regex ]]
         echo "RFE without test-dataset-id KO:\n $file_content"
         exit 1
 fi
+# remove the created resources
+rm -f -R test_inputs.json
+
+# building the inputs for the test 3
+prefix1='[["dataset-id", "'
+suffix1='"],'
+prefix2='["test-dataset-id", "'
+suffix2='"], ["n", 2], ["evaluation-metric", ""]]'
+text=''
+cat cmd/pre_test/dataset | while read dataset
+do
+echo "$prefix1$dataset$suffix1$prefix2$dataset$suffix2" > "test_inputs.json"
+done
+log "Testing RFE with test-dataset-id (without metric) -------------------"
+# running the execution with the given inputs
+run_bigmler execute --scripts .build/scripts --inputs test_inputs.json \
+                    --output-dir cmd/results
+# check the outputs
+declare file="cmd/results/whizzml_results.json"
+declare regex="\"outputs\": \[\[\"output-features\", .*\[\"output-dataset\""
+declare file_content=$( cat "${file}" )
+if [[ " $file_content " =~ $regex ]]
+    then
+        log "RFE with test-dataset-id (without metric) OK"
+    else
+        echo "RFE with test-dataset-id (without metric) KO:\n $file_content"
+        exit 1
+fi
+
+
 
 # remove the created resources
 run_bigmler delete --from-dir cmd --output-dir cmd_del
