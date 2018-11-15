@@ -1,0 +1,30 @@
+{
+  "name": "Name clusters",
+  "kind": "script",
+  "description": "Gives a name to clusters using important field names",
+  "source_code": "script.whizzml",
+  "inputs":[
+    {
+      "name": "cluster-id",
+      "type": "cluster-id",
+      "description": "The cluster to update"
+    },
+    {
+      "name": "number-of-terms",
+      "type": "number",
+      "default": 2,
+      "description": "Number of terms to use in clusters name"
+    },
+    {
+      "name": "separator",
+      "type": "string",
+      "default": ",",
+      "description": "Separator to join terms to form clusters name"
+    }],
+  "outputs":[
+    {
+      "name": "result",
+      "type": "list",
+      "description": "List of cluster names"
+    }]
+}

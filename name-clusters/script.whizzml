@@ -1,0 +1,100 @@
+;; cluster-model-importances
+;;
+;; Returns importances from the model associated to a cluster
+;; Creates the model if it doesn't exist
+;;
+;; Inputs:
+;;   cluster: (map) Map with cluster (centroid) attributes
+;;   cl-models: (map) Cluster IDs and their corresponding models
+;;
+;; Output: (list) List of field names and importances
+(define (cluster-model-importances cluster cl-models)
+  (let (centroid-id (cluster "id")
+        model-id (cl-models centroid-id false)
+        model-id (if model-id
+                   (join ["model/" model-id])
+                   (create "model" {"cluster" cluster-id
+                                    "centroid" centroid-id}))
+        model (fetch model-id)
+        fields (model ["model" "fields"])
+        importances-ids (model ["model" "importance"]))
+    
+    (map (lambda (n) [(fields [(head n) "name"]) (tail n)])
+         importances-ids)))
+    
+    
+
+
+
+
+;; cluster-name
+;;
+;; Creates cluster name  using the most important field names of its
+;; correspondent model
+;;
+;; Inputs:
+;;   cluster: (map) Map with cluster (centroid)  attributes
+;;   clusters: (map) Named cluster (centroid) IDs along their new names
+;;   cl_models: (map) Clusters IDs and their corresponding models         
+;;   number-of-terms: (number) Number of terms to use in cluster name
+;;   separator: (string) Separator to join terms to form cluster names
+;;
+;; Outputs: (string) Cluster name
+;;
+(define (cluster-name cluster clusters cl-models  number-of-terms separator)
+  (let (fields (cluster-model-importances cluster cl-models)
+        n (- number-of-terms 1)
+	;; List of already named clusters to avoid repeating names
+        seen (map (lambda (c) (c "name")) (values clusters)))
+    (loop (cs (map head (tail fields)))
+     (if (empty? cs)
+        (head (head fields))
+        (let (c (join separator (cons (head (head fields)) (take n cs))))
+          (if (member? c seen)
+	    (recur (tail cs))
+	    c))))))
+
+
+;; rename-clusters
+;;
+;; Retrieves a cluster and renames it using the most important
+;; field names of its correspondent model
+;;
+;; Inputs:
+;;   cl-id: (resource-id) ID of the cluster model
+;;   number-of-terms: (number) Number of terms to use in cluster name
+;;   separator: (string) Separator to join terms to form cluster names
+;;
+;; Output: (list) List of cluster names
+;;
+(define (rename-clusters cl-id number-of-terms separator)
+  (let (cl (fetch cl-id)
+        models? (cl "model_clusters")
+        cl-models (cl "cluster_models")
+        clusters (when models?
+                   (reduce (lambda (ns cluster)
+                             (assoc ns
+                                    (cluster "id")
+                                    {"name" (cluster-name cluster
+                                                          ns
+                                                          cl-models
+                                                          number-of-terms
+                                                          separator)}))
+                       {}
+                       (cl ["clusters" "clusters"]))))
+    (if models?
+      (prog (try (update cl-id {"clusters" clusters})
+                 (catch e
+                   (log-error "Error updating clusters: " e)
+                   (raise e)))
+            (values clusters))
+      (log-error "Error. Cluster doesn't have any model."))))
+
+;; result
+;;
+;; Updates clusters name using the importance of their fields in each
+;; cluster model
+;; Output: (list) List of cluster names
+(define result (rename-clusters cluster-id
+			        number-of-terms
+			        separator))
