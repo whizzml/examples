@@ -32,6 +32,8 @@
     "stepwise-regression",
     "batch-explanations",
     "best-first-cv",
-    "multi-label"
+    "multi-label",
+    "recursive-feature-elimination",
+    "name-clusters"  
   ]
 }

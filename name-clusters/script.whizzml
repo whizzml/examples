@@ -9,8 +9,7 @@
 (define (model-importances model-id)
   (let (model (fetch model-id)
         importances-ids (model ["model" "importance"]))
-    (map (lambda (n) (head n))
-         importances-ids)))
+    (map head importances-ids)))
 
 
 ;; generate-models
@@ -67,8 +66,8 @@
         (head name-strs)
         (let (c (join separator (cons (head name-strs) (take n cs))))
           (if (member? c seen)
-        (recur (tail cs))
-        c))))))
+            (recur (tail cs))
+            c))))))
 
 
 ;; rename-clusters
@@ -86,29 +85,22 @@
 (define (rename-clusters cl-id number-of-terms separator)
   (let (cl (fetch cl-id)
         fields (cl ["clusters" "fields"])
-        models? (cl "model_clusters")
         centroids (cl ["clusters" "clusters"])
         centroid-ids (map (lambda (c) (c "id")) centroids)
+        _ (or (cl "model_clusters") (raise "Cluster doesn't have any model"))
         ;; generate models for all centroids
-        model-ids (when models?
-                    (generate-models cl-id centroid-ids))
-        clusters (when models?
-                   (iterate (ns {} centroid centroids model-id model-ids)
-                     (assoc ns
-                            (centroid "id")
-                            {"name" (cluster-name ns
-                                                  centroid
-                                                  fields
-                                                  model-id
-                                                  number-of-terms
-                                                  separator)}))))
-    (if models?
-      (prog (try (update cl-id {"clusters" clusters})
-                 (catch e
-                   (log-error "Error updating clusters: " e)
-                   (raise e)))
-            (values clusters))
-      (log-error "Error. Cluster doesn't have any model."))))
+        model-ids (generate-models cl-id centroid-ids)
+        clusters (iterate (ns {} centroid centroids model-id model-ids)
+                   (assoc ns
+                          (centroid "id")
+                          {"name" (cluster-name ns
+                                                centroid
+                                                fields
+                                                model-id
+                                                number-of-terms
+                                                separator)})))
+    (update cl-id {"clusters" clusters})
+    (values clusters)))
 
 
 ;; result
