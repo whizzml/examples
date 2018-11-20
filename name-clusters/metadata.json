@@ -1,7 +1,7 @@
 {
   "name": "Name clusters",
   "kind": "script",
-  "description": "Gives a name to clusters using important field names",
+  "description": "Script to give names to clusters using important field names and their values",
   "source_code": "script.whizzml",
   "inputs":[
     {
@@ -19,7 +19,7 @@
       "name": "separator",
       "type": "string",
       "default": ",",
-      "description": "Separator to join terms to form clusters name"
+      "description": "Separator to join terms to create clusters name"
     }],
   "outputs":[
     {
