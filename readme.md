@@ -84,6 +84,10 @@ By convention, when the artifact is a library, the files are called
   uses cross-validation.
 - `multi-label` Classification for datasets with a
    multi-label (items) objective field.
+- `recursive-feature-elimination` Script to select the n best features for 
+   modeling a given dataset, using a recursive algorithm
+- `name-clusters`  Script to give names to clusters using important field 
+   names and their values
 
 ## How to install
 
