@@ -14,7 +14,7 @@ run_bigmler --train s3://bigml-public/csv/diabetes.csv --no-model \
             --project "Whizzml examples tests" --output-dir cmd/pre_test
 # building the inputs for the test
 prefix='[["dataset-id", "'
-suffix='"], ["n", 2], ["objective-id" ,"diabetes"], ["pre-selected", ["plasma glucose"]]]'
+suffix='"], ["max-n", 2], ["objective-id" ,"diabetes"], ["pre-selected-fields", ["plasma glucose"]]]'
 text=''
 cat cmd/pre_test/dataset | while read datasets
 do
