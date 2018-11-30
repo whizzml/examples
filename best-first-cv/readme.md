@@ -1,47 +1,56 @@
 # Best-first feature selection for classifications with cross-validation
 
 Script to select the `n` best features for modeling a given dataset,
-using a greedy algorithm:
+using a greedy algorithm. It only works for classification problems,
+i.e., this script needs a categorical objective field.
 
-- Initialize the set `S` of selected features to the empty set
-- For `i` in `1 ... n`:
-  - For each feature `f` not in `S`, model and evaluate (with cross-validation)
-    with feature set `S + f`
-  - Greedily select the feature `f'` with the best performance and add
-    it to `S`
+The script takes as inputs: 
+- **dataset-id**: the dataset to use 
+- **max-n**: the number of maximum features (that is, dataset fields)
+to return. It also takes into account the pre-selected features. The
+number of features to be returned can be lower due to the early stop.
+- **objective-id**: the objective field (target). It needs to be
+categorical. 
+- **options**: the configuration options for the models
+- **k-folds**: the number of k-folds to use in the cross-validation
+- **pre-selected-fields**: the subset of pre-selected best-first features
+that will be used from the beginning in `S` (see algorithm description
+below).
+- **early-stop-performance**: an early-stop-performance improvement
+value (in %) used as a threshold to consider if a new feature has a
+better performance compared to previous iterations.
+- **max-low-perf-iterations**: the maximum number of consecutive
+iterations allowed that may have a lower performance than the
+early-stop performance set. It needs to be set as percentage of the
+initial number of features in the dataset.
 
-If last features have not improved the performance of the model during a 
-certain number of iterations, it will stop the execution.
+How the greedy algorithm works:
+- The algorithm initializes the set of `S` features taking into
+account the pre-selected best features from the dataset-id selected as
+input. If there are not pre-selected features, `S` will be empty.
+- For each iteration: 
+  - For each feature `f` in the dataset-id selected as input that is not
+in `S`, it trains a model with feature set `S + f`. By default, the
+algorithm builds decision trees, however you can select another
+algorithms and its parametrization by configuring the options. For
+example, if you set `{"number_of_models": 40}` ensembles with 40 models
+will be trained at each iteration.
+  - Then each model built with the feature set `S + f` is evaluated
+using k-fold cross-validation. 
+  - The algorithm greedily selects the feature `f'` with the best
+performance using the metric `average_phi` minus the standard deviation
+(derived from the cross-validation) to use the worst case as metric of
+performance.
+  - If the feature `f'` improves the performance of the last
+iteration, i.e. if the improvement is higher than the % set as the
+early-stop-performance, it is added it to `S`.
+  - If the feature `f'` have not improved the performance of the model,
+i.e. the improvement is lower than the percentage set as
+`early-stop-performance`, after a certain number of iterations (set by
+`max-low-perf-iterations`) , the execution will stop. 
 
-
-The script takes as inputs
-
-- the dataset to use
-- the number of features (that is, dataset fields) to return
-- the objective field (target)
-- the configuration options for the models
-- the number of k-folds to use in the cross-validation
-- the subset of pre-selected features that will be used to append any other
-  available feature
-- an early-stop-performance improvement value (in %) used as a threshold
-  to consider good performance of a feature
-- the maximum number of iterations with bad performance allowed (as
-  percentage of the initial number of features)
-
-and yields as output a
-list of the `n` (or lower if the algorithm stops due to bad performance) 
-selected features, as field identifiers plus their names and the subsets 
-and evaluations for each iteration step.
-
-To select the best performance, the script uses the metric
-`average_phi` in the evaluations it performs, which is only available
-for classification problems.  Therefore, the script is only valid for
-categorical objective fields. 
-
-In cross-validation, the standard deviation is substracted to the average 
-of all `average_phi` to use the *worst case* as metric of
-performance. 
-
-You can set the configuration for the model to be used in the analysis in the
-`options` variable. For instance, if you set {"number_of_models": 2} an
-ensemble will be used.
+Script outputs:
+- **output-features**: the list of the n (or lower if the algorithm stops
+due to bad performance) selected features, as field identifiers plus
+their names and the evaluation performance at each iteration step.
+- **output-dataset**: the dataset with the selected features.

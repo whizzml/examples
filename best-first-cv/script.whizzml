@@ -466,9 +466,9 @@
 ;;  objective-id: (resource-id) ID of the objective field
 ;;  options: (map) Options to use in model/ensemble
 ;;  k-folds: (number) Number of folds
-;;  pre-selected: (list) List of IDs of pre-selected fields
+;;  pre-selected-fields: (list) List of IDs of pre-selected fields
 ;;  early-stop-performance: (number) (%) Minimum required performance improvement
-;;  max-bad-performance: (number) (%) Maximum number of iterations with bad
+;;  max-low-perf-iterations: (number) (%) Maximum number of iterations with bad
 ;;                                    performance, as percentage of the number
 ;;                                    of initial features
 ;;
@@ -479,22 +479,22 @@
                          objective-id
                          options
                          k-folds
-                         pre-selected
+                         pre-selected-fields
                          early-stop-performance
-                         max-bad-pecentage)
+                         max-low-perf-iterations)
   (let (obj-id (get-objective dataset-id objective-id)
 	k-fold-datasets (create-k-folds dataset-id k-folds)
         fields (resource-fields dataset-id)
-	max-bad (* (/ max-bad-percentage 100) (count fields))
+	max-bad (* (/ max-low-perf-iterations 100) (count fields))
 	max-bad (max 1 max-bad)
-        pre-selected (map (lambda (x) ((find-field fields x) "id"))
-                          pre-selected)
-        _ (log-info pre-selected)
+        pre-selected-fields (map (lambda (x) ((find-field fields x) "id"))
+                          pre-selected-fields)
+        _ (log-info pre-selected-fields)
         input-ids (default-inputs dataset-id obj-id)
         important-ids (important-fields dataset-id obj-id)
-        potentials (make-complementary important-ids pre-selected))
-    (loop (selected pre-selected
-           selected-names (feature-names dataset-id pre-selected)
+        potentials (make-complementary important-ids pre-selected-fields))
+    (loop (selected pre-selected-fields
+           selected-names (feature-names dataset-id pre-selected-fields)
            potentials potentials
            queue []
            bad-count 0)
@@ -722,13 +722,13 @@
 ;;
 (define output-features
   (select-features dataset-id 
-                   n 
+                   max-n 
                    objective-id 
                    options 
                    k-folds 
-                   pre-selected
+                   pre-selected-fields
                    early-stop-performance
-                   max-bad-percentage))
+                   max-low-perf-iterations))
 
 ;; output-dataset
 ;;
