@@ -50,7 +50,12 @@ i.e. the improvement is lower than the percentage set as
 `max-low-perf-iterations`) , the execution will stop. 
 
 Script outputs:
-- **output-features**: the list of the n (or lower if the algorithm stops
-due to bad performance) selected features, as field identifiers plus
-their names and the evaluation performance at each iteration step.
+- **output-features**: A map with two main keys:
+  - selected-fields: Selected features names
+  - iterations-info: List of maps with the following information for
+    each iteration:
+    - phi-score
+    - standard deviation
+    - (phi - standard deviation) metric
+    - features used in the model
 - **output-dataset**: the dataset with the selected features.
