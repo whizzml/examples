@@ -13,7 +13,7 @@
       "name": "max-n",
       "type": "number",
       "default": 3,
-      "description": "The number of maximum features (that is, dataset fields) to return. It also takes into account the pre-selected features"
+      "description": "The number of maximum features (that is, dataset fields)  to return, including pre-selected features."
     },
     {
       "name": "objective-id",
@@ -43,25 +43,25 @@
       "name": "early-stop-performance",
       "type": "number",
       "default": 1,
-      "description": "An early-stop-performance improvement value (in %) used as a threshold to consider good performance of a feature"
+      "description": "Performance improvement threshold (in %) above which a feature is selected unconditionally"
     },
     {
       "name": "max-low-perf-iterations",
       "type": "number",
       "default": 20,
-      "description": "Maximum number of iterations with low performance, as % of the number of initial features"
+      "description": "Maximum number of iterations with low performance, as percentage of the number of initial features"
     }
   ],
   "outputs": [
     {
       "name": "output-features",
-      "type": "list",
+      "type": "map",
       "description": "The list of the selected features and some info from the performance of each iteration"
     },
     {
       "name": "output-dataset",
       "type": "dataset-id",
-      "description": "the dataset with the selected features"
+      "description": "A new dataset containing only the selected features"
     }
   ]
 }
