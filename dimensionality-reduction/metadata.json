@@ -1,0 +1,50 @@
+{
+  "name": "dimensionality-reduction",
+  "description": "Dimensionality reduction using PCA and topic models.",
+  "kind": "script",
+  "inputs": [
+    {
+      "description": "Input dataset",
+      "name": "dataset-id",
+      "type": "dataset-id"
+    },
+    {
+      "default": {"variance_threshold": 0.8},
+      "description": "Options for batch projection",
+      "name": "batch-projection-options",
+      "type": "map"
+    },
+    {
+      "default": {},
+      "description": "Options for batch topic distribution",
+      "name": "batch-lda-options",
+      "type": "map"
+    },
+    {
+      "default": {},
+      "description": "Options for topic model",
+      "name": "lda-options",
+      "type": "map"
+    },
+    {
+      "default": {},
+      "description": "Options for PCA",
+      "name": "pca-options",
+      "type": "map"
+    },
+    {
+      "default": true,
+      "description": "Use topic distribution as inputs to PCA",
+      "name": "lda-first",
+      "type": "boolean"
+    }
+  ],
+  "outputs": [
+    {
+      "description": "Output dataset",
+      "name": "output-dataset",
+      "type": "dataset-id"
+    }
+  ],
+  "source_code": "script.whizzml"
+}

@@ -1,0 +1,80 @@
+;; separate-fields
+;;
+;; Iterate over a list of field descriptors and output two lists of
+;; accumulated field ids. The first contains the ids of text fields
+;; and the second contains the ids of non-text, non-datetime fields.
+(define (separate-fields fds)
+  (reduce (lambda (inputs id)
+            (let (fd (fds id)
+                  [ts os] inputs)
+              (cond (datetime-field? fd) inputs
+                    (text-field? fd) [(append ts id) os]
+                    [ts (append os id)])))
+          [[] []]
+          (keys fds)))
+
+;; parallel-workflow
+;;
+;; Independently fit a topic model to the text inputs of the input
+;; dataset, and a PCA to the non-text inputs. Concatenate the
+;; respective batch topic distributions and batch projections and
+;; return the result.
+(define (parallel-workflow text-inputs other-inputs lda)
+  (let (pca (create-pca dataset-id (assoc pca-options
+                                          "input_fields" other-inputs))
+        batch-pca-id (get (fetch (create-and-wait-batchprojection
+                                  pca
+                                  dataset-id
+                                  (assoc batch-projection-options
+                                         "output_dataset" true)))
+                          "output_dataset_resource")
+        batch-lda-id (get (fetch (create-and-wait-batchtopicdistribution
+                                  lda
+                                  dataset-id
+                                  (assoc batch-lda-options
+                                         "output_dataset" true)))
+                          "output_dataset_resource"))
+    (create-and-wait-dataset {"origin_datasets" [batch-pca-id batch-lda-id]
+                              "juxtapose" true})))
+
+;; series-workflow
+;;
+;; Create an intermediate dataset consisting of the non-text inputs
+;; concatenated with the results from a batchtopicdistribution. Fit a
+;; PCA to this dataset and return the output dataset from the
+;; respective batchprojection.
+(define (series-workflow text-inputs other-inputs lda)
+  (let (ds-topics (get (fetch (create-and-wait-batchtopicdistribution
+                               lda
+                               dataset-id
+                               (assoc batch-lda-options
+                                      "output_fields" other-inputs
+                                      "output_dataset" true)))
+                       "output_dataset_resource")
+        pca (create-pca ds-topics pca-options))
+    (get (fetch (create-and-wait-batchprojection
+                 pca
+                 ds-topics
+                 (assoc batch-projection-options
+                        "output_dataset" true)))
+         "output_dataset_resource")))
+
+;; output-dataset
+;;
+;; Given an input dataset, perform dimensionality reduction using
+;; streaming LDA topic models for text fields, and PCA for the
+;; rest. Two possible workflows are available, controlled by the
+;; `lda-first` boolean input. If `lda-first` is true, the text fields
+;; are replaced by the results of a batch topic distribution, and then
+;; PCA is performed on the resulting dataset. If `lda-first` is false,
+;; then a PCA is fit to the non-text fields, and a topic model is fit
+;; to the text fields. The results from the respective batchprojection
+;; and batchtopicdistributions are then concatenated to form the
+;; output dataset.
+(define output-dataset
+  (let ([text-inputs other-inputs] (separate-fields (resource-fields dataset-id))
+        lda (create-topicmodel dataset-id (assoc lda-options
+                                                 "input_fields" text-inputs)))
+    (if lda-first
+      (series-workflow text-inputs other-inputs lda)
+      (parallel-workflow text-inputs other-inputs lda))))
