@@ -34,6 +34,7 @@
     "best-first-cv",
     "multi-label",
     "recursive-feature-elimination",
-    "name-clusters"  
+    "name-clusters",
+    "dimensionality-reduction"
   ]
 }
