@@ -1,0 +1,9 @@
+;; Regrouping dataset rows on datetime fields by quarters
+;;
+;; Basic script to use the quarter function in the aggregation library
+;;
+;; Inputs e.g.:
+;;  (define dataset "dataset/5ac3b09608b07e27c4007a23")
+;;  (define date-fs ["date"])
+
+(define q-dataset (date-to-quarter dataset date-fs))

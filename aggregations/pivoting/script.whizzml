@@ -1,0 +1,11 @@
+;; Pivoting on fields in a dataset
+;;
+;; Basic script to use the pivot function in the aggregation library
+;;
+;; Inputs e.g.:
+;;  (define dataset "dataset/5ac3b09608b07e27c4007a23")
+;;  (define pivot-aggrs {"species": {"value": "petal length"
+;;                                   "aggrs": ["max", "min"]}})
+;;  (define group-fs ["petal width"])
+
+(define pivoted-dataset (pivoting dataset pivot-aggrs group-fs))

@@ -1,0 +1,32 @@
+{
+  "name": "Aggregate fields in a dataset",
+  "description": "Basic script to use the aggr procedure to aggregate fields",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "imports": ["../aggregations"],
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "Dataset ID"
+    },
+    {
+      "name": "field-aggrs",
+      "type": "map",
+      "description": "Map of aggregations per field"
+    },
+    {
+      "name": "group-fs",
+      "type": "list",
+      "description": "List of fields in the group by section",
+      "default": []
+    }
+  ],
+  "outputs": [
+    {
+      "name": "aggregated-dataset",
+      "type": "dataset-id",
+      "description": "Aggregated dataset ID"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+;; Aggregating fields in a dataset
+;;
+;; Basic script to use the aggr function in the aggregation library
+;;
+;; Inputs e.g.:
+;;  (define dataset "dataset/5ac3b09608b07e27c4007a23")
+;;  (define field-aggrs {"petal length": ["max", "min"]})
+;;  (define group-fs [species])
+
+(define aggregated-dataset (aggr dataset field-aggrs group-fs))

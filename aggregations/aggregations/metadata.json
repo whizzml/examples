@@ -1,0 +1,6 @@
+{
+  "name": "Aggregations",
+  "description": "Auxiliary procedures for common aggregations",
+  "kind": "library",
+  "source_code": "library.whizzml"
+}

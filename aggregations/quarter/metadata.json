@@ -1,0 +1,26 @@
+{
+  "name": "Aggregating on datetime minutes into quarters",
+  "description": "Basic script to use the quarter procedure to aggregate fields",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "imports": ["../aggregations"],
+  "inputs": [
+    {
+      "name": "dataset",
+      "type": "dataset-id",
+      "description": "Dataset ID"
+    },
+    {
+      "name": "date-fs",
+      "type": "list",
+      "description": "List of fields to be transformed into quarters"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "q-dataset",
+      "type": "dataset-id",
+      "description": "Dataset ID with by quarters"
+    }
+  ]
+}

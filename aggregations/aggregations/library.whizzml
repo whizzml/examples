@@ -1,0 +1,241 @@
+(define UPPER_TO_LOWER {"A" "a" "B" "b" "C" "c" "D" "d" "E" "e"
+  "F" "f" "G" "g" "H" "h" "I" "i" "J" "j" "K" "k" "L" "l" "M" "m" "N" "n"
+  "O" "o" "P" "p" "Q" "q" "R" "r" "S" "s" "T" "T" "U" "u" "V" "v" "W" "w" "X"
+  "x" "Y" "y" "Z" "z"})
+
+
+(define JOINS ["joins" "left_join" "right_join" "inner_join" "outer_join"])
+
+
+;; lc
+;;
+;; Lowercase function
+
+(define (lc text)
+  (iterate (acc text upper (keys UPPER_TO_LOWER))
+    (replace-string acc upper (UPPER_TO_LOWER upper))))
+
+;; underscore
+;;
+;; Transforms spaces to underscores
+(define (underscore text)
+  (replace-string text " " "_"))
+
+
+;; join-datasets
+;;
+;; Joins the datasets in dataset-ids by the fields in join-fs
+;; avoiding repetition
+;;
+;; Inputs:
+;;  dataset-ids: (list) List of IDs of the datasets to be joined
+;;  join-fs: (list) List of names or field IDs to use in the join
+;;  join-type: (string) Type of join to be used: join, left_join, outer_join
+;;
+
+(define (join-datasets dataset-ids join-fs join-type)
+  (let (fields (resource-fields (head dataset-ids))
+        f-name-fn (lambda (x) ((find-field fields x) "name"))
+        join-f-names (map f-name-fn join-fs)
+        join-expr (for (field join-f-names)
+                       ["=" (str "`DS1." field "`") (str "`DS2." field "`")])
+        join-expr (cons "and" join-expr)
+        join-type (if (member? join-type JOINS)
+                      join-type
+                      "join"))
+      (iterate (acc (head dataset-ids) ds-id (tail dataset-ids))
+        (let (fields (resource-fields ds-id)
+              f-ids (filter (lambda (x) (not (member? ((fields x) "name")
+                                                        join-f-names)))
+                              (keys fields))
+              f-exprs (map (lambda (x) (str "DS2.`" x "`")) f-ids))
+          (create-dataset {"origin_datasets" [acc ds-id]
+                           "origin_dataset_names" (assoc (assoc {}
+                                                                acc
+                                                                "DS1")
+                                                         ds-id
+                                                         "DS2")
+                           "json_query" (assoc {"from" ["DS1"]
+                                                "select" (concat ["DS1.*"]
+                                                                 f-exprs)}
+                                               join-type ["DS2" join-expr])})))))
+
+;; aggrs-list
+;;
+;; Creates the expression for the aggregated functions defined in the
+;; field-aggrs map.
+;; The resulting expression is a list that can be used in the json_query
+;; parameter to generate the aggregated fields
+;;
+;; Inputs:
+;;  field-aggrs: (map) Map that describes the field aggregators as explained
+;;               in the `aggr` procedure
+;;  f-id-fn: (function) Function that maps to the field id
+;;  f-expr-fn: (function) Function that creates the sql string for a field
+;;  f-name-fn: (function) Function that maps to the field name
+
+(define (aggrs-list field-aggrs f-id-fn f-expr-fn f-name-fn)
+  (iterate (acc [] field (keys field-aggrs))
+    (concat acc (for (aggr (field-aggrs field))
+                  [[aggr (f-expr-fn (f-id-fn field))] (str (f-name-fn field)
+                                                           "_"
+                                                           aggr)]))))
+
+
+
+;; aggr
+;;
+;; Creates a dataset by aggregating the original dataset fields in the
+;; field-aggrs map by grouping them using the
+;; fields in group-fs
+;; The field-aggrs map describes the functions to be aggregated using the
+;; field name as key and the list
+;; of aggregation functions as value. E.g.:
+;;
+;; {"enqueued" ["sum","max","avg"],
+;;  "answered":["sum","max","avg"]}
+;;
+;; Inputs:
+;;  dataset-id: (string) ID of the dataset to aggregate
+;;  field-aggrs: (map) Description of the aggregated fields and the aggregators
+;;  group-fs: (list) List of fields to be used in grouping
+
+(define (aggr dataset-id field-aggrs group-fs)
+  (let (f-expr-fn (lambda (x) (str "`" x "`"))
+        fields (resource-fields dataset-id)
+        f-id-fn (lambda (x) ((find-field fields x) "id"))
+        f-name-fn (lambda (x) (underscore (lc ((find-field fields x) "name"))))
+        non-aggr (filter (lambda (x) (not (member? x (keys field-aggrs))))
+                         fields)
+        group-ids (if (empty? group-fs)
+                      (filter (lambda (x) (not (member? x non-aggr)))
+                              (keys fields))
+                      (map f-id-fn group-fs))
+        group-expr (map f-expr-fn group-ids)
+        aggrs-exprs (aggrs-list field-aggrs f-id-fn f-expr-fn f-name-fn)
+        ds (when (not (empty? field-aggrs))
+             (create-dataset {"origin_datasets" [dataset-id]
+                              "json_query" {"from" ["DS"]
+                                            "group_by" group-expr
+                                            "select" (concat group-expr
+                                                             aggrs-exprs)}
+                              "origin_dataset_names" (assoc {}
+                                                            dataset-id
+                                                            "DS")})))
+    ds))
+
+
+;; date-to-quarter
+;;
+;; Creates a new dataset with a new field per user-given datefield where the
+;; minutes are grouped in quarters
+;;
+;; Inputs:
+;;  dataset-id: (string) ID of the origin dataset
+;;  date-fs: (list) List of datetime fields to extract the quarter info from
+
+(define (date-to-quarter dataset-id date-fs)
+  (let (fields (resource-fields dataset-id)
+        f-name-fn (lambda (x) ((find-field fields x) "name"))
+        date-names (filter string? (map f-name-fn date-fs))
+        qts (for (date date-names)
+              {"name" (str date "_quarter")
+               "field" (flatline "(cond (< (f \"{date}.minute\") 15)"
+                                 " (integer 0) (and (< (f \"{date}.minute\")"
+                                 " 30) (> (f \"{date}.minute\") 14))"
+                                 " (integer 15) (and "
+                                 "(< (f \"{date}.minute\") 45)"
+                                 " (> (f \"{date}.minute\") 29))"
+                                 " (integer 30) (integer 45))")})
+        dates  (for (date date-names)
+                 {"name" (str date "_date")
+                  "field" (flatline "(subs (f \"{date}\") 0 10)")})
+        ds (create-dataset {"origin_dataset" dataset-id
+                            "new_fields" (concat qts dates)}))
+    ds))
+
+
+
+;; expand-pivot
+;;
+;; Creates the expressions needed to generate a new field per each pivot
+;; field and category
+;;
+;; Inputs:
+;;  fields: (map) Fields structure as found in the dataset dictionary
+;;  pivot-ids: (list) List of field IDs that will be inspected generate the
+;;                    new fields
+;;  value-ids: (list) List of field IDs that contain the aggregated value
+;;                    for the pivot
+
+(define (expand-pivot fields pivot-ids value-ids)
+  (iterate (acc [] p-id pivot-ids p-v-id value-ids)
+    (let (f-expr-fn (lambda (x) (str "`" x "`"))
+          categories (map head (fields [p-id "summary" "categories"])))
+      (iterate (acc2 acc cat categories)
+        (log-info (flatline "(if (= (f {{p-id}}) {{cat}}) (f {{p-v-id}}) 0)"))
+        (append acc2 {"name" (underscore (str (fields [p-id "name"]) "_" cat))
+                      "field" (flatline "(if (= (f {{p-id}}) {{cat}})"
+                                        " (f {{p-v-id}}) 0)")})))))
+
+
+
+;; category-aggrs
+;;
+;; Creates a fields aggregation structure based on the pivoting fields and
+;; their categories
+;;
+;; Inputs:
+;;  fields: (map) Fields structure as found in the dataset dictionary
+;;  pivot-fs: (list) List of field names or IDs to be used in pivoting
+;;  pivot-ids: (list) List of the IDs corresponding to pivot-fs
+;;  pivot-aggrs: (map) Map of the new field names and their corresponding
+;;                     aggregators
+
+(define (category-aggrs fields pivot-fs pivot-ids pivot-aggrs)
+  (iterate (acc {} p pivot-fs p-id pivot-ids)
+    (let (categories (map head (fields [p-id "summary" "categories"])))
+      (iterate (acc2 acc cat categories)
+        (assoc acc2 (underscore (str (fields [p-id "name"]) "_" cat))
+                    (pivot-aggrs [p "aggrs"]))))))
+
+;; pivoting
+;;
+;; Creates a dataset by expanding every field in the pivot-aggrs structure in
+;; several fields, one per category
+;;
+;; Inputs:
+;;  dataset-id: (string) ID of the origin dataset
+;;  pivot-aggrs: (map) Map describing the fields to be used as pivot, their
+;;                     corresponding associated values and aggregators
+;;  e.g. {"widget" {"value" "clicks"
+;;                  "aggrs" ["sum"]}
+
+
+(define (pivoting dataset-id pivot-aggrs group-fs)
+  (let (f-expr-fn (lambda (x) (str "`" x "`"))
+        fields (resource-fields dataset-id)
+        ds (fetch dataset-id)
+        f-id-fn (lambda (x) ((find-field fields x) "id"))
+        pivot-fs (keys pivot-aggrs)
+        pivot-ids (map f-id-fn pivot-fs)
+        value-ids (map (lambda (x) ((find-field fields
+                                                (pivot-aggrs [x "value"]))
+                                                "id")) pivot-fs)
+        aggrs (map (lambda (x) (pivot-aggrs [x "aggrs"])) pivot-fs)
+        f-name-fn (lambda (x) (underscore (lc ((find-field fields x) "name"))))
+        pivot-value-ids (concat pivot-ids value-ids)
+        group-ids (if (empty? group-fs)
+                      (filter (lambda (x) (not (member? x pivot-value-ids)))
+                              (keys fields))
+                      (map f-id-fn group-fs))
+        new-fields (expand-pivot fields pivot-ids value-ids)
+        new-field-names (map (lambda (x) (x "name")) new-fields)
+        field-aggrs (category-aggrs fields pivot-fs pivot-ids pivot-aggrs)
+        num-aggr-id (when (not (empty? pivot-aggrs))
+                      (create-dataset {"origin_dataset" dataset-id
+                                       "new_fields" new-fields
+                                       "all_but" pivot-value-ids}))
+        ds (aggr (wait num-aggr-id) group-ids field-aggrs))
+    (delete num-aggr-id)
+    ds))

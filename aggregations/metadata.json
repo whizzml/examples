@@ -1,0 +1,11 @@
+{
+  "name": "Aggregations",
+  "description": "Library and scripts to demo helper aggregation functions",
+  "kind": "package",
+  "components":[
+    "aggregations",
+    "aggr",
+    "pivoting",
+    "quarter"
+  ]
+}
