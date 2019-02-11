@@ -28,13 +28,13 @@
 ;; avoiding repetition
 ;;
 ;; Inputs:
-;;  dataset-ids: (list) List of IDs of the datasets to be joined
+;;  datasets: (list) List of IDs of the datasets to be joined
 ;;  join-fs: (list) List of names or field IDs to use in the join
 ;;  join-type: (string) Type of join to be used: join, left_join, outer_join
 ;;
 
-(define (join-datasets dataset-ids join-fs join-type)
-  (let (fields (resource-fields (head dataset-ids))
+(define (join-datasets datasets join-fs join-type)
+  (let (fields (resource-fields (head datasets))
         f-name-fn (lambda (x) ((find-field fields x) "name"))
         join-f-names (map f-name-fn join-fs)
         join-expr (for (field join-f-names)
@@ -43,7 +43,7 @@
         join-type (if (member? join-type JOINS)
                       join-type
                       "join"))
-      (iterate (acc (head dataset-ids) ds-id (tail dataset-ids))
+      (iterate (acc (head datasets) ds-id (tail datasets))
         (let (fields (resource-fields ds-id)
               f-ids (filter (lambda (x) (not (member? ((fields x) "name")
                                                         join-f-names)))
@@ -105,10 +105,11 @@
         fields (resource-fields dataset-id)
         f-id-fn (lambda (x) ((find-field fields x) "id"))
         f-name-fn (lambda (x) (underscore (lc ((find-field fields x) "name"))))
-        non-aggr (filter (lambda (x) (not (member? x (keys field-aggrs))))
-                         fields)
+        aggr-field-ids (map f-id-fn (keys field-aggrs))
+        non-aggr (filter (lambda (x) (not (member? x aggr-field-ids)))
+                         (keys fields))
         group-ids (if (empty? group-fs)
-                      (filter (lambda (x) (not (member? x non-aggr)))
+                      (filter (lambda (x) (not (member? non-aggr)))
                               (keys fields))
                       (map f-id-fn group-fs))
         group-expr (map f-expr-fn group-ids)
@@ -236,6 +237,6 @@
                       (create-dataset {"origin_dataset" dataset-id
                                        "new_fields" new-fields
                                        "all_but" pivot-value-ids}))
-        ds (aggr (wait num-aggr-id) group-ids field-aggrs))
+        ds (aggr (wait num-aggr-id) field-aggrs group-ids))
     (delete num-aggr-id)
     ds))

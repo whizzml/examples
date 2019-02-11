@@ -6,6 +6,7 @@
     "aggregations",
     "aggr",
     "pivoting",
-    "quarter"
+    "quarter",
+    "join"
   ]
 }

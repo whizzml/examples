@@ -6,9 +6,9 @@
   "imports": ["../aggregations"],
   "inputs": [
     {
-      "name": "dataset",
-      "type": "dataset-id",
-      "description": "Dataset ID"
+      "name": "datasets",
+      "type": "list",
+      "description": "Dataset IDs"
     },
     {
       "name": "join-fs",

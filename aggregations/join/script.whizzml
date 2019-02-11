@@ -3,7 +3,8 @@
 ;; Basic script to use the quarter function in the aggregation library
 ;;
 ;; Inputs e.g.:
-;;  (define dataset "dataset/5ac3b09608b07e27c4007a23")
-;;  (define date-fs ["date"])
+;;  (define datasets ["dataset/5ac3b09608b07e27c4007a23" "dataset/5ac3b09608b07e27c4007a21"])
+;;  (define join-fs ["species"])
+;;  (define join-type "left_join")
 
-(define q-dataset (quarter dataset date-fs))
+(define joined-dataset (join-datasets datasets join-fs join-type))
