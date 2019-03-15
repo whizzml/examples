@@ -1,0 +1,38 @@
+{
+  "name": "Supervised Learning models k-fold cross-validation",
+  "description": "The objective of this script is to perform a k-fold cross validation of an\n already built Supervised Learning Model. The algorithm:\n\n - Retrives the dataset and configuration of the model\n - Divides the dataset in k parts\n - Holds out the data in one of the parts and builds a deepnet\n with the rest of data\n - Evaluates the deepnet with the hold out data\n - The second and third steps are repeated with each of the k parts, so that\n k evaluations are generated\n - Finally, the evaluation metrics are averaged to provide the cross-validation\n metrics.\n\n The **output** of the script will be an `evaluation ID`. This evaluation is a\n cross-validation, meaning that its metrics are averages of the k evaluations\n created in the cross-validation process.\n\n For more information, please see the [readme](https://github.com/whizzml/examples/tree/master/cross-validation/deepnet).",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+        "name": "slm-id",
+        "type": "string",
+        "description": "Select the model to be cross-validated"
+    },
+    {
+        "name": "k-folds",
+        "type": "number",
+        "default": 5,
+        "description": "Select the number of folds to split the dataset"
+    },
+    {
+        "name": "evaluation-options",
+        "type": "map",
+        "default": {},
+        "description": "Options for the evaluation predictions"
+    },
+    {
+        "name": "delete-resources",
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to delete intermediate resources"
+    }
+  ],
+  "outputs": [
+    {
+        "name": "cross-validation-output",
+        "type": "evaluation-id",
+        "description": "Average of evaluations results"
+    }
+  ]
+}
