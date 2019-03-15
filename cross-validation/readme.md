@@ -9,9 +9,18 @@ cross-validation for different resources:
   cross-validation for models.
 - [Ensemble k-fold cross-validation](./ensemble) General k-fold
   cross-validation for ensembles.
+- [Boosted Ensemble k-fold cross-validation](./boosted-ensemble) General k-fold
+  cross-validation for boosted ensembles.
 - [Logistic regression k-fold cross-validation](./logistic-regression)
   General k-fold
   cross-validation for logistic regressions.
+- [Deepnet k-fold cross-validation](./deepnet)
+  General k-fold
+  cross-validation for deepnets.
+- [Supervised Learning model k-fold cross-validation](./supervised-conf)
+  General k-fold
+  cross-validation for existing Supervised Learning Classification Models.
+
 
 ## Installation
 
