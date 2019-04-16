@@ -1,19 +1,5 @@
-(define UPPER_TO_LOWER {"A" "a" "B" "b" "C" "c" "D" "d" "E" "e"
-  "F" "f" "G" "g" "H" "h" "I" "i" "J" "j" "K" "k" "L" "l" "M" "m" "N" "n"
-  "O" "o" "P" "p" "Q" "q" "R" "r" "S" "s" "T" "T" "U" "u" "V" "v" "W" "w" "X"
-  "x" "Y" "y" "Z" "z"})
-
-
 (define JOINS ["joins" "left_join" "right_join" "inner_join" "outer_join"])
 
-
-;; lc
-;;
-;; Lowercase function
-
-(define (lc text)
-  (iterate (acc text upper (keys UPPER_TO_LOWER))
-    (replace-string acc upper (UPPER_TO_LOWER upper))))
 
 ;; underscore
 ;;
@@ -82,6 +68,13 @@
                                                            aggr)]))))
 
 
+;; missing-fields
+;;
+;; Checks whether the fiels in the list are found in the fields structure
+
+(define (missing-fields fields fields-list)
+  (filter (lambda (x) (not (find-field fields x))) fields-list))
+
 
 ;; aggr
 ;;
@@ -103,8 +96,17 @@
 (define (aggr dataset-id field-aggrs group-fs)
   (let (f-expr-fn (lambda (x) (str "`" x "`"))
         fields (resource-fields dataset-id)
+        errors-aggrs (missing-fields fields (keys field-aggrs))
+        errors-fs (missing-fields fields group-fs)
+        _ (when (> (count errors-aggrs) 0)
+            (raise (str "Aggregated fields not found in dataset: "
+                        (join ", " errors-aggrs))))
+        _ (when (> (count errors-fs) 0)
+            (raise (str "Grouping fields not found in dataset: "
+                        (join ", " errors-fs))))
         f-id-fn (lambda (x) ((find-field fields x) "id"))
-        f-name-fn (lambda (x) (underscore (lc ((find-field fields x) "name"))))
+        f-name-fn (lambda (x) (underscore (lower-case ((find-field fields x)
+                                                       "name"))))
         aggr-field-ids (map f-id-fn (keys field-aggrs))
         non-aggr (filter (lambda (x) (not (member? x aggr-field-ids)))
                          (keys fields))
@@ -224,7 +226,8 @@
                                                 (pivot-aggrs [x "value"]))
                                                 "id")) pivot-fs)
         aggrs (map (lambda (x) (pivot-aggrs [x "aggrs"])) pivot-fs)
-        f-name-fn (lambda (x) (underscore (lc ((find-field fields x) "name"))))
+        f-name-fn (lambda (x) (underscore (lower-case ((find-field fields x)
+                                                        "name"))))
         pivot-value-ids (concat pivot-ids value-ids)
         group-ids (if (empty? group-fs)
                       (filter (lambda (x) (not (member? x pivot-value-ids)))
