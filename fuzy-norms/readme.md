@@ -49,17 +49,17 @@ These are the possibles t-norms:
  - **drastic-tnorm**: Drastic t-norm.  No parameters.
  - **nilpotent-min**: Nilpotent minimum t-norm. No parameters.
  - **[schweizer-sklar p]**: Schweizer–Sklar t-norms. Parameter *p* in
-   the range [-$\infty$, $\infty$]
+   the range [-∞, ∞]
  - **[hamacher p]**: Hamacher t-norms. Parameter *p* in the range [0,
-   $\infty$]
+   ∞]
  - **[yager p]**: Yager t-norms. Parameter *p* in the range [0,
-   $\infty$]
+   ∞]
  - **[aczel-alsina p]**: Aczél–Alsina t-norms. Parameter *p* in the range [0,
-   $\infty$]
+   ∞]
  - **[dombi p]**: Dombi t-norms. Parameter *p* in the range [0,
-   $\infty$]
+   ∞]
  - **[sugeno-weber p]**: Sugeno–Weber t-norms. Parameter *p* in the range [-1,
-   $\infty$]
+   ∞]
 
 
 These are the possible t-conorms:
