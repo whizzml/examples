@@ -1,0 +1,232 @@
+;; T-norm and T-conorm operators implemented in flatline and whizzml
+(define (check-input fd)
+  (when (not (numeric-field? fd))
+    (raise {"message" (str "T-norm or T-conorm operand must be numeric: "
+                           (fd "id"))
+            "code" -2}))
+  (when (or (< (get-in fd ["summary" "minimum"]) 0)
+            (> (get-in fd ["summary" "maximum"]) 1))
+    (raise {"message" (str "T-norm or T-conorm  operand must be "
+                           "in the interval [0,1]: "
+                           (fd "id"))
+            "code" -2})))
+
+; https://en.wikipedia.org/wiki/T-norm
+(define (min-tnorm fid1 fid2)
+  {"field" (flatline "(min (f {{fid1}}) (f {{fid2}}))")
+   "name" (str "min-tnorm-" fid1 "-" fid2)})
+
+; https://en.wikipedia.org/wiki/T-norm
+(define (product fid1 fid2)
+  {"field" (flatline "(* (f {{fid1}}) (f {{fid2}}))")
+   "name" (str "product-tnorm-" fid1 "-" fid2)})
+
+; https://en.wikipedia.org/wiki/T-norm
+(define (lukasiewicz fid1 fid2)
+  {"field" (flatline "(max 0.0 (+ (f {{fid1}}) (f {{fid2}}) -1))")
+   "name" (str "lukasiewicz-tnorm-" fid1 "-" fid2)})
+
+; https://en.wikipedia.org/wiki/T-norm
+(define (drastic-tnorm fid1 fid2)
+  {"field" (flatline "(cond (= (f {{fid1}}) 1) (f {{fid2}}) "
+                     "      (= (f {{fid2}}) 1) (f {{fid1}})"
+                     "      0.0)")
+   "name" (str "drastic-tnorm-" fid1 "-" fid2)})
+
+; https://en.wikipedia.org/wiki/T-norm
+(define (nilpotent-min fid1 fid2)
+  {"field" (flatline "(if (> (+ (f {{fid1}}) (f {{fid2}})) 1)"
+                     " (min (f {{fid1}}) (f {{fid2}}))"
+                     " 0.0)")
+   "name" (str "nilpotent-min-tnorm-" fid1 "-" fid2)})
+
+; https://en.wikipedia.org/wiki/Construction_of_t-norms#Parametric_classes_of_t-norms
+(define (schweizer-sklar p)
+  (cond (positive? p)
+        (lambda (fid1 fid2)
+          {"field" (flatline "(pow (max 0 (+ -1                      "
+                             "              (pow (f {{fid1}}) {p})   "
+                             "              (pow (f {{fid2}}) {p})) )"
+                             "     (/ 1 {p}))")
+           "name" (str "ss-tnorm-p" p "-" fid1 "-" fid2)})
+        (negative? p)
+        (lambda (fid1 fid2)
+          {"field" (flatline "(pow (+ -1                             "
+                             "        (pow (f {{fid1}}) {p})         "
+                             "        (pow (f {{fid2}}) {p}))        "
+                             "     (/ 1 {p}))")
+           "name" (str "ss-tnorm-p" p "-" fid1 "-" fid2)})
+        (lambda(fid1 fid2)
+          {"field" (get (product fid1 fid2) "field")
+           "name" (str "ss-tnorm-p" p "-" fid1 "-" fid2)})))
+
+; https://en.wikipedia.org/wiki/Construction_of_t-norms#Parametric_classes_of_t-norms
+(define (hamacher p)
+  (when (< p 0)
+    (raise {"message" "Parameter for Hamacher t-norm must be >= 0"
+            "code" -3}))
+  (lambda (fid1 fid2)
+    {"field" (flatline "(let (x (f {{fid1}}) y (f {{fid2}})) "
+                       "  (if (= 0 {{p}} x y)                "
+                       "    0                                "
+                       "    (/ (* x y)                       "
+                       "       (+ {{p}}                      "
+                       "          (* (- 1 {{p}})             "
+                       "             (- (+ x y) (* x y)))))))")
+     "name" (str "hamacher-tnorm-p" p "-" fid1 "-" fid2)}))
+
+; https://en.wikipedia.org/wiki/Construction_of_t-norms#Parametric_classes_of_t-norms
+(define (yager p)
+  (when (negative? p)
+    (raise {"message" "Parameter for Yager t-norm must be >= 0"
+            "code" -3}))
+  (cond (zero? p)
+        (lambda(fid1 fid2)
+          {"field" (get (drastic-tnorm fid1 fid2) "field")
+           "name" (str "yager-tnorm-p" p "-" fid1 "-" fid2)})
+        (lambda (fid1 fid2)
+          {"field" (flatline "(let (x (f {{fid1}}) y (f {{fid2}}))  "
+                             "   (max 0 (- 1                            "
+                             "             (pow (+ (pow (- 1 x) {{p}})  "
+                             "                     (pow (- 1 y) {{p}})) "
+                             "                  (/ 1 {{p}})))))")
+           "name" (str "yager-tnorm-p" p "-" fid1 "-" fid2)})))
+
+;; https://en.wikipedia.org/wiki/Construction_of_t-norms#Parametric_classes_of_t-norms
+(define (aczel-alsina p)
+  (when (negative? p)
+    (raise {"message" "Parameter for Aczel-Alisna t-norm must be >= 0"
+            "code" -3}))
+  (cond (zero? p)
+        (lambda(fid1 fid2)
+          {"field" (get (drastic-tnorm fid1 fid2) "field")
+           "name" (str "aczel-alsina-tnorm-p" p "-" fid1 "-" fid2)})
+        (lambda (fid1 fid2)
+          {"field" (flatline "(let (x (f {{fid1}}) y (f {{fid2}}))          "
+                             "  (exp (pow (* -1                             "
+                             "              (+ (pow (abs(log10 x)) {{p}})   "
+                             "                 (pow (abs(log10 y)) {{p}}))) "
+                             "            (/ 1 {{p}}))))")
+           "name" (str "aczel-alsina-tnorm-p" p "-" fid1 "-" fid2)})))
+
+; https://en.wikipedia.org/wiki/Construction_of_t-norms#Parametric_classes_of_t-norms
+(define (dombi p)
+  (when (negative? p)
+    (raise {"message" "Parameter for Dombi t-norm must be >= 0"
+            "code" -3}))
+  (cond (zero? p)
+        (lambda(fid1 fid2)
+          {"field" (get (drastic-tnorm fid1 fid2) "field")
+           "name" (str "dombi-tnorm-p" p "-" fid1 "-" fid2)})
+        (lambda(fid1 fid2)
+          {"field" (flatline "(let (x (f {{fid1}}) y (f {{fid2}}))         "
+                             "  (cond (or (= x 0) (= y 0))                     "
+                             "    0                                            "
+                             "    ( / 1                                        "
+                             "        (+ 1                                     "
+                             "           (pow (+ (pow (/ (- 1 x) x) {{p}})     "
+                             "                   (pow (/ (- 1 y) y) {{p}}))    "
+                             "                (/ 1 {{p}}))))))")
+           "name" (str "dombi-tnorm-p" p "-" fid1 "-" fid2)})))
+
+; https://en.wikipedia.org/wiki/Construction_of_t-norms#Parametric_classes_of_t-norms
+(define (sugeno-weber p)
+  (when (< p -1)
+    (raise {"message" "Parameter for sugeno-weber t-norm must be >= -1"
+            "code" -3}))
+  (cond (= p -1)
+        (lambda(fid1 fid2)
+          {"field" (get (drastic-tnorm fid1 fid2) "field")
+           "name" (str "sugeno-weber-tnorm-p" p "-" fid1 "-" fid2)})
+        (lambda (fid1 fid2)
+          {"field" (flatline "(let (x (f {{fid1}}) y (f {{fid2}}))  "
+                             "  (max 0                                  "
+                             "       (/ (+ x y -1 (* {{p}} x y))        "
+                             "          (+ 1 {{p}}))))")
+           "name" (str "sugeno-weber-tnorm-p" p "-" fid1 "-" fid2)})))
+
+;; T-Conorms
+
+;; https://en.wikipedia.org/wiki/T-norm
+(define (max-tconorm fid1 fid2)
+  {"field" (flatline "(max (f {{fid1}}) (f {{fid2}}))")
+   "name" (str "max-tconorm-" fid1 "-" fid2)})
+
+;; https://en.wikipedia.org/wiki/T-norm
+(define (probabilistic fid1 fid2)
+  {"field" (flatline "(- (+ (f {{fid1}}) (f {{fid2}})  )"
+                     "   (* (f {{fid1}}) (f {{fid2}}))) ")
+   "name" (str "probabilistic-tconorm-" fid1 "-" fid2)})
+
+;; https://en.wikipedia.org/wiki/T-norm
+(define (bounded fid1 fid2)
+  {"field" (flatline "(min (+ (f {{fid1}}) (f {{fid2}})) 1)")
+   "name" (str "bounded-tconorm-" fid1 "-" fid2)})
+
+;; https://en.wikipedia.org/wiki/T-norm
+(define (drastic-tconorm fid1 fid2)
+  {"field" (flatline "(cond (= (f {{fid1}}) 0) (f {{fid2}}) "
+                     "      (= (f {{fid2}}) 0) (f {{fid1}})"
+                     "1.0)")
+   "name" (str "drastic-tconorm-" fid1 "-" fid2)})
+
+;; https://en.wikipedia.org/wiki/T-norm
+(define (nilpotent-max fid1 fid2)
+  {"field" (flatline "(if (< (+ (f {{fid1}}) (f {{fid2}})) 1)"
+                     " (max (f {{fid1}}) (f {{fid2}}))"
+                     " 1.0)")
+   "name" (str "nilpotent-max-tconorm-" fid1 "-" fid2)})
+
+;; https://en.wikipedia.org/wiki/T-norm
+(define (einstein-sum fid1 fid2)
+  {"field" (flatline "(/ (+ (f {{fid1}}) (f {{fid2}}))        "
+                     "   (+ 1 (* (f {{fid1}}) (f {{fid2}})))) ")
+   "name" (str "einstein-tconorm-" fid1 "-" fid2)})
+
+(define function-names
+  {"min-tnorm" min-tnorm
+   "product" product
+   "lukasiewicz" lukasiewicz
+   "drastic-tnorm" drastic-tnorm
+   "nilpotent-min" nilpotent-min
+   "schweizer-sklar" schweizer-sklar
+   "hamacher" hamacher
+   "yager" yager
+   "aczel-alsina" aczel-alsina
+   "dombi" dombi
+   "suge-weber" sugeno-weber
+   "max-tconorm" max-tconorm
+   "probabilistic" probabilistic
+   "bounded" bounded
+   "drastic-tconorm" drastic-tconorm
+   "nilpotent-max" nilpotent-max
+   "einstein-sum" einstein-sum})
+
+(define (not-found-error name)
+  (lambda (. opt)
+    (raise {"message" (str "Can't find norm " name)
+            "code" -3})))
+
+(define (check-function name)
+  (if (list? name)
+    ((get function-names (name 0) (not-found-error (name 0))) (name 1))
+    (get function-names name (not-found-error name))))
+
+(define (compute-norm dataset-id field-id1 field-id2 . norms)
+  (let (fields-map (resource-fields dataset-id)
+        fd1 (find-field fields-map field-id1)
+        fd2 (find-field fields-map field-id2))
+    (when (empty? norms)
+      (raise {"message" "At least 1 t-norm or t-conorm function is required"
+              "code" -1}))
+    (check-input fd1)
+    (check-input fd2)
+    (create-and-wait-dataset
+     {"origin_dataset" dataset-id
+      "new_fields" (map (lambda (tfn)
+                          ((check-function tfn)
+                           field-id1 field-id2))
+                        norms)})))
+
+(define fuzzy-dataset
+  (apply compute-norm dataset-id field-id1 field-id2 norms))
