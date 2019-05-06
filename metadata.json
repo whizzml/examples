@@ -36,6 +36,7 @@
     "recursive-feature-elimination",
     "name-clusters",
     "dimensionality-reduction",
-    "aggregations"
+    "aggregations",
+    "fuzzy-norms"
   ]
 }

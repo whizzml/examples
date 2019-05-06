@@ -90,6 +90,8 @@ By convention, when the artifact is a library, the files are called
    names and their values
 - `dimensionality-reduction` Script for dimensionality reduction using
   PCA and topic modelling.
+- `fuzzy-norms`: Utilities to apply fuzzy logic t-norms and t-conorms
+to datasets.
 
 ## How to install
 
