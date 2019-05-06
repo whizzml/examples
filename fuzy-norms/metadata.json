@@ -1,6 +1,6 @@
 {
   "name": "Fuzzy Logic norms",
-  "description": "A set of T-norm and T-conorm operations for using fuzzy logic whithin BigML",
+  "description": "Computing fuzzy-logic T-norms and T-conorms as new dataset features",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
