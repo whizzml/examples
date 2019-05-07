@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 source ../../test-utils.sh
 
@@ -36,13 +36,15 @@ run_bigmler execute --scripts .build/scripts --inputs test_inputs.json \
                     --output-dir cmd/results --verbosity 1
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
-declare regex='.*output_resources": \[\{"code": 5, "id":'
-declare file_content=$( cat "${file}" )
-if [[ " $file_content " =~ $regex ]]
+declare output=$(<$file)
+declare dataset="$(echo $output |  jq '.output_resources | .[0] | .id')"
+declare code="$(echo $output |  jq '.output_resources | .[0] | .code')"
+
+if [[ "$code " -eq 5 ]] && [[ $dataset == *"dataset"*  ]]
     then
-        log "best-first-cv OK"
+        log "fuzzy-norms OK"
     else
-        echo "best-first-cv KO:\n $file_content"
+        echo "fuzzy-norms KO:\n $output"
         exit 1
 fi
 
@@ -52,7 +54,7 @@ run_bigmler delete --from-dir cmd/pre_test --output-dir cmd_del
 run_bigmler delete --from-dir .build --output-dir cmd_del
 cat cmd/results/execution | while read execution
 do
-run_bigmler delete --id "$execution" --output-dir cmd_del
+    run_bigmler delete --id "$execution" --output-dir cmd_del
 done
 rm -f -R test_inputs.json cmd cmd_del
 rm -f -R .build .bigmler*
