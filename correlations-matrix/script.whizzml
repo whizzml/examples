@@ -1,0 +1,64 @@
+;; correlations-cross-tabs
+;; creates the matrix of correlation values for the fields in a dataset
+;;
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   s-fields: (list) List of fields to be analyzed
+;;   options: (map) Arguments for the correlations creation
+;;   c-index: (string) Index to be used to analyze correlation
+
+(define (correlations-cross-tabs dataset-id s-fields options c-index)
+  (let (ds (fetch dataset-id)
+        fields (resource-fields ds)
+        find-field-l (lambda (f) (find-field fields f))
+        fields-list (if (empty? s-fields)
+                        (iterate (acc [] field-id (keys fields))
+                          (append acc (assoc (fields field-id) "id" field-id)))
+                        (map find-field-l s-fields))
+        of-fields-fn (lambda (x) (member? (x "optype")
+                                          ["numeric" "categorical"]))
+        f-name (lambda (x) (x "name" ""))
+        of-fields (filter of-fields-fn fields-list)
+        of-fields (sort-by-key "column" of-fields)
+        headers (map f-name of-fields)
+        c-ids (for (field of-fields)
+                (create-and-wait-correlation (assoc options
+                                                    "dataset"
+                                                    dataset-id
+                                                    "objective_field"
+                                                    (field "id")))))
+    (reduce (lambda (acc x) (if (member? c-index x)
+                            (append acc (x 2))
+                            acc))
+            [headers]
+            (correlation-metrics c-ids
+                                 (map (lambda (x) (x "id"))  of-fields)))))
+
+;; Analyzes the contents of the list of correlations (one per field as
+;; objective field)
+;; The result is a list of lists that contain the name, and attributes for a
+;; type of correlation measure. E.g.:
+;;
+;; ["one_way_anova", "eta_square", [[1, 0.1, 0.2]]]
+;;
+(define (correlation-metrics correlation-ids field-ids)
+  (log-info correlation-ids field-ids)
+  (iterate (acc [] corr-id correlation-ids)
+    (log-info corr-id field-ids)
+    (let (corrs ((fetch corr-id) ["correlations" "correlations"])
+          blocks (iterate (acc [] c corrs)
+                   (concat acc (id-to-col c field-ids))))
+    (concat acc blocks))))
+
+
+(define (id-to-col c field-ids)
+  (let (name (c "name")
+        results (c "result"))
+    (for (k (keys (head (values results))))
+      [name k (for (f-id field-ids)
+                (results [f-id k] 1))])))
+
+(define correlations-tab (correlations-cross-tabs dataset-id
+                                                  fields
+                                                  options
+                                                  correlation-index))
