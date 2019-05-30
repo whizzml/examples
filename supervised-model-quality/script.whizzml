@@ -1,0 +1,51 @@
+(define SUPERVISED-MODELS ["model", "ensemble", "logistic-regression",
+                           "linear-regression", "deepnet"])
+
+
+;; Creates an evaluation on a model and returns the estimated performance
+(define (model-quality res-id)
+  (let (model (fetch res-id)
+        ds-id (model "dataset" false)
+        type (resource-type res-id)
+        wf (resource-workflow res-id true true)
+        conf (wf ["steps" 0 "args"])
+        conf (dissoc conf "dataset"))
+    (when (not (member? type SUPERVISED-MODELS))
+      (raise (str "The resource-id argument must contain a Supervised"
+                  " Learning model")))
+    (if (not ds-id)
+        (raise (str "The dataset used to built this model is no longer"
+                    " available. We cannot evaluate the model.")))
+        (let (dataset (fetch ds-id)
+              full-name (dataset "name")
+              train-name (str full-name " (training)")
+              test-name (str full-name " (test)")
+              [train-ds-id test-ds-id] (create-dataset-split ds-id
+                                                             0.8
+                                                             "bigml"
+                                                             {"name" train-name}
+                                                             {"name" test-name})
+              train-model-id (create type (assoc conf "dataset" train-ds-id))
+              model-ref (bigml.reify.fill-attributes res-id
+                                                     model
+                                                     {}
+                                                     true
+                                                     1)
+              model-ref (model-ref ["defs" res-id "ref"])
+              fields (resource-fields ds-id)
+              fields (make-map (keys fields)
+                               (map (lambda (x) (dissoc x "summary"))
+                                    (values fields)))
+              model-fields (model ["model" "model_fields"] {})
+              model-importance (model ["model" "importance"] [])
+              model-rows (model "rows")
+              evaluation-id (wait (create-evaluation train-model-id
+                                                     test-ds-id)))
+          {"fields" fields
+           "rows" model-rows
+           "model" model-ref
+           "model-fields" model-fields
+           "model-importance" model-importance
+           "evaluation" ((fetch evaluation-id) "result")})))
+
+(define quality-info (model-quality res-id))

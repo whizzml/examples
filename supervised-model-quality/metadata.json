@@ -1,0 +1,20 @@
+{
+  "name": "Supervised model quality",
+  "description": "Generates an evaluation from an existing model by retrieving the dataset used for training and doing an 80%-20% split of the data. The output of the script is a map with the information needed to build a report about the estimated quality for the model.\nThe output contains information about the original fields and rows used for training, the model configuration and the evaluated performance.",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "res-id",
+          "type": "supervised-model-id",
+          "description": "Supervised Learning Model ID"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "quality-info",
+          "type": "map",
+          "description": "Information about the model and estimated evaluation"
+      }
+  ]
+}
