@@ -1,0 +1,118 @@
+(define (describe-item item field-info)
+  (let (complement? (item "complement" false)
+        comp (if complement? "not " "")
+        field-name (field-info "name")
+        [start end] [(item "bin_start" false) (item "bin_end" false)]
+        [start end] (if complement? [end start] [start end]))
+    (if (item "name" false)
+        (cond (and (numeric-field? field-info) start end)
+                (if (< start end)
+                    (str start " < " field-name " <= " end)
+                    (str field-name " > " start " or <=" end))
+              (and (numeric-field? field-info) start)
+                (str field-name " > " start)
+              (and (numeric-field? field-info) end)
+                (str field-name " <= " end)
+              (categorical-field? field-info)
+                (str field-name " " (if complement? "!=" "=")
+                     " " (item "name"))
+              (or (text-field? field-info)
+                  (items-field? field-info))
+                (str field-name " " (if complement? "excludes" "includes")
+                     " " (item "name")))
+        (str field-name " is " comp "missing"))))
+
+
+
+(define (flatline-item item field-info)
+  (let (complement? (item "complement" false)
+        field-name (field-info "name")
+        [start end] [(item "bin_start" false) (item "bin_end" false)]
+        [start end] (if complement? [end start] [start end]))
+    (if (item "name" false)
+        (cond (and (numeric-field? field-info) start end)
+                (if (< start end)
+                    (str "(and (< " start " (f \"" field-name
+                         "\")) (<=  (f \"" end "\")))")
+                    (str "(or (> (f \"" field-name "\")" start
+                         ") (<= (f \"" end "\")))"))
+              (and (numeric-field? field-info) start)
+                (str "(> (f \"" field-name "\") " start ")")
+              (and (numeric-field? field-info) end)
+                (str "(<= (f \"" field-name "\") " end ")")
+              (categorical-field? field-info)
+                  (str "(" (if complement? "!=" "=") " (f \"" field-name
+                       "\") \"" (item "name") "\")")
+              (text-field? field-info)
+                (let (op (if complement? "=" ">")
+                      options (field-info "term_analysis")
+                      case-s (options "case_sensitive" false)
+                      case-i (if case-s "false" "true")
+                      language (options "language"))
+                  (str "(" op " (occurrences (f \"" field-name "\") \""
+                      (item "name") "\" " case-i language ") 0)"))
+              (items-field? field-info)
+                (if complement?
+                    (str "(not (contains-items? \"" field-name "\" \""
+                       (item "name") "\"))")
+                    (str "(contains-items? \"" field-name "\" \""
+                       (item "name") "\")")))
+        (if complement?
+            (str "(not (missing? (f \"" field-name "\")))")
+            (str "(missing? (f \"" field-name "\"))")))))
+
+
+(define (describe-rule association rule-id)
+  (let (fields (resource-fields association)
+        items (association ["associations" "items"] [])
+        rules (association ["associations" "rules"] [])
+        rule (try (head (filter (lambda (r) (= (r "id") rule-id)) rules))
+               (catch e (log-error "The rule does not exist")))
+        get-item-fn (lambda (i) (let (item (items i)
+                                      field-info (fields (item "field_id")))
+                                  (describe-item item field-info)))
+        lhs (map get-item-fn (rule "lhs"))
+        rhs (map get-item-fn (rule "rhs")))
+    (str (join " and " lhs) " then " (join " and " rhs))))
+
+
+(define (flatline-rule association rule)
+  (let (fields (resource-fields association)
+        items (association ["associations" "items"] [])
+        get-item-fn (lambda (i) (
+                      flatline-item (items i)
+                                    (fields ((items i) "field_id"))))
+
+        lhs (map get-item-fn (rule "lhs"))
+        rhs (map get-item-fn (rule "rhs"))
+        lhs (if (> (count lhs) 1)
+                (str "(and " (join " " lhs) ")")
+                (join " " lhs))
+        rhs (if (> (count rhs) 1)
+                (str "(and " (join " " rhs) ")")
+                (join " " rhs)))
+    (str "(and " lhs " " rhs ")")))
+
+
+(define (batch-association-sets dataset-id association-id . rule-ids)
+  (let (association (fetch association-id)
+        rule-ids (if (empty? (head rule-ids []))
+                     (map (lambda (r) (r "id"))
+                                      (association ["associations" "rules"]))
+                     rule-ids)
+        rule-ids (head rule-ids)
+        rules (filter (lambda (r) (member? (r "id") rule-ids))
+                      (association ["associations" "rules"]))
+        flatline-rules (map (lambda (r) (flatline-rule association r)) rules)
+        new-fields (iterate (acc [] f-rule flatline-rules rule rules)
+                     (append acc {"field" f-rule
+                                  "name" (describe-rule association
+                                                        (rule "id"))
+                                  "label" (str (association "name")
+                                               " - rule "
+                                               (rule "id"))})))
+    (create-dataset {"origin_dataset" dataset-id "new_fields" new-fields})))
+
+(define extended-dataset-id (batch-association-sets dataset-id
+                                                    association-id
+                                                    rule-ids))
