@@ -33,9 +33,9 @@
         (cond (and (numeric-field? field-info) start end)
                 (if (< start end)
                     (str "(and (< " start " (f \"" field-name
-                         "\")) (<=  (f \"" end "\")))")
-                    (str "(or (> (f \"" field-name "\")" start
-                         ") (<= (f \"" end "\")))"))
+                         "\")) (<= (f \"" field-name "\") " end "))")
+                    (str "(or (> (f \"" field-name "\") " start
+                         ") (<= (f \"" field-name  "\") " end "))"))
               (and (numeric-field? field-info) start)
                 (str "(> (f \"" field-name "\") " start ")")
               (and (numeric-field? field-info) end)
@@ -102,9 +102,10 @@
                               ((fetch association-id) "name"))
                          dataset-name)
         rule-ids (if (empty? (head rule-ids []))
-                     (map (lambda (r) (r "id"))
-                                      (association ["associations" "rules"]))
+                     [(map (lambda (r) (r "id"))
+                                       (association ["associations" "rules"]))]
                      rule-ids)
+        _ (log-info rule-ids)
         rule-ids (head rule-ids)
         rules (filter (lambda (r) (member? (r "id") rule-ids))
                       (association ["associations" "rules"]))
