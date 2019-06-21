@@ -10,8 +10,9 @@ The **inputs** for the script are:
 
 * `dataset-id`: (dataset-id) Dataset ID for the dataset to be extended
 * `association-id`: (association-id) Association ID to be used
+* `dataset-name`: (string) Name for the generated dataset.
 * `rule-ids`: (list) **optional** List of rule IDs to be included in the
               new dataset
 
 The **outputs** for the script are:
-* `extended-datset-id`: (dataset-id) Dataset ID for the extended dataset
+* `extended-dataset-id`: (dataset-id) Dataset ID for the extended dataset

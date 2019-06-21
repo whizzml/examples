@@ -15,6 +15,12 @@
           "description": "Association to be used"
       },
       {
+          "name": "dataset-name",
+          "type": "string",
+          "default": "",
+          "description": "Name for the generated dataset"
+      },
+      {
           "name": "rule-ids",
           "type": "list",
           "default": [],

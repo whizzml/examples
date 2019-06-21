@@ -94,8 +94,13 @@
     (str "(and " lhs " " rhs ")")))
 
 
-(define (batch-association-sets dataset-id association-id . rule-ids)
+(define (batch-association-sets dataset-id association-id dataset-name
+         . rule-ids)
   (let (association (fetch association-id)
+        dataset-name (if (empty? dataset-name)
+                         (str ((fetch dataset-id) "name") " with "
+                              ((fetch association-id) "name"))
+                         dataset-name)
         rule-ids (if (empty? (head rule-ids []))
                      (map (lambda (r) (r "id"))
                                       (association ["associations" "rules"]))
@@ -114,8 +119,11 @@
     (when (empty? new-fields)
           (raise (str "No rules were found for the list of IDs: "
                       (join ", " rule-ids))))
-    (create-dataset {"origin_dataset" dataset-id "new_fields" new-fields})))
+    (create-dataset {"origin_dataset" dataset-id
+                     "name" dataset-name
+                     "new_fields" new-fields})))
 
 (define extended-dataset-id (batch-association-sets dataset-id
                                                     association-id
+                                                    dataset-name
                                                     rule-ids))
