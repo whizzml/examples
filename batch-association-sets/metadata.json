@@ -25,6 +25,12 @@
           "type": "list",
           "default": [],
           "description": "List of rule IDs to be used"
+      },
+      {
+          "name": "match",
+          "type": "string",
+          "default": "rule",
+          "description": "Condition to be met by the new features. (e.g.: rule, antecedent, consequent)"
       }
   ],
   "outputs": [

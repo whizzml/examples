@@ -13,6 +13,8 @@ The **inputs** for the script are:
 * `dataset-name`: (string) Name for the generated dataset.
 * `rule-ids`: (list) **optional** List of rule IDs to be included in the
               new dataset
+* `match`: (string) **optional** Condition to be met by the new features
+           (rule, antecedent, consequent)
 
 The **outputs** for the script are:
 * `extended-dataset-id`: (dataset-id) Dataset ID for the extended dataset
