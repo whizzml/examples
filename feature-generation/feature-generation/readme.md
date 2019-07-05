@@ -1,7 +1,7 @@
-# Auto feature generation
+# Feature Generation: Auto feature generation
 
 This script is the second step for automated feature generation. To
-use it, you should have executed previously the [Unsupervised models
+use it, you should have executed previously the [unsupervised models
 generation](../unsupervised-models) script
 
 This scirpt extends a given dataset with new features that comes from

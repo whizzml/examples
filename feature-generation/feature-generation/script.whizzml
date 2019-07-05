@@ -122,7 +122,11 @@
                      "name" dataset-name
                      "new_fields" new-fields})))
 
-;; own code for the rest of unsupervised models
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; own code for the rest of unsupervised models ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (get-exec-model-id exec model-type)
   (let (execution (fetch (wait exec))
        outputs (filter (lambda (r) (= (r 2) model-type))
@@ -132,7 +136,10 @@
 
 (define (unsupervised-batch dataset-id model-id name batch-type)
   (log-info "Creating " batch-type)
-  (let (params {"name" (str name " : " batch-type) "output_dataset" true})
+  (let (objective-id (dataset-get-objective-id dataset-id)
+        params {"name" (str name " : " batch-type)
+                "output_dataset" true
+                "excluded_fields" [objective-id]})
     (try
      (create batch-type dataset-id  model-id params)
      (catch e

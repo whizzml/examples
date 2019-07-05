@@ -1,17 +1,28 @@
-# Feature generation
+# Automated Feature Generation
 
-These two WhizzML packages will let the user extend a dataset with new
-auto-generated features. These features are the result of applying
-unsupervised models to the dataset.
+These WhizzML packages will let the user extend a dataset with new
+**auto-generated features**. These features are the result of
+applying, automatically, unsupervised models to the dataset.
 
-# Steps
+This is the first part of a **fully automated Machine Learning
+pipeline** in BigML. The pipeline will have the following steps:
+
+- **Automated Feature Generation** using these scripts
+- **Automated Feature Selection** using one of these scripts:
+  - [**Best-First Feature Selection**](https://github.com/whizzml/examples/tree/master/best-first-cv)
+  - [**Boruta**](https://github.com/whizzml/examples/tree/master/boruta)
+  - [**Recursive Feature Elimination**](https://github.com/whizzml/examples/tree/master/recursive-feature-elimination)
+- **Automatic Model Optimization** using [OptiML](https://bigml.com/whatsnew/optiml)
+
+# Execution steps
 
 ## 1. Generating unsupervised models
-Firstly, you have to generate all the unsupervised models.
-For this, check the first package: [Unsupervised models
-generation](./unsupervised-models)
+Firstly, you have to generate all the needed unsupervised models.  For
+this, check out the first package:
+[unsupervised-models](./unsupervised-models)
 
 ## 2. Extending the dataset
-Then, you will have to execute the second script, passing to it a
-reference of the execution you did in the step 1. It will generate the
-extended dataset.
+Then, you will have to execute the second script,
+[feature-generation](./feature-generation), passing to it a reference
+of the execution you did in the **Step 1**. It will generate the
+extended dataset with new auto-generated features.
