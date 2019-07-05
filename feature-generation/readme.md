@@ -1,4 +1,4 @@
-# Automated Feature Generation
+# Feature Generation
 
 These WhizzML packages will let the user extend a dataset with new
 **auto-generated features**. These features are the result of
@@ -14,14 +14,19 @@ pipeline** in BigML. The pipeline will have the following steps:
   - [**Recursive Feature Elimination**](https://github.com/whizzml/examples/tree/master/recursive-feature-elimination)
 - **Automatic Model Optimization** using [OptiML](https://bigml.com/whatsnew/optiml)
 
-# Execution steps
+This repository contains two different folders with one WhizzML
+package each. You need to execute both in the correct order to
+generate the new features. Check the **Execution steps** below.
 
-## 1. Generating unsupervised models
-Firstly, you have to generate all the needed unsupervised models.  For
-this, check out the first package:
-[unsupervised-models](./unsupervised-models)
+## Execution steps
 
-## 2. Extending the dataset
+### 1. Generating unsupervised models
+Firstly, you have to generate all the needed unsupervised models.
+
+For this, check out the first package:
+[unsupervisqed-models](./unsupervised-models)
+
+### 2. Extending the dataset
 Then, you will have to execute the second script,
 [feature-generation](./feature-generation), passing to it a reference
 of the execution you did in the **Step 1**. It will generate the

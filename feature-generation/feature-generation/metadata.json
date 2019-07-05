@@ -1,5 +1,5 @@
 {
-  "name": "Auto Feature Generation",
+  "name": "Feature Generation",
   "description": "This script is the second step for automated feature generation. It extends a given dataset with new features that comes from applying unsupervised models.",
   "kind": "script",
   "source_code": "script.whizzml",
