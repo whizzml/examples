@@ -1,4 +1,4 @@
-# Feature Generation: Auto feature generation
+# Feature Generation
 
 This script is the second step for automated feature generation. To
 use it, you should have executed previously the [unsupervised models

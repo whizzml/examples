@@ -1,4 +1,4 @@
-# Feature Generation
+# Feature Generation scripts
 
 These WhizzML packages will let the user extend a dataset with new
 **auto-generated features**. These features are the result of

@@ -1,4 +1,4 @@
-# Feature Generation: Unsupervised models generation
+# Unsupervised models generation
 
 This script is the first step for automated feature generation. It
 will generate some unsupervised models from your training
