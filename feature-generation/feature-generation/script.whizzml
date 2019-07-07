@@ -143,10 +143,8 @@
 
 (define (unsupervised-batch dataset-id model-id name batch-type)
   (log-info "Creating " batch-type)
-  (let (objective-id (dataset-get-objective-id dataset-id)
-        params {"name" (str name " : " batch-type)
-                "output_dataset" true
-                "excluded_fields" [objective-id]})
+  (let (params {"name" (str name " : " batch-type)
+                "output_dataset" true})
     (try
      (create batch-type dataset-id  model-id params)
      (catch e
