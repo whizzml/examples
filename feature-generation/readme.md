@@ -24,7 +24,7 @@ generate the new features. Check the **Execution steps** below.
 Firstly, you have to generate all the needed unsupervised models.
 
 For this, check out the first package:
-[unsupervisqed-models](./unsupervised-models)
+[unsupervised-models](./unsupervised-models)
 
 ### 2. Extending the dataset
 Then, you will have to execute the second script,
