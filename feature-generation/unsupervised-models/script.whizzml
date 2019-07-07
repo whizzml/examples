@@ -24,7 +24,7 @@
         params (if (not (empty? association-params))
                  association-params
                  {"rhs_predicate" [{"field" objective-id}]}))
-    (try-create-model "association" train-dataset params)))
+    (try-create-model "association" train-dataset params false)))
 
 (define anomaly-id
   (try-create-model "anomaly" train-dataset  anomaly-params exclude-objective))
