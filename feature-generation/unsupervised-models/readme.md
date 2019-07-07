@@ -21,6 +21,7 @@ unsupervised models.
 The **inputs** for the script are:
 
 * `train-dataset`: (dataset-id) Dataset ID for the train dataset to be extended
+* `exclude-objective`: (boolean) **optional** Whether to exclude the objective field from the models input fields. True by default
 * `cluster-params`: (map) **optional** Params of the cluster model. Leave blank for default 1-Click cluster
 * `association-params`: (map) **optional** Params of the association discovery model. If association-params is not passed to the script, an association discovery with the `objective-id` as **Consequent** will be created.
 * `anomaly-params`: (map) **optional** Params of the anomaly detector. Leave blank for default 1-Click anomaly detector

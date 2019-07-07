@@ -16,6 +16,12 @@
           "description": "Params of the cluster model. Leave blank for default 1-Click cluster"
       },
       {
+          "name": "exclude-objective",
+          "type": "boolean",
+          "default": "true",
+          "description": "Excludes objective field from the dataset"
+      },
+      {
           "name": "association-params",
           "type": "map",
           "default": {},
