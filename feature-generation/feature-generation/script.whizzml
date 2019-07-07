@@ -1,5 +1,6 @@
-;; association sets code copied from Mercè scirpt
-;; https://github.com/mmerce/examples/blob/batch-ass/batch-association-sets/
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Code to obtain association rules from:
+;; https://github.com/mmerce/examples/blob/batch-assoc/batch-association-sets/
 
 (define (describe-item item field-info)
   (let (complement? (item "complement" false)
@@ -62,7 +63,7 @@
             (str "(not (missing? (f \"" field-name "\")))")
             (str "(missing? (f \"" field-name "\"))")))))
 
-(define (describe-rule association rule-id)
+(define (describe-rule association rule-id match)
   (let (fields (resource-fields association)
         items (association ["associations" "items"] [])
         rules (association ["associations" "rules"] [])
@@ -73,15 +74,17 @@
                                   (describe-item item field-info)))
         lhs (map get-item-fn (rule "lhs"))
         rhs (map get-item-fn (rule "rhs")))
-    (str (join " and " lhs) " then " (join " and " rhs))))
+    (cond (= match "antecedent")
+            (join " and " lhs)
+          (= match "consequent")
+            (join " and " rhs)
+            (str (join " and " lhs) " then " (join " and " rhs)))))
 
-(define (flatline-rule association rule)
+(define (flatline-rule association rule match)
   (let (fields (resource-fields association)
         items (association ["associations" "items"] [])
         get-item-fn (lambda (i)
-                      (flatline-item (items i)
-                                     (fields ((items i) "field_id"))))
-
+                      (flatline-item (items i) (fields ((items i) "field_id"))))
         lhs (map get-item-fn (rule "lhs"))
         rhs (map get-item-fn (rule "rhs"))
         lhs (if (> (count lhs) 1)
@@ -90,28 +93,32 @@
         rhs (if (> (count rhs) 1)
                 (str "(and " (join " " rhs) ")")
                 (join " " rhs)))
-    (str "(and " lhs " " rhs ")")))
+    (cond (= match "antecedent")
+            lhs
+          (= match "consequent")
+            rhs
+            (str "(and " lhs " " rhs ")"))))
 
 (define (batch-association-sets dataset-id association-id dataset-name
-                                . rule-ids)
-  (log-info "Obtaining information from association")
+         match . rule-ids)
   (let (association (fetch association-id)
         dataset-name (if (empty? dataset-name)
                          (str ((fetch dataset-id) "name") " with "
                               ((fetch association-id) "name"))
                          dataset-name)
         rule-ids (if (empty? (head rule-ids []))
-                     [(map (lambda (r) (r "id"))
-                                       (association ["associations" "rules"]))]
-                     rule-ids)
-        rule-ids (head rule-ids)
+                   (map (lambda (r) (r "id"))
+                        (association ["associations" "rules"]))
+                   (head rule-ids))
         rules (filter (lambda (r) (member? (r "id") rule-ids))
                       (association ["associations" "rules"]))
-        flatline-rules (map (lambda (r) (flatline-rule association r)) rules)
-        new-fields (iterate (acc [] f-rule flatline-rules rule rules)
-                     (append acc {"field" f-rule
+        flatline-rules (map (lambda (r) (flatline-rule association r match))
+                            rules)
+        new-fields (iterate (acc [] flatline-rule flatline-rules rule rules)
+                     (append acc {"field" flatline-rule
                                   "name" (describe-rule association
-                                                        (rule "id"))
+                                                        (rule "id")
+                                                        match)
                                   "label" (str (association "name")
                                                " - rule "
                                                (rule "id"))})))
@@ -164,7 +171,7 @@
 (define (association-feature-gen ds-id exec name)
   (let (model-id (get-exec-model-id exec "association")
         full-name (str name "-association-rules"))
-   (batch-association-sets dataset-id model-id full-name)))
+   (batch-association-sets dataset-id model-id full-name "antecedent")))
 
 (define (topic-feature-gen ds-id exec name)
   (let (model-id (get-exec-model-id exec "topicmodel"))
