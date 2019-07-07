@@ -37,6 +37,7 @@
     "name-clusters",
     "dimensionality-reduction",
     "aggregations",
-    "fuzzy-norms"
+    "fuzzy-norms",
+    "feature-generation"
   ]
 }
