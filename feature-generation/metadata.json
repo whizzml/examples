@@ -1,0 +1,6 @@
+{
+  "name": "Feature generation",
+  "description": "A collection of whizzml scripts to perform automatic feature generation",
+  "kind": "package",
+  "components": ["unsupervised-models", "feature-generation"]
+}
