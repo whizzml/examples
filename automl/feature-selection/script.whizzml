@@ -1,0 +1,51 @@
+(define (flatten items)
+  (if (every? list? items) (flatten (reduce concat [] items)) items))
+
+(define (filter-dataset-fields dataset excluded-fields)
+  (let (fields (resource-fields dataset))
+    (filter (lambda (f) (not (member? ((fields f) "name") excluded-fields)))
+            (keys fields))))
+
+(define (rfe-best-num-features evaluations)
+  (get (max-key (lambda (ev) (get ev "evaluation")) evaluations)
+       "features"))
+
+(define (rfe-evaluations exec)
+  (let (output-features (head (((fetch (wait exec)) "execution") "outputs")))
+    (get (output-features 1) "evaluations")))
+
+(define (rfe-output-fields dataset evaluations num-features)
+  (let (excluded (map (lambda (n) (n "last-removed"))
+                      (filter (lambda (n) (>= (n "features") num-features))
+                              evaluations)))
+    (log-info "feature-selection: removing " (count excluded) " features")
+    (filter-dataset-fields dataset (flatten excluded))))
+
+(define (rfe-select-fields script dataset)
+  (log-info "feature-selection: executing RFE")
+  (let ([train-ds test-ds] (create-random-dataset-split dataset 0.8)
+        exec (create-execution script
+                               {"inputs" [["dataset-id" train-ds]
+                                          ["n" 1]
+                                          ["test-ds-id" test-ds]]})
+        evaluations (rfe-evaluations exec)
+        num-features (rfe-best-num-features evaluations))
+    (map delete [train-ds test-ds exec])
+    (rfe-output-fields dataset evaluations num-features)))
+
+(log-info "feature-selection: obtaining the most important features")
+
+(define selected-fields
+  (if (not (empty? pre-selected-fields))
+    pre-selected-fields
+    (rfe-select-fields rfe-script-id train-dataset)))
+
+(define filtered-train-dataset
+  (when (= "dataset" (resource-type train-dataset))
+    (create-dataset {"origin_dataset" train-dataset
+                     "input_fields" selected-fields})))
+
+(define filtered-test-dataset
+  (when (= "dataset" (resource-type test-dataset))
+    (create-dataset {"origin_dataset" test-dataset
+                     "input_fields" selected-fields})))
