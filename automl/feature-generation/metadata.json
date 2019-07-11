@@ -1,6 +1,37 @@
 {
-  "name": "Feature generation",
-  "description": "A collection of whizzml scripts to perform automatic feature generation",
-  "kind": "package",
-  "components": ["unsupervised-models", "feature-generation"]
+  "name": "feature-generation",
+  "description": "This script is the second step for Automated Feature Generation. It extends two given train and test datasets with new features that comes from scoring with some unsupervised models created previously",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "train-dataset",
+          "type": "string",
+          "default": "",
+          "description": "Train dataset to be extended. (e.g. dataset/5d267a147811dd0726000fdd)"
+      },
+      {
+          "name": "test-dataset",
+          "type": "string",
+          "default": "",
+          "description": "Test dataset to be extended (e.g. dataset/5d267a147811dd0726000fdd)"
+      },
+      {
+          "name": "unsupervised-generation-exec",
+          "type": "execution-id",
+          "description": "Execution of the unsupervised-generation script"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "extended-train-dataset",
+          "type": "dataset-id",
+          "description": "Train dataset extended with the new generated features"
+      },
+      {
+          "name": "extended-test-dataset",
+          "type": "dataset-id",
+          "description": "Test dataset extended with the new generated features"
+      }
+  ]
 }

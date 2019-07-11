@@ -1,6 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Code to obtain association rules from:
 ;; https://github.com/mmerce/examples/blob/batch-assoc/batch-association-sets/
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (describe-item item field-info)
   (let (complement? (item "complement" false)
@@ -133,6 +134,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; own code for the rest of unsupervised models ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define (check-execution exec)
   (let (possible-types ["anomaly-id" "association-id" "cluster-id"
                         "pca-id" "topicmodel-id"]
@@ -141,7 +143,7 @@
                    (get-in execution ["execution" "outputs"])))
     (map (lambda (t) (or (member? t output-types)
                          (raise (str "Wrong execution outputs. "
-                                     "Check unsupervised-gen-execution"))))
+                                     "Check unsupervised-generation-exec"))))
          possible-types)))
 
 (define (get-exec-model-id exec model-type)
@@ -160,39 +162,39 @@
      (catch e
        (log-warn "Could not create the " batch-type ": " e)))))
 
-(define (cluster-feature-gen ds-id exec name)
+(define (cluster-feature-gen dataset-id exec name)
   (let (model-id (get-exec-model-id exec "cluster"))
     (when model-id
-      (unsupervised-batch ds-id
+      (unsupervised-batch dataset-id
                           model-id
                           name
                           "batchcentroid"))))
 
-(define (anomaly-feature-gen ds-id exec name)
+(define (anomaly-feature-gen dataset-id exec name)
   (let (model-id (get-exec-model-id exec "anomaly"))
     (when model-id
-      (unsupervised-batch ds-id
+      (unsupervised-batch dataset-id
                           model-id
                           name
                           "batchanomalyscore"))))
 
-(define (association-feature-gen ds-id exec name)
+(define (association-feature-gen dataset-id exec name)
   (let (model-id (get-exec-model-id exec "association")
         full-name (str name "-association-rules"))
    (batch-association-sets dataset-id model-id full-name "antecedent")))
 
-(define (topic-feature-gen ds-id exec name)
+(define (topic-feature-gen dataset-id exec name)
   (let (model-id (get-exec-model-id exec "topicmodel"))
     (when model-id
-      (unsupervised-batch ds-id
+      (unsupervised-batch dataset-id
                           model-id
                           name
                           "batchtopicdistribution"))))
 
-(define (pca-feature-gen ds-id exec name)
+(define (pca-feature-gen dataset-id exec name)
   (let (model-id (get-exec-model-id exec "pca"))
     (when model-id
-      (unsupervised-batch ds-id
+      (unsupervised-batch dataset-id
                           model-id
                           name
                          "batchprojection"))))
@@ -202,8 +204,8 @@
 
 (define (create-output-dataset ds-list name objective-id)
   (update
-   (merge-datasets (filter (lambda (n) n) ds-list)
-                   {"juxtapose" true
+   (create-dataset {"origin_datasets" (filter (lambda (n) n) ds-list)
+                    "juxtapose" true
                     "name" (str name ": Extended dataset")})
    {"objective_field" {"id" objective-id}}))
 
@@ -221,5 +223,14 @@
                      (map batch-output-ds all-fields)))
     (create-output-dataset all-ds name objective-id)))
 
-(define extended-dataset
-  (feature-generation dataset-id unsupervised-gen-execution))
+(log-info "feature-generation: generating extended train dataset")
+(define extended-train-dataset
+  (when (= (resource-type train-dataset) "dataset")
+    (log-info "feature-generation: extending train dataset")
+    (feature-generation train-dataset unsupervised-generation-exec)))
+
+(log-info "feature-generation: generating extended test dataset")
+(define extended-test-dataset
+  (when (= (resource-type test-dataset) "dataset")
+    (log-info "feature-generation: extending test dataset")
+    (feature-generation test-dataset unsupervised-generation-exec)))

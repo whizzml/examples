@@ -1,33 +1,44 @@
-# Feature Generation scripts
+# feature-generation: Generating new dataset features
 
-These WhizzML packages will let the user extend a dataset with new
-**auto-generated features**. These features are the result of
-applying, automatically, unsupervised models to the dataset.
+This script is the second step for **Automated Feature Generation**.
 
-This is the first part of a **fully automated Machine Learning
-pipeline** in BigML. The pipeline will have the following steps:
+To run this script, you should have executed previously the
+[unsupervised-generation](../unsupervised-generation) script.
 
-- **Automated Feature Generation** using these scripts
-- **Automated Feature Selection** using one of these scripts:
-  - [**Best-First Feature Selection**](https://github.com/whizzml/examples/tree/master/best-first-cv)
-  - [**Boruta**](https://github.com/whizzml/examples/tree/master/boruta)
-  - [**Recursive Feature Elimination**](https://github.com/whizzml/examples/tree/master/recursive-feature-elimination)
-- **Automatic Model Optimization** using [OptiML](https://bigml.com/whatsnew/optiml)
+The script **extends two given train and test datasets** with new
+features that comes from **scoring with some unsupervised models**
+created previously.
 
-This repository contains two different folders with one WhizzML
-package each. You need to execute both in the correct order to
-generate the new features. Check the **Execution steps** below.
+**NOTE**: This script is one part of the [**BigML
+AutoML**](../readme.md). The easiest way of executing all the scripts
+from `BigML AutoML` is using the
+[orchestrator](../automl-orchestrator/readme.md)
 
-## Execution steps
+Currently, the generated fields come from:
 
-### 1. Generating unsupervised models
-Firstly, you have to generate all the needed unsupervised models.
+* `Batch centroid (Cluster)`
+* `Batch anomaly score (Anomaly Detection)`
+* `Batch association sets (Association Discovery)`
+* `Batch topic distribution (Topic Model)`
+* `Batch projection (PCA)`
 
-For this, check out the first package:
-[unsupervised-models](./unsupervised-models)
+The **inputs** for the script are:
 
-### 2. Extending the dataset
-Then, you will have to execute the second script,
-[feature-generation](./feature-generation), passing to it a reference
-of the execution you did in the **Step 1**. It will generate the
-extended dataset with new auto-generated features.
+* `train-dataset`: (string) Dataset ID for the train dataset to be extended. (e.g. dataset/5d267a147811dd0726000fdd)
+* `test-dataset`: (string) Dataset ID for the test dataset to be extended. (e.g. dataset/5d267a147811dd0726000fdd)
+* `unsupervised-generation-exec`: (execution-id) Execution of the
+  [unsupervised-generation](../unsupervised-generation) script. (e.g. execution/4fg56h147811dd0726000a3v)
+
+As you can see, `train-dataset` and `test-dataset` are **text** fields
+instead **dataset-id** fields. You can pass to the script only train
+or test dataset and leave the other input blank.
+
+The **outputs** for the script are:
+* `extended-train-dataset`: (dataset-id) Dataset ID for the extended train dataset
+* `extended-test-dataset`: (dataset-id) Dataset ID for the extended test dataset
+
+After adding new features to your dataset, you can choose between
+running the [Automated Feature Selection](../feature-selection) or
+directly passing your datasets to the [Automated Model
+Selection](../auto-model). This is done, automatically, by the
+[orchestrator](../automl-orchestrator/readme.md).
