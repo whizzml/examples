@@ -1,0 +1,28 @@
+(define (fusion-from-optiml optiml)
+  (let (models (get (fetch (wait optiml)) "models")
+        selected-models (take (max (count models) 5) models))
+    (create-fusion {"models" selected-models})))
+
+(define (prediction-from-fusion fusion test-ds)
+  (let (pred (create-batchprediction {"dataset" test-ds
+                                     "fusion" fusion
+                                     "output_dataset" true
+                                     "all_fields" true}))
+    (get (fetch (wait pred)) "output_dataset_resource")))
+
+
+(log-info "auto-model: obtaining optiml...")
+(log-info (str "auto-model: the optiml creation can take some minutes..."
+               " (or even hours)"))
+
+(define output-optiml-id
+  (if (= (resource-type optiml-id) "optiml")
+    optiml-id
+    (create-optiml train-dataset)))
+
+(log-info "auto-model: creating batch predictions")
+
+(define predictions-dataset
+  (when (= (resource-type test-dataset) "dataset")
+    (let (fusion (fusion-from-optiml output-optiml-id))
+      (prediction-from-fusion fusion test-dataset))))
