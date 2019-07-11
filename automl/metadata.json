@@ -1,0 +1,6 @@
+{
+  "name": "AutoML",
+  "description": "A collection of Whizzml scripts for Automated Machine Learning",
+  "kind": "package",
+  "components": ["automl-orchestrator", "unsupervised-generation", "feature-generation", "feature-selection", "auto-model"]
+}
