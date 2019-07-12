@@ -17,7 +17,8 @@ The generated unsupervised models are:
 
 * `Cluster`
 * `Anomaly detector`
-* `Association discovery`
+* `Association discovery using leverage as search strategy`
+* `Association discovery using lift as search strategy`
 * `Topic model`
 * `PCA`
 
@@ -38,7 +39,8 @@ The **inputs** for the script are:
 
 The **outputs** for the script are:
 * `cluster-id`: (cluster-id) Generated cluster
-* `association-id`: (association-id) Generated association discovery
+* `association-leverage-id`: (association-id) Generated association discovery with *leverage* as `search strategy`
+* `association-lift-id`: (association-id) Generated association discovery with *lift* as `search strategy`
 * `anomaly-id`: (anomaly-id) Generated anomaly detector
 * `topicmodel-id`: (topicmodel-id) Generated topic model
 * `pca-id`: (pca-id) Generated PCA

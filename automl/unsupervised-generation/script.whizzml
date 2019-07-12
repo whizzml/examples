@@ -20,11 +20,20 @@
 (define cluster-id
   (try-create-model "cluster" dataset cluster-params exclude-objective))
 
-(define association-id
+(define association-leverage-id
   (let (objective-id (dataset-get-objective-id dataset)
         params (if (not (empty? association-params))
                  association-params
-                 {"rhs_predicate" [{"field" objective-id}]}))
+                 {"rhs_predicate" [{"field" objective-id}]
+                  "search_strategy" "leverage"}))
+    (try-create-model "association" dataset params false)))
+
+(define association-lift-id
+  (let (objective-id (dataset-get-objective-id dataset)
+        params (if (not (empty? association-params))
+                 association-params
+                 {"rhs_predicate" [{"field" objective-id}]
+                  "search_strategy" "lift"}))
     (try-create-model "association" dataset params false)))
 
 (define anomaly-id

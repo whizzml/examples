@@ -100,13 +100,9 @@
             rhs
             (str "(and " lhs " " rhs ")"))))
 
-(define (batch-association-sets dataset-id association-id dataset-name
-         match . rule-ids)
+(define (batch-association-sets dataset-id association-id  match . rule-ids)
   (let (association (fetch association-id)
-        dataset-name (if (empty? dataset-name)
-                         (str ((fetch dataset-id) "name") " with "
-                              ((fetch association-id) "name"))
-                         dataset-name)
+
         rule-ids (if (empty? (head rule-ids []))
                    (map (lambda (r) (r "id"))
                         (association ["associations" "rules"]))
@@ -126,14 +122,20 @@
     (when (empty? new-fields)
           (raise (str "No rules were found for the list of IDs: "
                       (join ", " rule-ids))))
+    new-fields))
+
+
+(define (dataset-with-rules dataset-id dataset-name new-fields)
     (create-dataset {"origin_dataset" dataset-id
                      "name" dataset-name
-                     "new_fields" new-fields})))
+                     "new_fields" new-fields}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; own code for the rest of unsupervised models ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define (flatten items)
+  (if (every? list? items) (flatten (reduce concat [] items)) items))
 
 (define (check-execution exec)
   (let (possible-types ["anomaly-id" "association-id" "cluster-id"
@@ -179,9 +181,14 @@
                           "batchanomalyscore"))))
 
 (define (association-feature-gen dataset-id exec name)
-  (let (model-id (get-exec-model-id exec "association")
-        full-name (str name "-association-rules"))
-   (batch-association-sets dataset-id model-id full-name "antecedent")))
+  (let (model-ids (map (lambda (name) (get-exec-model-id exec name))
+                       ["association-leverage" "association-lift"])
+        full-name (str name "-association-rules")
+        new-fields (map (lambda(model-id) (batch-association-sets dataset-id
+                                                                  model-id
+                                                                  "antecedent"))
+                        model-ids))
+    (dataset-with-rules dataset-id full-name (flatten new-fields))))
 
 (define (topic-feature-gen dataset-id exec name)
   (let (model-id (get-exec-model-id exec "topicmodel"))

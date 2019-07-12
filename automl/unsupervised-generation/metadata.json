@@ -53,9 +53,14 @@
           "description": "Generated cluster"
       },
       {
-          "name": "association-id",
+          "name": "association-leverage-id",
           "type": "association-id",
-          "description": "Generated association discovery"
+          "description": "Generated association discovery using leverage as search strategy"
+      },
+      {
+          "name": "association-lift-id",
+          "type": "association-id",
+          "description": "Generated association discovery using lift as search strategy"
       },
       {
           "name": "anomaly-id",
