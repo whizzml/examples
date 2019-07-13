@@ -50,7 +50,7 @@
                       case-i (if case-s "false" "true")
                       language (options "language"))
                   (str "(" op " (occurrences (f \"" field-name "\") \""
-                      (item "name") "\" " case-i language ") 0)"))
+                      (item "name") "\" " case-i " " language ") 0)"))
               (items-field? field-info)
                 (if complement?
                     (str "(not (contains-items? \"" field-name "\" \""
