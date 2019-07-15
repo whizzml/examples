@@ -20,8 +20,10 @@
   (find-script "Recursive Feature Elimination"))
 
 (define (output-from-exec name exec)
-  (let (outputs (((fetch (wait exec)) "execution") "outputs"))
-    (nth (head (filter (lambda (o) (= (head o) name)) outputs)) 1)))
+  (let (outputs (((fetch (wait exec)) "execution") "outputs")
+        options (filter (lambda (o) (= (head o) name)) outputs))
+    (when (not (empty? options))
+      (nth (head options) 1))))
 
 (define (unsupervised-generation dataset-id)
   (create-execution (find-script "unsupervised-generation")
@@ -30,25 +32,25 @@
 
 (define (feature-generation train-dataset test-dataset  exec)
   (create-execution (find-script "feature-generation")
-                    {"inputs" [["train-dataset" train-dataset]
-                               ["test-dataset" test-dataset]
+                    {"inputs" [["train-dataset" (or train-dataset "")]
+                               ["test-dataset" (or test-dataset "")]
                                ["unsupervised-generation-exec" exec]]}))
 
 (define (feature-selection train-dataset test-dataset . selected-fields)
   (let (rfe-script (find-script "Recursive Feature Elimination")
         selected (if (empty? selected-fields) [] (head selected-fields)))
     (create-execution (find-script "feature-selection")
-                      {"inputs" [["train-dataset" train-dataset]
-                                 ["test-dataset" test-dataset]
+                      {"inputs" [["train-dataset" (or train-dataset "")]
+                                 ["test-dataset" (or test-dataset "")]
                                  ["rfe-script-id" rfe-script]
                                  ["pre-selected-fields" selected]]})))
 
 (define (auto-model train-dataset test-dataset . optiml-id)
   (let (optiml (if (empty? optiml-id) "" (head optiml-id)))
     (create-execution (find-script "auto-model")
-                      {"inputs" [["train-dataset" train-dataset]
-                                 ["test-dataset" test-dataset]
-                                 ["optiml-id" optiml]]})))
+                      {"inputs" [["train-dataset" (or train-dataset "")]
+                                 ["test-dataset" (or test-dataset "")]
+                                 ["optiml-id" (or optiml "")]]})))
 
 (check-inputs)
 (check-scripts)
@@ -87,7 +89,7 @@
     (if (empty? orchestrator-exec)
       (auto-model train-ds test-ds)
       (let (previous (output-from-exec "auto-model-exec" orchestrator-exec)
-            optiml (output-from-exec "optiml-id" previous))
+            optiml (output-from-exec "output-optiml-id" previous))
         (auto-model train-ds test-ds optiml)))))
 
 (log-info "auto-model: generating predictions dataset")

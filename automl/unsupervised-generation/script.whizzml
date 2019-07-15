@@ -1,13 +1,13 @@
 (log-info "unsupervised-generation: generating unsupervised models...")
 
 (define (set-params dataset params exclude)
-  (if exclude
-    (let (excluded (params "excluded_fields" [])
-          objective-id (dataset-get-objective-id dataset))
-      (if objective-id
-          (assoc params "excluded_fields" (append excluded objective-id))
-          params))
-    params))
+  (let (name (str (resource-name dataset) "| unsupervised-gen")
+        params (assoc params "name" name)
+        excluded (params "excluded_fields" [])
+        objective-id (dataset-get-objective-id dataset))
+    (if (and exclude objective-id)
+      (assoc params "excluded_fields" (append excluded objective-id))
+      params)))
 
 (define (try-create-model type dataset params exclude)
   (let (final-params (set-params dataset params exclude))

@@ -53,7 +53,7 @@
                       case-i (if case-s "false" "true")
                       language (options "language"))
                   (str "(" op " (occurrences (f \"" field-name "\") \""
-                      (item "name") "\" " case-i language ") 0)"))
+                      (item "name") "\" " case-i " " language ") 0)"))
               (items-field? field-info)
                 (if complement?
                     (str "(not (contains-items? \"" field-name "\" \""
@@ -124,11 +124,17 @@
                       (join ", " rule-ids))))
     new-fields))
 
+(define (remove-duplicate-rules rules)
+  (let (rule-exists (lambda (rule rules)
+                      (some (lambda(saved-rule)
+                              (= (saved-rule "name") (rule "name")))
+                            rules)))
+    (reduce (lambda (l r) (if (not (rule-exists r l) ) (cons r l) l)) [] rules)))
 
 (define (dataset-with-rules dataset-id dataset-name new-fields)
     (create-dataset {"origin_dataset" dataset-id
                      "name" dataset-name
-                     "new_fields" new-fields}))
+                     "new_fields" (remove-duplicate-rules new-fields)}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -138,7 +144,8 @@
   (if (every? list? items) (flatten (reduce concat [] items)) items))
 
 (define (check-execution exec)
-  (let (possible-types ["anomaly-id" "association-id" "cluster-id"
+  (let (possible-types ["anomaly-id" "association-leverage-id"
+                        "association-lift-id" "cluster-id"
                         "pca-id" "topicmodel-id"]
         execution (fetch (wait exec))
         output-types (map (lambda (r) (head r))
@@ -148,16 +155,16 @@
                                      "Check unsupervised-generation-exec"))))
          possible-types)))
 
-(define (get-exec-model-id exec model-type)
+(define (get-exec-model exec model-name)
   (let (execution (fetch (wait exec))
-        outputs (filter (lambda (r) (= (r 2) model-type))
+        outputs (filter (lambda (r) (= (head r) model-name))
                   (get-in execution ["execution" "outputs"])))
     (when (not (empty? outputs))
        ((head outputs) 1))))
 
 (define (unsupervised-batch dataset-id model-id name batch-type)
   (log-info "Creating " batch-type)
-  (let (params {"name" (str name " : " batch-type)
+  (let (params {"name" (str name " | " batch-type)
                 "output_dataset" true})
     (try
      (create batch-type dataset-id  model-id params)
@@ -165,7 +172,7 @@
        (log-warn "Could not create the " batch-type ": " e)))))
 
 (define (cluster-feature-gen dataset-id exec name)
-  (let (model-id (get-exec-model-id exec "cluster"))
+  (let (model-id (get-exec-model exec "cluster-id"))
     (when model-id
       (unsupervised-batch dataset-id
                           model-id
@@ -173,7 +180,7 @@
                           "batchcentroid"))))
 
 (define (anomaly-feature-gen dataset-id exec name)
-  (let (model-id (get-exec-model-id exec "anomaly"))
+  (let (model-id (get-exec-model exec "anomaly-id"))
     (when model-id
       (unsupervised-batch dataset-id
                           model-id
@@ -181,8 +188,8 @@
                           "batchanomalyscore"))))
 
 (define (association-feature-gen dataset-id exec name)
-  (let (model-ids (map (lambda (name) (get-exec-model-id exec name))
-                       ["association-leverage" "association-lift"])
+  (let (model-ids (map (lambda (name) (get-exec-model exec name))
+                       ["association-leverage-id" "association-lift-id"])
         full-name (str name "-association-rules")
         new-fields (map (lambda(model-id) (batch-association-sets dataset-id
                                                                   model-id
@@ -191,7 +198,7 @@
     (dataset-with-rules dataset-id full-name (flatten new-fields))))
 
 (define (topic-feature-gen dataset-id exec name)
-  (let (model-id (get-exec-model-id exec "topicmodel"))
+  (let (model-id (get-exec-model exec "topicmodel-id"))
     (when model-id
       (unsupervised-batch dataset-id
                           model-id
@@ -199,7 +206,7 @@
                           "batchtopicdistribution"))))
 
 (define (pca-feature-gen dataset-id exec name)
-  (let (model-id (get-exec-model-id exec "pca"))
+  (let (model-id (get-exec-model exec "pca-id"))
     (when model-id
       (unsupervised-batch dataset-id
                           model-id
@@ -213,7 +220,7 @@
   (update
    (create-dataset {"origin_datasets" (filter (lambda (n) n) ds-list)
                     "juxtapose" true
-                    "name" (str name ": Extended dataset")})
+                    "name" (str name "| extended")})
    {"objective_field" {"id" objective-id}}))
 
 (define (feature-generation dataset-id exec)

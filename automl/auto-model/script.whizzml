@@ -1,6 +1,6 @@
 (define (fusion-from-optiml optiml)
   (let (models (get (fetch (wait optiml)) "models")
-        selected-models (take (max (count models) 5) models))
+        selected-models (take (min (count models) 5) models))
     (create-fusion {"models" selected-models})))
 
 (define (prediction-from-fusion fusion test-ds)

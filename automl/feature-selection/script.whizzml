@@ -42,10 +42,12 @@
 
 (define filtered-train-dataset
   (when (= "dataset" (resource-type train-dataset))
-    (create-dataset {"origin_dataset" train-dataset
+    (create-dataset {"name" (str (resource-name train-dataset) " | filtered")
+                     "origin_dataset" train-dataset
                      "input_fields" selected-fields})))
 
 (define filtered-test-dataset
   (when (= "dataset" (resource-type test-dataset))
-    (create-dataset {"origin_dataset" test-dataset
+    (create-dataset {"name" (str (resource-name test-dataset) " | filtered")
+                     "origin_dataset" test-dataset
                      "input_fields" selected-fields})))
