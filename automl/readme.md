@@ -50,6 +50,21 @@ Before executing any script, you should import to your BigML account
 all the script from the **Scripts** section, including the
 [recursive-feature-elimination](../recursive-feature-elimination).
 
+Alternatively, you can use
+[bigmler](https://github.com/bigmlcom/bigmler) to import automatically
+all the scripts into your BigML account. For doing it, you should
+first clone the [examples repo](https://github.com/whizzml/examples):
+
+```bash
+git clone https://github.com/whizzml/examples
+```
+
+Then, navigate to **automl** folder and execute this command:
+
+```bash
+bigmler whizzml bigmler whizzml --package-dir ./
+```
+
 ### Step 2: Executing the orchestrator
 Check [automl-orchestrator readme](./automl-orchestrator/readme.md) to
 see how to use the orchestrator to run AutoML executions.
