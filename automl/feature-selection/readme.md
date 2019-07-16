@@ -31,6 +31,9 @@ directly filter them out from the dataset using the
 Elimination won't be executed, and you can omit (if you want) the
 `train-dataset` input.
 
+Remember to set previously the correct **objective field** in your
+train and test datasets.
+
 The **outputs** for the script are:
 * `filtered-train-dataset`: (dataset-id) Filtered train dataset that contains  only the important fields
 * `filtered-test-dataset`: (dataset-id) Filtered test dataset that contains  only the important fields

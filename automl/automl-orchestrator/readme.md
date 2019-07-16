@@ -27,6 +27,8 @@ There are two different ways of using this script:
 ### From a train and a test dataset
 In this case, we should pass to the script the `train-dataset` and the
 `test-dataset`, and we will left blank the `orchestrator-exec` input.
+Remember to set previously the correct **objective field** in your
+train and test datasets.
 
 The script will run the full **automated Machine Learning pipeline**
 and it will return, at the end of the process, the
@@ -41,7 +43,8 @@ run all the automated Machine Learning pipeline again.
 
 We can pass to the script the new `test-dataset` and the the last
 execution orchestrator script id in the `orchestrator-exec` input. We
-will left `train-dataset` input blank.
+will left `train-dataset` input blank. Remember to set previously the
+correct **objective field** in your test datasets.
 
 In this case, some steps of the process will be bypassed. The script
 won't generate neither a new `OptiML` nor a **Recursive Feature
