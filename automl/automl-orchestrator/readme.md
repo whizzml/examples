@@ -14,7 +14,7 @@ The **inputs** for the script are:
 * `orchestrator-exec`: (string) Previous execution of this script, to reuse created executions and models, e.g. execution/5d272205eba31d61920005cd
 
 The **outputs** for the script are:
-* `predictions-dataset`: (dataset-id) Dataset with final predictions for the test dataset
+* `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
 * `unsupervised-generation-exec`: (execution-id) Execution id of the unsupervised-generation script
 * `feature-generation-exec`: (execution-id) Execution id of the feature-generation script
 * `feature-selection-exec`: (execution-id) Execution id of the feature-selection script

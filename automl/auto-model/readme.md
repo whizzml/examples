@@ -28,5 +28,5 @@ the `OptiML`.
 
 
 The **outputs** for the script are:
-* `predictions-dataset`: (dataset-id) Dataset with the final predictions
+* `output-dataset`: (dataset-id) Dataset with the final predictions
 * `optiml-id`: (optiml-id)  OptiML from the given dataset

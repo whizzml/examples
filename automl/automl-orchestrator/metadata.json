@@ -22,7 +22,7 @@
   ],
   "outputs": [
       {
-          "name": "predictions-dataset",
+          "name": "output-dataset",
           "type": "dataset-id",
           "description": "Dataset with final predictions for the test dataset"
       },

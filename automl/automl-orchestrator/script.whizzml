@@ -94,6 +94,6 @@
 
 (log-info "auto-model: generating predictions dataset")
 
-(define predictions-dataset
+(define output-dataset
   (when (not (empty? test-dataset))
-    (output-from-exec "predictions-dataset" auto-model-exec)))
+    (output-from-exec "output-dataset" auto-model-exec)))

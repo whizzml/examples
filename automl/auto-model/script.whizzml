@@ -22,7 +22,7 @@
 
 (log-info "auto-model: creating batch predictions")
 
-(define predictions-dataset
+(define output-dataset
   (when (= (resource-type test-dataset) "dataset")
     (let (fusion (fusion-from-optiml output-optiml-id))
       (prediction-from-fusion fusion test-dataset))))
