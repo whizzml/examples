@@ -38,6 +38,6 @@
     "dimensionality-reduction",
     "aggregations",
     "fuzzy-norms",
-    "feature-generation"
+    "automl"
   ]
 }
