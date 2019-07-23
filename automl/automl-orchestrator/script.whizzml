@@ -1,9 +1,8 @@
 (define (check-inputs)
-  (if (and (empty? train-dataset)
-           (or (empty? test-dataset) (empty? orchestrator-exec)))
+  (if (and (not (= (resource-type train-dataset) "dataset"))
+           (empty? orchestrator-exec))
     (raise (str "If you don't define a train-dataset,"
-                "you must define a test-dataset and an"
-                "orchestrator-exec"))))
+                "you must define an orchestrator-exec"))))
 
 (define (find-script name)
   (let (options (list-scripts {"name__contains" name}))
@@ -25,37 +24,38 @@
     (when (not (empty? options))
       (nth (head options) 1))))
 
-(define (unsupervised-generation dataset-id)
+(define (unsupervised-generation dataset)
   (create-execution (find-script "unsupervised-generation")
-                    {"inputs" [["dataset" dataset-id]
+                    {"inputs" [["dataset" dataset]
                                ["exclude-objective" true]]}))
 
-(define (feature-generation train-dataset test-dataset  exec)
+(define (feature-generation train validation test exec)
   (create-execution (find-script "feature-generation")
-                    {"inputs" [["train-dataset" (or train-dataset "")]
-                               ["test-dataset" (or test-dataset "")]
+                    {"inputs" [["train-dataset" (or train "")]
+                               ["validation-dataset" (or validation "")]
+                               ["test-dataset" (or test "")]
                                ["unsupervised-generation-exec" exec]]}))
 
-(define (feature-selection train-dataset test-dataset . selected-fields)
+(define (feature-selection train validation test . selected-fields)
   (let (rfe-script (find-script "Recursive Feature Elimination")
         selected (if (empty? selected-fields) [] (head selected-fields)))
     (create-execution (find-script "feature-selection")
-                      {"inputs" [["train-dataset" (or train-dataset "")]
-                                 ["test-dataset" (or test-dataset "")]
+                      {"inputs" [["train-dataset" (or train "")]
+                                 ["validation-dataset" (or validation "")]
+                                 ["test-dataset" (or test "")]
                                  ["rfe-script-id" rfe-script]
                                  ["pre-selected-fields" selected]]})))
 
-(define (auto-model train-dataset test-dataset . optiml-id)
+(define (auto-model train validation test . optiml-id)
   (let (optiml (if (empty? optiml-id) "" (head optiml-id)))
     (create-execution (find-script "auto-model")
-                      {"inputs" [["train-dataset" (or train-dataset "")]
-                                 ["test-dataset" (or test-dataset "")]
+                      {"inputs" [["train-dataset" (or train "")]
+                                 ["validation-dataset" (or validation "")]
+                                 ["test-dataset" (or test "")]
                                  ["optiml-id" (or optiml "")]]})))
 
 (check-inputs)
 (check-scripts)
-
-(log-info "unsupervised-generation: generating unsupervised models")
 
 (define unsupervised-generation-exec
   (if (not (empty? orchestrator-exec))
@@ -65,35 +65,53 @@
       (raise (str "You should define a train dataset "
                   "or an orchestrator execution")))))
 
-(log-info "feature-generation: generating new features from unsupervised models")
+(log-info "unsupervised-generation: generating unsupervised models")
 
 (define feature-generation-exec
-  (feature-generation train-dataset test-dataset unsupervised-generation-exec))
+  (feature-generation train-dataset
+                      validation-dataset
+                      test-dataset
+                      unsupervised-generation-exec))
+
+(log-info "feature-generation: generating new features from unsupervised models")
+
+(define feature-selection-exec
+  (let (train (output-from-exec "extended-train-dataset"
+                                feature-generation-exec)
+        validation (output-from-exec "extended-validation-dataset"
+                                     feature-generation-exec)
+        test (output-from-exec "extended-test-dataset"
+                               feature-generation-exec))
+    (if (empty? orchestrator-exec)
+      (feature-selection train validation test)
+      (let (previous (output-from-exec "feature-selection-exec"
+                                       orchestrator-exec)
+            selected (output-from-exec "selected-fields" previous))
+        (feature-selection train validation test selected)))))
 
 (log-info "feature-selection: filtering out the most important features")
 
-(define feature-selection-exec
-  (let (train-ds (output-from-exec "extended-train-dataset" feature-generation-exec)
-        test-ds (output-from-exec "extended-test-dataset" feature-generation-exec))
-    (if (empty? orchestrator-exec)
-      (feature-selection train-ds test-ds)
-      (let (previous (output-from-exec "feature-selection-exec" orchestrator-exec)
-            selected (output-from-exec "selected-fields" previous))
-        (feature-selection train-ds test-ds selected)))))
-
-(log-info "auto-model: performing Automatic Model Selection with OptiML")
-
 (define auto-model-exec
-  (let (train-ds (output-from-exec "filtered-train-dataset" feature-selection-exec)
-        test-ds (output-from-exec "filtered-test-dataset" feature-selection-exec))
+  (let (train (output-from-exec "filtered-train-dataset"
+                                feature-selection-exec)
+        validation (output-from-exec "filtered-validation-dataset"
+                                     feature-selection-exec)
+        test (output-from-exec "filtered-test-dataset"
+                               feature-selection-exec))
     (if (empty? orchestrator-exec)
-      (auto-model train-ds test-ds)
+      (auto-model train validation test)
       (let (previous (output-from-exec "auto-model-exec" orchestrator-exec)
             optiml (output-from-exec "output-optiml-id" previous))
-        (auto-model train-ds test-ds optiml)))))
+        (auto-model train validation test optiml)))))
 
-(log-info "auto-model: generating predictions dataset")
+(log-info "auto-model: performing Automatic Model Selection with OptiML")
 
 (define output-dataset
   (when (not (empty? test-dataset))
     (output-from-exec "output-dataset" auto-model-exec)))
+
+(define evaluation-id
+  (when (= (resource-type validation-dataset) "dataset")
+    (output-from-exec "evaluation-id" auto-model-exec)))
+
+(log-info "auto-model: generating predictions dataset and evaluations")

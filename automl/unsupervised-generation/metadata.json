@@ -19,7 +19,7 @@
           "name": "exclude-objective",
           "type": "boolean",
           "default": "true",
-          "description": "Excludes objective field from the dataset (True by default)"
+          "description": "Excludes objective field from the dataset (default: True)"
       },
       {
           "name": "association-params",

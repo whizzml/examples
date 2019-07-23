@@ -4,45 +4,56 @@
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
+    {
+      "name": "train-dataset",
+      "type": "string",
+      "default": "",
+      "description": "Train dataset id. (e.g. dataset/5d272205eba31d61920005cd)"
+    },
+    {
+      "name": "validation-dataset",
+      "type": "string",
+      "default": "",
+      "description": "Validation dataset id. (e.g. dataset/5d272205eba31d61920005cd)"
+    },
+    {
+      "name": "test-dataset",
+      "type": "string",
+      "default": "",
+      "description": "Test dataset id. (e.g. dataset/5d272205eba31d61920005cd)"
+    },
       {
-          "name": "train-dataset",
-          "type": "string",
-          "default": "",
-          "description": "Train dataset id. (e.g. dataset/5d272205eba31d61920005cd)"
+        "name": "rfe-script-id",
+        "type": "script-id",
+        "description": "Recursive Feature Elimination script id. (e.g. script/g5f3jj05eba31d619200g5c0)"
       },
-      {
-          "name": "test-dataset",
-          "type": "string",
-          "default": "",
-          "description": "Test dataset id. (e.g. dataset/5d272205eba31d61920005cd)"
-      },
-      {
-          "name": "rfe-script-id",
-          "type": "script-id",
-          "description": "Recursive Feature Elimination script id. (e.g. script/g5f3jj05eba31d619200g5c0)"
-      },
-      {
-          "name": "pre-selected-fields",
-          "type": "list",
-          "default": [],
-          "description": "list of pre-selected field ids, to bypass RFE execution"
-      }
+    {
+      "name": "pre-selected-fields",
+      "type": "list",
+      "default": [],
+      "description": "list of pre-selected field ids, to bypass RFE execution"
+    }
   ],
   "outputs": [
-      {
-          "name": "filtered-train-dataset",
-          "type": "dataset-id",
-          "description": "Filtered train dataset that contains only the selected fields"
-      },
-      {
-          "name": "filtered-test-dataset",
-          "type": "dataset-id",
-          "description": "Filtered test dataset that contains only the selected fields"
-      },
-      {
-          "name": "selected-fields",
-          "type": "list",
-          "description": "Selected important field ids"
-      }
+    {
+      "name": "filtered-train-dataset",
+      "type": "dataset-id",
+      "description": "Filtered train dataset with only the selected fields"
+    },
+    {
+      "name": "filtered-validation-dataset",
+      "type": "dataset-id",
+      "description": "Filtered validation dataset with only the selected fields"
+    },
+    {
+      "name": "filtered-test-dataset",
+      "type": "dataset-id",
+      "description": "Filtered test dataset with only the selected fields"
+    },
+    {
+      "name": "selected-fields",
+      "type": "list",
+      "description": "Selected important field ids"
+    }
   ]
 }

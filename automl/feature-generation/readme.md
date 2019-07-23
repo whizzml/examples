@@ -5,8 +5,8 @@ This script is the second step for **Automated Feature Generation**.
 To run this script, you should have executed previously the
 [unsupervised-generation](../unsupervised-generation) script.
 
-The script **extends two given train and test datasets** with new
-features that comes from **scoring with some unsupervised models**
+The script **extends the given train, validation and test datasets** with
+new features that comes from **scoring with some unsupervised models**
 created previously.
 
 **NOTE**: This script is one part of the [**BigML
@@ -24,17 +24,21 @@ Currently, the generated fields come from:
 
 The **inputs** for the script are:
 
-* `train-dataset`: (string) Dataset ID for the train dataset to be extended. (e.g. dataset/5d267a147811dd0726000fdd)
-* `test-dataset`: (string) Dataset ID for the test dataset to be extended. (e.g. dataset/5d267a147811dd0726000fdd)
+* `train-dataset`: (string) Dataset ID for the train dataset to be extended. (e.g. dataset/5d267a147811dd0726000fdd) **Optional**
+* `validation-dataset`: (string) Dataset ID for the validation dataset to be extended. (e.g. dataset/4g267a147811dd0726000f54) **Optional**
+* `test-dataset`: (string) Dataset ID for the test dataset to be extended. (e.g. dataset/5d267a147811dd0726000fdd) **Optional**
 * `unsupervised-generation-exec`: (execution-id) Execution of the
   [unsupervised-generation](../unsupervised-generation) script. (e.g. execution/4fg56h147811dd0726000a3v)
 
-As you can see, `train-dataset` and `test-dataset` are **text** fields
-instead **dataset-id** fields. You can pass to the script only train
-or test dataset and leave the other input blank.
+As you can see, `train-dataset`, `validation-dataset` and
+`test-dataset` are **text** fields instead **dataset-id** fields. You
+can pass to the script only train, validation or test datasets and
+leave the other inputs blank.
 
 The **outputs** for the script are:
 * `extended-train-dataset`: (dataset-id) Dataset ID for the extended train dataset
+* `extended-validation-dataset`: (dataset-id) Dataset ID for the
+  extended validation dataset
 * `extended-test-dataset`: (dataset-id) Dataset ID for the extended test dataset
 
 After adding new features to your dataset, you can choose between

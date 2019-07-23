@@ -237,14 +237,22 @@
                      (map batch-output-ds all-fields)))
     (create-output-dataset all-ds name objective-id)))
 
-(log-info "feature-generation: generating extended train dataset")
+
 (define extended-train-dataset
   (when (= (resource-type train-dataset) "dataset")
-    (log-info "feature-generation: extending train dataset")
     (feature-generation train-dataset unsupervised-generation-exec)))
 
-(log-info "feature-generation: generating extended test dataset")
+(log-info "feature-generation: generating extended train dataset")
+
+(define extended-validation-dataset
+  (when (= (resource-type validation-dataset) "dataset")
+    (feature-generation validation-dataset unsupervised-generation-exec)))
+
+(log-info "feature-generation: generating extended validation dataset")
+
 (define extended-test-dataset
   (when (= (resource-type test-dataset) "dataset")
     (log-info "feature-generation: extending test dataset")
     (feature-generation test-dataset unsupervised-generation-exec)))
+
+(log-info "feature-generation: generating extended test dataset")

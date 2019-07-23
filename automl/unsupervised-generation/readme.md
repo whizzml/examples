@@ -30,12 +30,12 @@ model can be found in the [API docs](https://bigml.com/api).
 The **inputs** for the script are:
 
 * `dataset`: (dataset-id) Origin dataset id for the creation of the models
-* `exclude-objective`: (boolean) **optional** Whether to exclude the objective field from the models input fields. True by default
-* `cluster-params`: (map) **optional** Params of the cluster model. Leave blank for default 1-Click cluster
-* `association-params`: (map) **optional** Params of the association discovery model. If association-params is not passed to the script, an association discovery with the `objective-id` as **Consequent** will be created.
-* `anomaly-params`: (map) **optional** Params of the anomaly detector. Leave blank for default 1-Click anomaly detector
-* `topic-params`: (map) **optional** Params of the topic model. Leave blank for default 1-Click topic model
-* `pca-params`: (map) **optional** Params of the PCA model. Leave blank for default 1-Click PCA
+* `exclude-objective`: (boolean) Whether to exclude the objective field from the models input fields. **Optional** True by default
+* `cluster-params`: (map) Params of the cluster model. Leave blank for default 1-Click cluster. **Optional**
+* `association-params`: (map) Params of the association discovery model. If association-params is not passed to the script, an association discovery with the `objective-id` as **Consequent** will be created. **Optional**
+* `anomaly-params`: (map) Params of the anomaly detector. Leave blank for default 1-Click anomaly detector. **Optional**
+* `topic-params`: (map) Params of the topic model. Leave blank for default 1-Click topic model. **Optional**
+* `pca-params`: (map) Params of the PCA model. Leave blank for default 1-Click PCA. **Optional**
 
 The **outputs** for the script are:
 * `cluster-id`: (cluster-id) Generated cluster

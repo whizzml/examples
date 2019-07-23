@@ -1,28 +1,46 @@
-(define (fusion-from-optiml optiml)
-  (let (models (get (fetch (wait optiml)) "models")
-        selected-models (take (min (count models) 5) models))
+(define (check-inputs)
+  (if (and (not (= (resource-type optiml-id) "optiml"))
+           (not (= (resource-type train-dataset) "dataset")))
+    (raise "You should provide an optiml-id or a train-dataset")))
+
+(define (fusion-from-optiml optiml num-of-models)
+  (let (num (round num-of-models)
+        models (get (fetch (wait optiml)) "models")
+        selected-models (take (min (count models) num) models))
     (create-fusion {"models" selected-models})))
 
 (define (prediction-from-fusion fusion test-ds)
   (let (pred (create-batchprediction {"dataset" test-ds
-                                     "fusion" fusion
-                                     "output_dataset" true
-                                     "all_fields" true}))
-    (get (fetch (wait pred)) "output_dataset_resource")))
+                                      "fusion" fusion
+                                      "output_dataset" true
+                                      "all_fields" true}))
+    ((fetch (wait pred)) "output_dataset_resource")))
 
-
-(log-info "auto-model: obtaining optiml...")
-(log-info (str "auto-model: the optiml creation can take some minutes..."
-               " (or even hours)"))
+(check-inputs)
 
 (define output-optiml-id
   (if (= (resource-type optiml-id) "optiml")
     optiml-id
-    (create-optiml train-dataset)))
+    (create-optiml train-dataset
+                   (if (= (resource-type validation-dataset) "dataset")
+                     {"test_dataset" validation-dataset}
+                     {}))))
 
-(log-info "auto-model: creating batch predictions")
+(log-info "auto-model: Creating OptiML...")
+(log-info (str "auto-model: The OptiML creation can take some minutes..."
+               " (or even hours)"))
+
+(define output-fusion-id
+  (fusion-from-optiml output-optiml-id num-of-models))
+
+(log-info "auto-model: Creating Fusion...")
 
 (define output-dataset
   (when (= (resource-type test-dataset) "dataset")
-    (let (fusion (fusion-from-optiml output-optiml-id))
-      (prediction-from-fusion fusion test-dataset))))
+    (prediction-from-fusion output-fusion-id test-dataset)))
+
+(log-info "auto-model: Creating batch predictions")
+
+(define evaluation-id
+  (when (= (resource-type validation-dataset) "dataset")
+    (create-evaluation output-fusion-id validation-dataset)))

@@ -6,7 +6,7 @@ Machine Learning pipeline** in BigML.
 ![BigML AutoML](https://littleml.files.wordpress.com/2018/05/optiml_14.gif?w=497)
 
 
-From a train and a test datasets, the following tasks will be
+From a train, validation and test datasets, the following tasks will be
 automatically done:
 
 -  [`unsupervised-generation`](./unsupervised-generation): Creating
@@ -14,15 +14,16 @@ automatically done:
   `Association Discovery`, `PCA`, `Topic Model`
 -  [`unsupervised-generation`](./unsupervised-generation): Using the
   unsupervised models created previously for scoring the datasets and
-  **generating, automatically, new features** for train and test
-  datasets
+  **generating, automatically, new features** for train, validation
+  and test datasets
 -  [`feature-selection`](./feature-selection) Reducing, automatically,
   the number of fields of the datasets using the
   [`recursive-feature-elimination`](../recursive-feature-elimination)
   algorithm.
 -  [`auto-model`](./auto-model) Using OptiML to find the best models
-  and using the top 5 models to create a `Fusion` model to predict
-  all the test dataset instances
+  and using the top 5 models to create a `Fusion` model to predict all
+  the test dataset instances. If a validation dataset is given, this
+  script will return an evaluation of the final model too.
 
 ## Scripts
 
@@ -62,7 +63,7 @@ git clone https://github.com/whizzml/examples
 Then, navigate to **automl** folder and execute this command:
 
 ```bash
-bigmler whizzml bigmler whizzml --package-dir ./
+bigmler whizzml --package-dir ./
 ```
 
 ### Step 2: Executing the orchestrator
