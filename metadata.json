@@ -38,6 +38,10 @@
     "dimensionality-reduction",
     "aggregations",
     "fuzzy-norms",
-    "automl"
+    "automl",
+    "feature-generation",
+    "supervised-model-quality",
+    "correlations-matrix",
+    "batch-association-sets"
   ]
 }
