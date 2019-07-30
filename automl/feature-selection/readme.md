@@ -22,7 +22,7 @@ The **inputs** for the script are:
 * `test-dataset`: (string) Test dataset to filter (e.g. dataset/5d272205eba31d61920005cd) **Optional**
 * `rfe-script-id`: (script-id) Script id of the [Recursive Feature
 Elimination](../../recursive-feature-elimination) Whizzml script.
-* `pre-selected-fields`: (list) List of the pre-selected field ids, to
+* `pre-selected-fields`: (list) List of the pre-selected field names, to
 bypass RFE. Leave blank to run RFE and obtain, from it, the most
 important fields. **Optional** (if it is not give, `train-dataset`
 must be specified).
@@ -40,7 +40,7 @@ The **outputs** for the script are:
 * `filtered-train-dataset`: (dataset-id) Filtered train dataset with only the important fields
 * `filtered-validation-dataset`: (dataset-id) Filtered validation dataset with only the important fields
 * `filtered-test-dataset`: (dataset-id) Filtered test dataset with only the important fields
-* `selected-fields`: (list)  List of the selected field ids
+* `selected-fields`: (list)  List of the selected field names
 
 
 After removing unimportant fields you will need to pass the generated

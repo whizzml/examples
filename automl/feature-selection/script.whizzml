@@ -6,10 +6,17 @@
 (define (flatten items)
   (if (every? list? items) (flatten (reduce concat [] items)) items))
 
+(define (field-ids-from-names fields dataset)
+  (map (lambda(f) ((find-field (resource-fields dataset) f) "id")) fields))
+
+(define (field-names-from-ids fields dataset)
+  (map (lambda(f) ((find-field (resource-fields dataset) f) "name")) fields))
+
 (define (filter-dataset-fields dataset excluded-fields)
   (let (fields (resource-fields dataset))
-    (filter (lambda (f) (not (member? ((fields f) "name") excluded-fields)))
-            (keys fields))))
+    (field-names-from-ids
+     (filter (lambda (f) (not (member? ((fields f) "name") excluded-fields)))
+             (keys fields)))))
 
 (define (rfe-best-num-features evaluations)
   (get (max-key (lambda (ev) (get ev "evaluation")) evaluations)
@@ -21,7 +28,7 @@
 
 (define (rfe-output-fields dataset evaluations num-features)
   (let (excluded (map (lambda (n) (n "last-removed"))
-                      (filter (lambda (n) (>= (n "features") num-features))
+                      (filter (lambda (n) (> (n "features") num-features))
                               evaluations)))
     (log-info "feature-selection: removing " (count excluded) " features")
     (filter-dataset-fields dataset (flatten excluded))))
@@ -52,7 +59,8 @@
   (when (= "dataset" (resource-type train-dataset))
     (create-dataset {"name" (str (resource-name train-dataset) " | filtered")
                      "origin_dataset" train-dataset
-                     "input_fields" selected-fields})))
+                     "input_fields" (field-ids-from-names train-dataset
+                                                          selected-fields)})))
 
 (log-info "feature-selection: Filtering train dataset")
 
@@ -60,7 +68,8 @@
   (when (= "dataset" (resource-type validation-dataset))
     (create-dataset {"name" (str (resource-name validation-dataset) " | filtered")
                      "origin_dataset" validation-dataset
-                     "input_fields" selected-fields})))
+                     "input_fields" (field-ids-from-names validation-dataset
+                                                          selected-fields)})))
 
 (log-info "feature-selection: Filtering validation dataset")
 
@@ -68,6 +77,7 @@
   (when (= "dataset" (resource-type test-dataset))
     (create-dataset {"name" (str (resource-name test-dataset) " | filtered")
                      "origin_dataset" test-dataset
-                     "input_fields" selected-fields})))
+                     "input_fields" (field-ids-from-names test-dataset
+                                                          selected-fields)})))
 
 (log-info "feature-selection: Filtering test dataset")
