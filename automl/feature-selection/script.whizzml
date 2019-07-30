@@ -6,15 +6,16 @@
 (define (flatten items)
   (if (every? list? items) (flatten (reduce concat [] items)) items))
 
-(define (field-ids-from-names fields dataset)
+(define (field-ids-from-names dataset fields)
   (map (lambda(f) ((find-field (resource-fields dataset) f) "id")) fields))
 
-(define (field-names-from-ids fields dataset)
+(define (field-names-from-ids dataset fields)
   (map (lambda(f) ((find-field (resource-fields dataset) f) "name")) fields))
 
 (define (filter-dataset-fields dataset excluded-fields)
   (let (fields (resource-fields dataset))
     (field-names-from-ids
+     dataset
      (filter (lambda (f) (not (member? ((fields f) "name") excluded-fields)))
              (keys fields)))))
 
