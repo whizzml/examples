@@ -1,0 +1,499 @@
+;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.1 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;; UTILS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;; Common utilities ;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Logs important message with some ascii decoration
+(define (log-featured message)
+  (log-info "\n")
+  (log-info "***************************************")
+  (log-info "    " (str message))
+  (log-info "***************************************")
+  (log-info "\n"))
+
+;; Obtain output item from an execution by its name
+(define (output-from-exec exec output-name)
+  (when (= "execution" (resource-type exec))
+    (let (outputs (get (get (fetch (wait exec)) "execution" {}) "outputs" [])
+          options (when (not (empty? outputs))
+                    (filter (lambda (o) (= (head o) output-name)) outputs)))
+      (when (not (empty? options))
+        ((head options) 1)))))
+
+;; Obtain input item from an execution by its name
+(define (input-from-exec exec input-name)
+  (when (= "execution" (resource-type exec))
+    (let (inputs (get (fetch (wait exec)) "inputs" [])
+          options (when (not (empty? inputs))
+                    (filter (lambda (i) (= (head i) input-name)) inputs)))
+      (when (not (empty? options))
+        ((head options) 1)))))
+
+;; Remove false values from a list
+(define (remove-false items)
+  (when (list? items)
+    (filter (lambda (n) n) items)))
+
+(define (_flatten items)
+  (when (list? items)
+    (if (every? list? items) (_flatten (reduce concat [] items)) items)))
+
+(define (_model-from-list model-list model-type)
+  (when (list? model-list)
+    (filter (lambda (m) (= (resource-type m) model-type))
+            model-list)))
+
+(define (_safe-delete id)
+  (try (delete id)
+       (catch e
+         (log-info  "Error deleting resource " id " ignored"))))
+
+;; Returns a list of field ids from a list of field names
+;; Not found fields are ignored
+(define (field-ids-from-names field-names dataset)
+  (let (dataset-fields (resource-fields dataset))
+    (remove-false
+     (map (lambda(f) (get (or (find-field dataset-fields f) {}) "id" false))
+          field-names))))
+
+;; Returns a list of field ids from a list of field names
+;; Not found fields are ignored
+(define (field-names-from-ids field-ids dataset)
+  (let (dataset-fields (resource-fields dataset))
+    (remove-false
+     (map (lambda(f) (get (or (find-field dataset-fields f) {}) "name" false))
+          field-ids))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;; CHECKS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;; Data and input checks ;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Checks execution inputs. At least, a train-dataset or a
+;; previous execution must be provided
+(define (check-inputs train validation test exec)
+  (if (and (not (= (resource-type train) "dataset"))
+           (not (= (resource-type exec) "execution")))
+    (raise (str "If you don't define a correct train-dataset,"
+                "you must define a correct previous execution"))))
+
+;; Checks excluded fields. We can't reuse resources from
+;; previous executions if the excluded_fields were different.
+(define (check-excluded-fields train exec excluded)
+  (if (and (not (= (resource-type train) "dataset"))
+           (= (resource-type exec) "execution")
+           (not (empty? excluded))
+           (not (= excluded (input-from-exec exec "excluded_fields"))))
+    (raise (str "Your excluded_fields are different to the ones you provided"
+                " in the given previous execution of automl."
+                " Please, provide the same excluded_fields (or leave blank the"
+                " excluded_fields input to use the same excluded_fields as in"
+                " the training execution) or provide a training dataset to start"
+                " training again with the new excluded_fields"))))
+
+;; Checks if train validation and test datasets contain the same fields
+(define (check-datasets-fields train valid test)
+  (let (fields-set (lambda (ds)
+                     (let (fields (resource-fields ds))
+                       (set* (map (lambda(f) (resource-name (fields f {}) ""))
+                                  (keys fields)))))
+        train-fields (fields-set train)
+        valid-fields (fields-set valid)
+        test-fields  (fields-set test))
+    (if (or (and (positive? (count train-fields))
+                 (positive? (count valid-fields))
+                 (positive? (count (difference train-fields valid-fields))))
+            (and (positive? (count train-fields))
+                 (positive? (count test-fields))
+                 (> (count (difference train-fields test-fields)) 1)))
+      (log-warn "WARNING: There are some fields that are in your train dataset"
+                " and not in your validation or test datasets (besides the"
+                " objective field"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;; UNSUPERVISED  GENERATION ;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;; Creation of unsupervised models ;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (_set-unsupervised-params dataset params exclude)
+  (let (name (str (resource-name dataset) " | unsupervised-gen")
+        params (assoc (or params {}) "name" name)
+        excluded (params "excluded_fields" [])
+        objective-id (dataset-get-objective-id dataset))
+    (if (and exclude objective-id)
+      (assoc params "excluded_fields" (append excluded objective-id))
+      params)))
+
+;; Creates an unsupervised model (specified by type) from a given
+;; dataset and some params. exclude is a flag to exclude
+;; objective id for the model creation
+(define (create-unsupervised type dataset params exclude)
+  (let (final-params (_set-unsupervised-params dataset params exclude))
+    (try
+     (log-info " - Creating " type)
+     (create type dataset final-params)
+     (catch e
+       (log-warn "   WARNING: Could not create the " type)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; FEATURE  GENERATION ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;; Batch Association Sets ;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (_describe-item item field-info)
+  (let (complement? (item "complement" false)
+        comp (if complement? "not " "")
+        field-name (field-info "name")
+        [start end] [(item "bin_start" false) (item "bin_end" false)]
+        [start end] (if complement? [end start] [start end]))
+    (if (item "name" false)
+      (cond (and (numeric-field? field-info) start end)
+            (if (< start end)
+              (str start " < " field-name " <= " end)
+              (str field-name " > " start " or <=" end))
+            (and (numeric-field? field-info) start)
+            (str field-name " > " start)
+            (and (numeric-field? field-info) end)
+            (str field-name " <= " end)
+            (categorical-field? field-info)
+            (str field-name " " (if complement? "!=" "=")
+                 " " (item "name"))
+            (or (text-field? field-info)
+                (items-field? field-info))
+            (str field-name " " (if complement? "excludes" "includes")
+                 " " (item "name")))
+      (str field-name " is " comp "missing"))))
+
+(define (_flatline-item item field-info)
+  (let (complement? (item "complement" false)
+        field-name (field-info "name")
+        [start end] [(item "bin_start" false) (item "bin_end" false)]
+        [start end] (if complement? [end start] [start end]))
+    (if (item "name" false)
+      (cond (and (numeric-field? field-info) start end)
+            (if (< start end)
+              (str "(and (< " start " (f \"" field-name
+                         "\")) (<= (f \"" field-name "\") " end "))")
+              (str "(or (> (f \"" field-name "\") " start
+                   ") (<= (f \"" field-name  "\") " end "))"))
+            (and (numeric-field? field-info) start)
+            (str "(> (f \"" field-name "\") " start ")")
+            (and (numeric-field? field-info) end)
+            (str "(<= (f \"" field-name "\") " end ")")
+            (categorical-field? field-info)
+            (str "(" (if complement? "!=" "=") " (f \"" field-name
+                       "\") \"" (item "name") "\")")
+            (text-field? field-info)
+            (let (op (if complement? "=" ">")
+                  options (field-info "term_analysis")
+                  case-s (options "case_sensitive" false)
+                  case-i (if case-s "false" "true")
+                  language (options "language"))
+              (str "(" op " (occurrences (f \"" field-name "\") \""
+                      (item "name") "\" " case-i " " language ") 0)"))
+            (items-field? field-info)
+            (if complement?
+              (str "(not (contains-items? \"" field-name "\" \""
+                       (item "name") "\"))")
+              (str "(contains-items? \"" field-name "\" \""
+                       (item "name") "\")")))
+      (if complement?
+        (str "(not (missing? (f \"" field-name "\")))")
+        (str "(missing? (f \"" field-name "\"))")))))
+
+(define (_describe-rule association rule-id match)
+  (let (fields (resource-fields association)
+        associations (association "associations" {})
+        items (associations "items" [])
+        rules (associations "rules" [])
+        rule (try (head (filter (lambda (r) (= (r "id") rule-id)) rules))
+                  (catch e (log-error "The rule does not exist")))
+        get-item-fn (lambda (i) (let (item (items i)
+                                      field-info (fields (item "field_id")))
+                                  (_describe-item item field-info)))
+        lhs (map get-item-fn (rule "lhs"))
+        rhs (map get-item-fn (rule "rhs")))
+    (cond (= match "antecedent")
+            (join " and " lhs)
+            (= match "consequent")
+            (join " and " rhs)
+            (str (join " and " lhs) " then " (join " and " rhs)))))
+
+(define (_check-assoc-field-exists association rule dataset-id)
+  (let (items (get (association "associations" {}) "items" [])
+        lhs (get (items (rule "lhs") {}) "field_id")
+        rhs (get (items (rule "lhs") {}) "field_id"))
+    (= 2 (count (field-names-from-ids [lhs rhs] dataset-id)))))
+
+(define (_flatline-rule association rule match dataset-id)
+  (when (_check-assoc-field-exists association rule dataset-id)
+    (let (fields (resource-fields association)
+          associations (association "associations" {})
+          items (associations "items" [])
+          get-item-fn
+          (lambda (i) (_flatline-item (items i) (fields ((items i) "field_id"))))
+          lhs (map get-item-fn (rule "lhs"))
+          rhs (map get-item-fn (rule "rhs"))
+          lhs (if (> (count lhs) 1)
+                (str "(and " (join " " lhs) ")")
+                (join " " lhs))
+          rhs (if (> (count rhs) 1)
+                (str "(and " (join " " rhs) ")")
+                (join " " rhs)))
+      (cond (= match "antecedent")
+            lhs
+            (= match "consequent")
+            rhs
+            (str "(and " lhs " " rhs ")")))))
+
+(define (_batch-association-sets dataset-id association-id  match . rule-ids)
+  (let (association (fetch association-id)
+        associations (association "associations" {})
+        rule-ids (if (empty? (head rule-ids []))
+                   (map (lambda (r) (r "id")) (associations "rules"))
+                   (head rule-ids))
+        rules (filter (lambda (r) (member? (r "id") rule-ids))
+                      (associations "rules"))
+        flatline-rules (map (lambda (r)
+                              (_flatline-rule association r match dataset-id))
+                            rules)
+        new-fields (iterate (acc [] flatline-rule flatline-rules rule rules)
+                     (if flatline-rule
+                       (append acc {"field" flatline-rule
+                                    "name" (_describe-rule association
+                                                           (rule "id")
+                                                           match)
+                                    "label" (str (association "name")
+                                                 " - rule "
+                                                 (rule "id"))})
+                       acc)))
+    (when (empty? new-fields)
+      (raise (str "No rules were found for the list of IDs: "
+                  (join ", " rule-ids))))
+    new-fields))
+
+(define (_remove-duplicate-rules rules)
+  (when (list? rules)
+    (let (rule-exists (lambda (rule rules)
+                        (some (lambda(saved-rule)
+                                (= (saved-rule "name") (rule "name")))
+                              rules)))
+      (reduce (lambda (l r) (if (not (rule-exists r l) ) (cons r l) l)) []
+              rules))))
+
+(define (_dataset-with-rules dataset-id dataset-name new-fields excluded)
+  (when (= (resource-type dataset-id) "dataset")
+    (create-dataset {"origin_dataset" dataset-id
+                     "excluded_fields" excluded
+                     "name" (str dataset-name " | with-assoc-rules")
+                     "new_fields"
+                     (or (_remove-duplicate-rules new-fields) [])})))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; FEATURE  GENERATION ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;; Extend datasets generating new features;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (_unsupervised-batch dataset-id model-id name batch-type)
+  (let (params {"name" (str name " | " batch-type) "output_dataset" true})
+    (try
+     (create batch-type dataset-id  model-id params)
+     (catch e
+       (log-warn "   WARNING: Could not create the " batch-type)))))
+
+;; Creates a batch scoring from a dataset and an unsupervised model
+(define (unsupervised-feature-gen dataset-id model-list name m-type b-type)
+  (let (models (_model-from-list model-list m-type))
+    (when (not (empty? models))
+      (_unsupervised-batch dataset-id (head models) name b-type))))
+
+;; Adds to the dataset a new set of fields coming from batch
+;; association sets from association discovery models in model-list
+(define (assoc-feature-gen dataset-id model-list name excluded)
+  (let (new-fields
+        (map (lambda(m) (_batch-association-sets dataset-id m "antecedent"))
+             (_model-from-list model-list "association")))
+    (_dataset-with-rules dataset-id name (_flatten new-fields) excluded)))
+
+;; From a batch score, obtains the generated output dataset
+(define (batch-output-ds res)
+  (when (resource-id? res)
+    ((fetch (wait res)) "output_dataset_resource" false)))
+
+;; Creates a new dataset by juxtaposing a list of datasets
+(define (feature-generation-dataset ds-list name objective-id)
+  (update (create-dataset {"origin_datasets" (remove-false ds-list)
+                           "juxtapose" true
+                           "name" (str name " | extended")})
+          {"objective_field" {"id" objective-id}}))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; FEATURE  SELECTION ;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;; Recursive Feature Elimination ;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (_default-inputs dataset-id obj-id)
+  (when (= (resource-type dataset-id) "dataset")
+    (let (fields (resource-fields dataset-id))
+      (filter (lambda (k) (and (fields [k "preferred"] true)
+                               (not (= obj-id k))))
+              (keys fields)))))
+
+(define (_random-forest dataset-id obj seed input-fields)
+  (create-and-wait-ensemble {"dataset" dataset-id
+                             "objective_field" obj
+                             "randomize" true
+                             "random_candidate_ratio" 0.33
+                             "sample_rate" 0.8
+                             "seed" seed
+                             "input_fields" input-fields
+                             "ensemble_sample" {"rate" 1
+                                                "replacement" true
+                                                "seed" seed}}))
+
+(define (_get-objective ds-id obj-id)
+  (let (obj-id (if (empty? obj-id) (dataset-get-objective-id ds-id) obj-id)
+        fields (resource-fields ds-id)
+        obj-id ((find-field fields obj-id) "id" false)
+        otype (fields [obj-id "optype"] false))
+    (when (not otype)
+      (raise  "The dataset's objective doesn't exist"))
+    [obj-id otype]))
+
+(define (_choose-eval-metric evaluation-metric otype)
+  (cond (not (empty? evaluation-metric)) evaluation-metric
+        (= "categorical" otype) "average_phi"
+        "r_squared"))
+
+(define (_rfe-response selected selected-names evaluations do-evaluation)
+  {"selected-fields" selected
+   "selected-fields-names" selected-names
+   "evaluations" (if do-evaluation evaluations [])})
+
+(define (_check-no-imp imps selected)
+  ;; Obtain fields with importance 0
+  ;; (they  doesnt appear in "importance")
+  (let (no-imp-fields (filter (lambda (n)
+				(not (member? n (keys imps))))
+			      selected)
+	;; Obtaining minimum field importance
+        removed-field (min-key (lambda (x) (imps x)) (keys imps))
+        removed-fields (cons removed-field no-imp-fields))
+    removed-fields))
+
+;; Applies recursive feature elimination to obtain the most important
+;; fields from a dataset, evaluating each iteration with the test-ds-id
+(define (recursive-feature-elimination ds-id nfeatures obj-id test-ds-id metric)
+  (let (do-evaluation (= (resource-type test-ds-id) "dataset")
+        [obj-id otype] (_get-objective ds-id obj-id)
+        fields (resource-fields ds-id)
+        input-ids (_default-inputs ds-id obj-id)
+        evaluation-metric (_choose-eval-metric metric otype))
+    (loop (selected input-ids evaluations [] generated-res [])
+      ;; Loop until we obtain the desired number of features
+      (if (<= (count selected) nfeatures)
+        (prog
+          (map _safe-delete generated-res)
+          (_rfe-response selected
+                         (field-names-from-ids selected ds-id)
+                         evaluations
+                         do-evaluation))
+        (let (_ (log-info "------- RFE iteration with "
+			  (count selected)
+			  " fields -------")
+              seed "BigML-RFE"
+              ;; Create random forest and obtain its importances
+              rf-id (_random-forest ds-id obj-id seed selected)
+              imps ((fetch rf-id) "importance")
+	      ;; Check least important fields
+	      removed-fields (_check-no-imp imps selected)
+	      removed-fields-names (field-names-from-ids removed-fields ds-id)
+              _ (log-info  "Removed-fields " removed-fields-names)
+              ;; Remove field from selected list
+              selected (keys (dissoc imps (removed-fields 0)))
+              ev-id (when do-evaluation
+                      (create-evaluation test-ds-id rf-id))
+              ev (when ev-id
+                   (fetch (wait ev-id)))
+              ev-result (when ev (ev ["result" "model" evaluation-metric]))
+              ;; Iterations evaluation info
+              iterations (when ev {"features" (count selected)
+                                   "evaluation"  ev-result
+                                   "last-removed" removed-fields-names})
+              evaluations (when ev (append evaluations iterations))
+              generated-res (concat generated-res [rf-id ev-id]))
+          (recur selected evaluations generated-res))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; FEATURE  SELECTION ;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;; Obtain the most important features;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (_filter-dataset-fields dataset excluded-fields)
+  (let (fields (resource-fields dataset))
+    (field-names-from-ids
+     (filter (lambda (f) (not (member? ((fields f) "name") excluded-fields)))
+             (keys fields))
+     dataset)))
+
+;; Obtains the ideal features from the RFE evaluations
+;; The ones that give the maximum evaluation
+(define (rfe-best-num-features evaluations)
+  (get (max-key (lambda (ev) (get ev "evaluation")) evaluations)
+       "features"))
+
+;; Filters out the unimportant fields from a dataset
+(define (rfe-output-fields dataset evaluations num-features)
+  (let (excluded (map (lambda (n) (n "last-removed"))
+                      (filter (lambda (n) (> (n "features") num-features))
+                              evaluations)))
+    (log-info "Finished feature selection")
+    (log-info "Removing " (count excluded) " features")
+    (log-info "Using " num-features " features")
+    (_filter-dataset-fields dataset (_flatten excluded))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;; MODEL  SELECTION ;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;; Select the kind of model with best performance ;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Creates an optiml model from a train and an
+;; optional validation dataset
+(define (create-optiml-model train validation)
+  (when (= (resource-type train) "dataset")
+    (log-info "Creating Optiml, this  can last several minutes (or even hours)")
+    (create-optiml train (if (= (resource-type validation) "dataset")
+                           {"test_dataset" validation}
+                           {}))))
+
+;; Obtains a fusion from the outpus of an execution
+(define (retrieve-fusion exec)
+  (when (= (resource-type exec) "execution")
+    (output-from-exec exec "output-fusion")))
+
+;; Creates a fusion model from the top num-of-models models
+;; in a optiml
+(define (fusion-from-optiml optiml num-of-models)
+  (when (= (resource-type optiml) "optiml")
+    (let (num (round num-of-models)
+          models (get (fetch (wait optiml)) "models" [])
+          selected-models (take (min (count models) num) models))
+      (create-fusion {"models" selected-models}))))
+
+;; Creates a batch prediction from a fusion model and a
+;; test dataset and returns a dataset with all the
+;; original fields and the predictions from the fusion
+(define (prediction-from-fusion fusion test)
+  (when (and (= (resource-type fusion) "fusion")
+             (= (resource-type test) "dataset"))
+    (let (pred (create-batchprediction {"dataset" test
+                                        "fusion" fusion
+                                        "output_dataset" true
+                                        "all_fields" true}))
+      ((fetch (wait pred)) "output_dataset_resource"))))

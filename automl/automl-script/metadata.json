@@ -1,0 +1,68 @@
+{
+  "name": "AutoML",
+  "description":
+  "This script executes, in the correct order, all the steps from the BigML's Automated Machine Learning pipeline",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "imports":["../automl-library"],
+  "inputs":[
+    {
+      "name": "train-dataset",
+      "type": "string",
+      "default": "",
+      "description": "Train dataset id (e.g. dataset/5d272205eba31d61920005cd)"
+    },
+    {
+      "name": "validation-dataset",
+      "type": "string",
+      "default": "",
+      "description": "Validation dataset id (e.g. dataset/5d272205eba31d61920005cd)"
+    },
+    {
+      "name": "test-dataset",
+      "type": "string",
+      "default": "",
+      "description": "Test dataset id (e.g. dataset/5d272205eba31d61920005cd)"
+    },
+    {
+      "name": "automl-execution",
+      "type": "string",
+      "default": "",
+      "description": "Previous execution of this script, to reuse created resources, e.g. execution/5d272205eba31d61920005cd"
+    },
+    {
+      "name": "excluded-fields",
+      "type": "list",
+      "default": [],
+      "description": "List of field names to be excluded from all the datasets. Empty by default"
+    }
+  ],
+  "outputs":[
+    {
+      "name": "output-dataset",
+      "type": "dataset-id",
+      "description": "Output test dataset with predictions from the fusion"
+    },
+    {
+      "name": "output-evaluation",
+      "type": "evaluation-id",
+      "description": "Evaluation of the fusion model with the validation dataset"
+    },
+
+    {
+      "name": "output-fusion",
+      "type": "fusion-id",
+      "description": "Output fusion model"
+    },
+    {
+      "name": "selected-fields",
+      "type": "list",
+      "description": "Selected important field names"
+    },
+    {
+      "name": "unsupervised-models",
+      "type": "list",
+      "description": "List of unsupervised models created from train-dataset"
+    }
+  ]
+}

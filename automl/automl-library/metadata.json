@@ -1,0 +1,7 @@
+{
+  "name": "AutoML Library",
+  "description":
+  "Collection of utilities for Automated Machine Learning within BigML",
+  "kind": "library",
+  "source_code": "library.whizzml"
+}

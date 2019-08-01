@@ -1,0 +1,126 @@
+(log-featured "Initial checks")
+(log-info "Checking execution inputs")
+(check-inputs train-dataset validation-dataset test-dataset automl-execution)
+(log-info "Checking excluded fields")
+(check-excluded-fields train-dataset automl-execution excluded-fields)
+(log-info "Checking input dataset fields")
+(check-datasets-fields train-dataset validation-dataset test-dataset)
+
+;; Whether we should resources from a given execution
+(define reuse-resources (not (= (resource-type train-dataset) "dataset")))
+(log-featured "Feature generation")
+(log-info "Obtaining unsupervised models")
+;; Returns a list of unsupervised-models from a dataset
+(define (create-unsupervised-models dataset excluded)
+  (let (params {"excluded_fields" (field-ids-from-names excluded dataset)}
+        objective-id (dataset-get-objective-id dataset)
+        lev-params (merge params {"rhs_predicate" [{"field" objective-id}]
+                                  "search_strategy" "leverage"})
+        lift-params (merge params {"rhs_predicate" [{"field" objective-id}]
+                                   "search_strategy" "lift"})
+        all-models [(create-unsupervised "association" dataset lev-params false)
+                    (create-unsupervised "association" dataset lift-params false)
+                    (create-unsupervised "cluster" dataset params true)
+                    (create-unsupervised "anomaly" dataset params true)
+                    (create-unsupervised "pca" dataset params true)
+                    (create-unsupervised "topicmodel" dataset params true)])
+    (remove-false all-models)))
+
+;; Returns a list of unsupervised model from an execution output
+(define (get-unsupervised-models automl-exec)
+  (output-from-exec automl-exec "unsupervised-models"))
+;; List will all the created unsupervised models
+(define unsupervised-models
+  (if reuse-resources
+    (get-unsupervised-models automl-execution)
+    (create-unsupervised-models train-dataset excluded-fields)))
+
+(log-info "Generating new features from unsupervised models")
+(define (feature-generation dataset-id model-list excluded)
+  (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
+        objective-id (dataset-get-objective-id dataset-id)
+        name (resource-name dataset-id)
+        feat-gen (lambda (m b)
+                   (unsupervised-feature-gen dataset-id model-list name m b))
+        cluster-fields (feat-gen "cluster" "batchcentroid")
+        anomaly-fields (feat-gen "anomaly" "batchanomalyscore")
+        topic-fields (feat-gen "topicmodel" "batchtopicdistribution")
+        pca-fields (feat-gen "pca" "batchprojection")
+        dataset-assoc (assoc-feature-gen dataset-id  model-list name excluded)
+        all-fields [cluster-fields anomaly-fields topic-fields pca-fields]
+        all-ds (cons dataset-assoc (map batch-output-ds all-fields)))
+    (feature-generation-dataset all-ds name objective-id)))
+
+(define extended-datasets
+  (map (lambda(d) (when (= (resource-type d) "dataset")
+                    (log-info " - Extending dataset: " (resource-name d))
+                    (feature-generation d unsupervised-models excluded-fields)))
+       [train-dataset validation-dataset test-dataset]))
+
+
+(log-featured "Feature Selection")
+(log-info "Obtaining the most important features")
+;; Obtains the list of important fields from
+;; a previous execution
+(define (retrieve-important-fields exec)
+  (when (= (resource-type exec) "execution")
+    (output-from-exec exec "selected-fields")))
+
+;; Obtains the most important fields from a dataset
+;; using recursive feature elimination
+(define (compute-important-fields train test)
+  (let (rfe-output (recursive-feature-elimination train 1 "" test "")
+        evaluations (rfe-output "evaluations" {})
+        num-features (rfe-best-num-features evaluations))
+    (rfe-output-fields train evaluations num-features)))
+
+;; Obtains the most important fields (a list with their names)
+;; from a train and an optional test dataset
+(define selected-fields
+  (if reuse-resources
+    (retrieve-important-fields automl-execution)
+    (let ([train valid test] extended-datasets
+          [train* test*] (if (= "dataset" (resource-type valid))
+                           [train valid]
+                           (wait* (create-random-dataset-split train 0.8))))
+      (compute-important-fields train* test*))))
+
+(log-info "Filtering the datasets")
+;; Creates the filtered datasets from the extended datasets,
+;; filtering out all the fields not present in selected-fields list
+(define filtered-datasets
+  (map (lambda (ds) (when (= "dataset" (resource-type ds))
+                      (let (name (str (resource-name ds) " | filtered")
+                            fields (field-ids-from-names selected-fields ds))
+                        (create-dataset {"name" name
+                                         "origin_dataset" ds
+                                         "input_fields" fields}))))
+       extended-datasets))
+
+(log-featured "Model Selection")
+;; Creates the final fusion model with the top 5 models
+;; from an optiml generated with the filtered datasets
+(define output-fusion
+  (let ([train valid test] filtered-datasets)
+    (if reuse-resources
+      (retrieve-fusion automl-execution)
+      (fusion-from-optiml (create-optiml-model train valid) 5))))
+
+
+(log-featured "Final dataset and evaluation")
+(log-info "Creating output dataset")
+;; Creates the final output dataset with the
+;; original fields and the predictions from
+;; the fusion model
+(define output-dataset
+  (when (= (resource-type test-dataset) "dataset")
+    (let ([train valid test] filtered-datasets)
+      (prediction-from-fusion output-fusion test))))
+
+(log-info "Creating output evaluation")
+;; Creates the final evaluation from the validation
+;; dataset and the fusion
+(define output-evaluation
+  (when (= (resource-type validation-dataset) "dataset")
+    (let ([train valid test] filtered-datasets)
+      (create-evaluation output-fusion valid))))
