@@ -9,7 +9,10 @@
         type (resource-type res-id)
         wf (resource-workflow res-id true true)
         conf (wf ["steps" 0 "args"])
-        conf (dissoc conf "dataset"))
+        conf (dissoc conf "dataset")
+        attrs (merge bigml.reify.COMMON-DEFAULTS
+                     (bigml.reify.DEFAULTS type {}))
+        excluded-attrs []) ;; we want all the user-given attributes
     (when (not (member? type SUPERVISED-MODELS))
       (raise (str "The resource-id argument must contain a Supervised"
                   " Learning model")))
@@ -30,8 +33,11 @@
                                                      model
                                                      {}
                                                      true
-                                                     1)
+                                                     1
+                                                     attrs
+                                                     excluded-attrs)
               model-ref (model-ref ["defs" res-id "ref"])
+              _ (log-info "Model configuration:" model-ref)
               fields (resource-fields ds-id)
               fields (make-map (keys fields)
                                (map (lambda (x) (dissoc x "summary"))
