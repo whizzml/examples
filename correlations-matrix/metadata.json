@@ -1,6 +1,6 @@
 {
   "name": "Correlations matrix",
-  "description": "Creates a matrix of correlations between the numeric and categorical fields in a dataset. The index used by default to measure correlation is **eta squared** (one-way ANOVA) and ",
+  "description": "Creates a matrix of correlations between the numeric and categorical fields in a dataset. The index used by default to measure correlation is **eta squared** (one-way ANOVA)",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
