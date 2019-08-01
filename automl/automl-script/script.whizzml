@@ -104,7 +104,7 @@
   (let ([train valid test] filtered-datasets)
     (if reuse-resources
       (retrieve-fusion automl-execution)
-      (fusion-from-optiml (create-optiml-model train valid) 5))))
+      (fusion-from-optiml (create-optiml-model train valid) 3))))
 
 
 (log-featured "Final dataset and evaluation")

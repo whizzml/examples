@@ -1,4 +1,4 @@
-# AutoML: Bigml Automated Machine Learning
+# AutoML: BigML Automated Machine Learning
 
 In this repository, you can find a [`WhizzML Script`](./automl-script)
 and a [`WhizzML Library`](./automl-library) to perform **Automated
@@ -8,7 +8,7 @@ Machine Learning** within BigML.
 
 
 The [script](./automl-script) will execute, from a given set of
-train/validation/test datasets, the thhree main stages in a Automated
+train/validation/test datasets, the three main stages in an Automated
 Machine Learning pipeline: Feature Generation, Feature Selection and
 Model Selection. The [library](./automl-library) contains some
 lower-level functions to abstract away the complexity from the main
@@ -28,10 +28,11 @@ That will create all necessary libraries and scripts for you.
 
 ### Using the web UI
 
-- Install the `automl` script, using
-  [this url](./automl-script).
-- Install the `automl` library, using
-  [this url](./automl-library).
+- Install the `automl` library, using [this url](./automl-library).
+- Install the `automl` script, using [this url](./automl-script).
+  Remember to import `automl` library when you import the script,
+  adding it to the `Import WhizzML libraries` tab
+
 
 If necessary, please see [the top-level readme](../readme.md) for more general
 installation instructions.

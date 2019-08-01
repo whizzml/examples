@@ -15,10 +15,10 @@ The code from the library is divided into different blocks:
 - **Feature Generation**: Functions to create new features from the
   created unsupervised models
 - **Feature Selection**: Functions to obtain, automatically, the most
-  important fields in a dataset. **Recursive Feature Elimination** is
-  used.
+  important fields in a dataset. **Recursive Feature Elimination**
+  algorithm is used.
 - **Model Selection**: Functions to obtain, automatically, the best
-  models and their hyperparameters.
+  supervised models and their hyperparameters.
 
 Private functions, that are only used inside the library, starts with
  `_`, to differentiate them from public functions that are invoked
