@@ -91,8 +91,7 @@ By convention, when the artifact is a library, the files are called
 - `dimensionality-reduction` Script for dimensionality reduction using
   PCA and topic modelling.
 - `fuzzy-norms`: Computing fuzzy-logic T-norms and T-conorms as new dataset features
-- `feature-generation`: Adding new features to a dataset which are the
-  result of applying, automatically, unsupervised models.
+- `automl`: Automated Machine Learning withing BigML
 
 ## How to install
 
