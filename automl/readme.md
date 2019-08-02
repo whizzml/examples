@@ -26,8 +26,9 @@ repository and, at its top level, issue the command:
 
 That will create all necessary libraries and scripts for you.
 
-If you can't execute `make` in your system, you can install simply
-with this command (from the examples/automl directory):
+If you can't execute `make` in your system, you can install the
+library and the script simply with this command (from the
+examples/automl directory):
 
      bigmler whizzml --package-dir=./
 
