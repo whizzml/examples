@@ -20,6 +20,6 @@ The code from the library is divided into different blocks:
 - **Model Selection**: Functions to obtain, automatically, the best
   supervised models and their hyperparameters.
 
-Private functions, that are only used inside the library, starts with
+Private functions, that are only used inside the library, start with
  `_`, to differentiate them from public functions that are invoked
-from the script.
+ from the script.

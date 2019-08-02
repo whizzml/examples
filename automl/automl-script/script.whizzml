@@ -6,7 +6,7 @@
 (log-info "Checking input dataset fields")
 (check-datasets-fields train-dataset validation-dataset test-dataset)
 
-;; Whether we should resources from a given execution
+;; Whether we should reuse resources from a given execution
 (define reuse-resources (not (= (resource-type train-dataset) "dataset")))
 (log-featured "Feature generation")
 (log-info "Obtaining unsupervised models")
@@ -29,7 +29,7 @@
 ;; Returns a list of unsupervised model from an execution output
 (define (get-unsupervised-models automl-exec)
   (output-from-exec automl-exec "unsupervised-models"))
-;; List will all the created unsupervised models
+;; List that contains all the created unsupervised models
 (define unsupervised-models
   (if reuse-resources
     (get-unsupervised-models automl-execution)
@@ -101,7 +101,7 @@
 ;; Creates the final fusion model with the top 5 models
 ;; from an optiml generated with the filtered datasets
 (define output-fusion
-  (let ([train valid test] filtered-datasets)
+  (let ([train valid _] filtered-datasets)
     (if reuse-resources
       (retrieve-fusion automl-execution)
       (fusion-from-optiml (create-optiml-model train valid) 3))))
@@ -122,5 +122,5 @@
 ;; dataset and the fusion
 (define output-evaluation
   (when (= (resource-type validation-dataset) "dataset")
-    (let ([train valid test] filtered-datasets)
+    (let ([_ valid _] filtered-datasets)
       (create-evaluation output-fusion valid))))
