@@ -34,6 +34,12 @@
             (correlation-metrics c-ids
                                  (map (lambda (x) (x "id"))  of-fields)))))
 
+;; Transforms a 2D-matrix to a CSV string
+
+(define (matrix-to-csv matrix)
+  (join "\n" (for (row matrix)
+                  (join "," row))))
+
 ;; Analyzes the contents of the list of correlations (one per field as
 ;; objective field)
 ;; The result is a list of lists that contain the name, and attributes for a
@@ -58,7 +64,8 @@
       [name k (for (f-id field-ids)
                 (results [f-id k] 1))])))
 
-(define correlations-tab (correlations-cross-tabs dataset-id
-                                                  fields
-                                                  options
-                                                  correlation-index))
+(define correlations-tab (matrix-to-csv
+                           (correlations-cross-tabs dataset-id
+                                                    fields
+                                                    options
+                                                    correlation-index)))
