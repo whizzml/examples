@@ -289,11 +289,15 @@
 
 (define (_dataset-with-rules dataset-id dataset-name new-fields excluded)
   (when (= (resource-type dataset-id) "dataset")
-    (create-dataset {"origin_dataset" dataset-id
+    (let (params {"origin_dataset" dataset-id
                      "excluded_fields" excluded
-                     "name" (str dataset-name " | with-assoc-rules")
-                     "new_fields"
-                     (or (_remove-duplicate-rules new-fields) [])})))
+                     "name" (str dataset-name " | with-assoc-rules")}
+          final-params (if (and (list? new-fields) (not (empty? new-fields)))
+                         (merge params
+                                {"new_fields"
+                                 (or (_remove-duplicate-rules new-fields) [])})
+                         params))
+    (create-dataset final-params))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; FEATURE  GENERATION ;;;;;;;;;;;;;;;;;;;;;
