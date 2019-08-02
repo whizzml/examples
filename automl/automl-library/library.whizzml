@@ -41,7 +41,7 @@
     (filter (lambda (n) n) items)))
 
 (define (_flatten items)
-  (when (list? items)
+  (when (and (list? items) (not (empty? items)))
     (if (every? list? items) (_flatten (reduce concat [] items)) items)))
 
 (define (_model-from-list model-list model-type)
