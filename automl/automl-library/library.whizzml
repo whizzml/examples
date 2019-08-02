@@ -257,11 +257,12 @@
 (define (_batch-association-sets dataset-id association-id  match . rule-ids)
   (let (association (fetch association-id)
         associations (association "associations" {})
+        rules (associations "rules" [])
         rule-ids (if (empty? (head rule-ids []))
-                   (map (lambda (r) (r "id")) (associations "rules"))
+                   (map (lambda (r) (r "id")) rules)
                    (head rule-ids))
         rules (filter (lambda (r) (member? (r "id") rule-ids))
-                      (associations "rules"))
+                      rules)
         flatline-rules (map (lambda (r)
                               (_flatline-rule association r match dataset-id))
                             rules)
@@ -275,9 +276,6 @@
                                                  " - rule "
                                                  (rule "id"))})
                        acc)))
-    (when (empty? new-fields)
-      (raise (str "No rules were found for the list of IDs: "
-                  (join ", " rule-ids))))
     new-fields))
 
 (define (_remove-duplicate-rules rules)
