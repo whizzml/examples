@@ -227,9 +227,11 @@
 
 (define (_check-assoc-field-exists association rule dataset-id)
   (let (items (get (association "associations" {}) "items" [])
-        lhs (get (items (rule "lhs") {}) "field_id")
-        rhs (get (items (rule "lhs") {}) "field_id"))
-    (= 2 (count (field-names-from-ids [lhs rhs] dataset-id)))))
+        get_id (lambda (item) (map (lambda(r) (get r "field_id")) item))
+        lhs (get_id (map (lambda(i) (items i {})) (rule "lhs")))
+        rhs (get_id (map (lambda(i) (items i {})) (rule "rhs")))
+        total (+ (count lhs) (count rhs)))
+    (= total (count (field-names-from-ids (concat lhs rhs) dataset-id)))))
 
 (define (_flatline-rule association rule match dataset-id)
   (when (_check-assoc-field-exists association rule dataset-id)
