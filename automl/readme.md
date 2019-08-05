@@ -35,14 +35,6 @@ library and the script simply with this command (from the
 
      bigmler whizzml --package-dir=./
 
-### Using the web UI
-
-- Install the `automl` library, using [this url](./automl-library).
-- Install the `automl` script, using [this url](./automl-script).
-  Remember to import `automl` library when you import the script,
-  adding it to the `Import WhizzML libraries` tab
-
-
 If necessary, please see [the top-level readme](../readme.md) for more general
 installation instructions.
 
