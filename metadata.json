@@ -39,7 +39,6 @@
     "aggregations",
     "fuzzy-norms",
     "automl",
-    "feature-generation",
     "supervised-model-quality",
     "correlations-matrix",
     "batch-association-sets"
