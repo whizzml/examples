@@ -19,16 +19,19 @@ script.
 
 ### Using bigmler
 
-If you have `bigmler` installed in your system, just checkout this
-repository and, at its top level, issue the command:
+If you have `bigmler` installed in your system, just checkout the
+[Whizzml examples repository](../) and, at its [top level](../), issue
+the command:
 
         make compile PKG=automl
 
-That will create all necessary libraries and scripts for you.
+That will create all necessary libraries and scripts for you.  Plase,
+remember not to execute `make compile` from the [examples/automl](./)
+folder, you should execute it from its parent folder, [examples](../).
 
 If you can't execute `make` in your system, you can install the
 library and the script simply with this command (from the
-examples/automl directory):
+[examples/automl](./) directory):
 
      bigmler whizzml --package-dir=./
 
