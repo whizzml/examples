@@ -24,7 +24,7 @@
           "name": "rule-ids",
           "type": "list",
           "default": [],
-          "description": "List of rule IDs to be used"
+          "description": "List of rule IDs to be used (an empty list will generate all the available rules)"
       },
       {
           "name": "match",
