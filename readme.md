@@ -83,15 +83,23 @@ By convention, when the artifact is a library, the files are called
   fields in your dataset that produce the best models. Allows iteration and
   uses cross-validation.
 - `multi-label` Classification for datasets with a
-   multi-label (items) objective field.
+  multi-label (items) objective field.
 - `recursive-feature-elimination` Script to select the n best features for
-   modeling a given dataset, using a recursive algorithm
+  modeling a given dataset, using a recursive algorithm
 - `name-clusters`  Script to give names to clusters using important field
-   names and their values
+  names and their values
 - `dimensionality-reduction` Script for dimensionality reduction using
   PCA and topic modelling.
 - `fuzzy-norms`: Computing fuzzy-logic T-norms and T-conorms as new dataset features
 - `automl`: Automated Machine Learning withing BigML
+- `correlations-matrix`: Generates a CSV that contains the matrix of
+  correlations between the numeric and categorical fields in a dataset
+- `batch-association-sets`: Adds new features to a dataset by creating new
+  fields based on the combinations that appear in the association rules
+  extracted from it.
+- `supervised-model-quality`: Creates the evaluation associated to the
+  user-given supervised model (fusions excluded). The evaluation is created
+  by splitting the dataset used in the model into a train/test split.
 
 ## How to install
 
