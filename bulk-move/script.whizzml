@@ -1,0 +1,118 @@
+;; Script to move a bunch of resources selected by user-provided filters
+;; to a destination Project
+
+;; Auxiliary functions to select resources based on usual filters
+;; -- to become a library
+
+(define RES_LISTERS {"project" list-projects
+                     "execution" list-executions
+                     "fusion" list-fusions
+                     "ensemble" list-ensembles
+                     "composite" list-composites
+                     "cluster" list-clusters
+                     "source" list-sources
+                     "dataset" list-datasets
+                     "correlation" list-correlations
+                     "statisticaltest" list-statisticaltests
+                     "model" list-models
+                     "linearregression" list-linearregressions
+                     "logisticregression" list-logisticregressions
+                     "deepnet" list-deepnets
+                     "anomaly" list-anomalies
+                     "topicmodel" list-topicmodels
+                     "association" list-associations
+                     "pca" list-pcas
+                     "timeseries" list-timeseries
+                     "evaluation" list-evaluations
+                     "prediction" list-predictions
+                     "centroid" list-centroids
+                     "topicdistribution" list-topicdistributions
+                     "anomalyscore" list-anomalyscores
+                     "associationset" list-associationsets
+                     "projection" list-projections
+                     "batchprediction" list-batchpredictions
+                     "batchcentroid" list-batchcentroids
+                     "batchanomalyscore" list-batchanomalyscores
+                     "batchtopicdistribution" list-batchtopicdistributions
+                     "batchprojections" list-batchprojections
+                     "script" list-scripts
+                     "library" list-libraries})
+
+(define RES_CONTAINERS ["project" "execution"])
+(define RES_COMBINERS ["fusion" "composite" "ensemble" "cluster"])
+
+(define (list-res project-id
+                  tags
+                  filter-expr
+                  resource-types)
+  (let (list-fns (get-list-fns resource-types (!= "" project-id))
+        filter-expr (add-filter filter-expr "project" project-id)
+        filter-expr (add-filter filter-expr "tags__in" tags))
+    [filter-expr (filter-by-expr filter-expr list-fns)]))
+
+(define (check-project-id project-id)
+  ;; checks whether the project ID is empty or a real project ID
+  (or (= "project" (resource-type project-id))
+      (= "" project-id)))
+
+(define (get-list-fns resource-types remove-project)
+  (if (empty? resource-types)
+      (let (listers RES_LISTERS
+            listers (if remove-project
+                        (dissoc listers "project")
+                        listers))
+        (values listers))
+      (filter (lambda (x) (procedure? x))
+              (for (type resource-types)
+                (if (and (= type "project") remove-project)
+                    false
+                    (RES_LISTERS type false))))))
+
+(define (add-filter expr parm value)
+  (if (= value "")
+      expr
+      (assoc expr parm value)))
+
+(define (filter-by-expr expr fns)
+  (iterate (acc [] fn fns)
+    (let (resp (fn expr))
+      (concat acc (map (lambda (x) (x "resource")) resp)))))
+
+
+;; Function to move the resources
+
+(define (bulk-move destination-id
+                   project-id
+                   tags
+                   filter-expr
+                   resource-types
+                   dry-run)
+  (try (when (not (check-project-id project-id))
+         (raise "Please, check the project ID"))
+    (catch e (raise "Please, check the project ID")))
+  (try (when (not (check-project-id destination-id))
+         (raise "Please, check the destination project ID"))
+    (catch e (raise "Please, check the destination project ID")))
+
+  (let (destination-id (if (= "" destination-id)
+                           (create-project {"name" "Unknown"})
+                           destination-id)
+        [expr ids] (list-res project-id
+                             tags
+                             filter-expr
+                             resource-types)
+        counter (iterate (counter {} id ids)
+                  (assoc counter (resource-type id)
+                                 (+ (counter (resource-type id) 0) 1))))
+    (log-info "Selected Resources for: ")
+    (log-info "  " expr)
+    (for (type (keys counter))
+      (log-info "  " type ": " (counter type)))
+    (if dry-run
+        (log-info ids)
+        (for (id ids)
+          (update id {"project" destination-id}))))
+  (not dry-run))
+
+(define moved? (bulk-move destination-id project-id tags
+                          filter-expr resource-types dry-run))

@@ -41,6 +41,7 @@
     "automl",
     "supervised-model-quality",
     "correlations-matrix",
-    "batch-association-sets"
+    "batch-association-sets",
+    "bulk-move"
   ]
 }
