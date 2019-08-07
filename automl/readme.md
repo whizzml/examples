@@ -20,7 +20,8 @@ script.
 ### Using bigmler
 
 If you have `bigmler` installed in your system, just checkout the
-[Whizzml examples repository](../) and, at its [top level](../), issue
+[Whizzml examples repository](https://github.com/whizzml/examples/)
+and, at its [top level](https://github.com/whizzml/examples/), issue
 the command:
 
         make compile PKG=automl
