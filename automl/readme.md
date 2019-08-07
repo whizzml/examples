@@ -25,10 +25,10 @@ command:
 
         make compile PKG=automl
 
-That will create all necessary libraries and scripts resources for
-you, and clean up any previous installations.  Please, make sure to
-execute the `make` command above in the repository's top level
-directory, *not* in [automl](./).
+That will create all necessary library and script resources for you,
+and clean up any previous installations.  Please, make sure to execute
+the `make` command above in the repository's top level directory,
+*not* in [automl](./).
 
 If `make` is not available in your system, you can install the library
 and the script simply with this command (this time, [inside this
