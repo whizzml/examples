@@ -18,7 +18,7 @@ script.
 ## How to install
 
 If you have [bigmler](https://bigmler.readthedocs.io/en/latest/) and
-`make` installed in your system, just check out the [Whizzml examples
+`make` installed in your system, just check out the [WhizzML examples
 repository](https://github.com/whizzml/examples/) and, at its [top
 level directory](https://github.com/whizzml/examples/), issue the
 command:

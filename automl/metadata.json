@@ -3,7 +3,7 @@
   "description": "Automated Machine Learning within BigML",
   "kind": "package",
   "components": [
-    "automl-script",
-    "automl-library"
+    "automl-library",
+    "automl-script"
   ]
 }
