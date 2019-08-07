@@ -23,7 +23,7 @@ repository](https://github.com/whizzml/examples/) and, at its [top
 level directory](https://github.com/whizzml/examples/), issue the
 command:
 
-        make compile PKG=automl
+    make compile PKG=automl
 
 That will create all necessary library and script resources for you,
 and clean up any previous installations.  Please, make sure to execute
@@ -31,10 +31,10 @@ the `make` command above in the repository's top level directory,
 *not* in [automl](./).
 
 If `make` is not available in your system, you can install the library
-and the script simply with this command (this time, [inside this
-directory](./)):
+and the script simply with this command (again, at the repository's
+top level):
 
-     bigmler whizzml --package-dir=./
+     bigmler whizzml --package-dir=automl
 
 See also [the top-level readme](../readme.md) for general information
 on installing packages in this repository.
