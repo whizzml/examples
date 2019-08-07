@@ -100,6 +100,9 @@ By convention, when the artifact is a library, the files are called
 - `supervised-model-quality`: Creates the evaluation associated to the
   user-given supervised model (fusions excluded). The evaluation is created
   by splitting the dataset used in the model into a train/test split.
+- `bulk-move`: Moves selected resources in bulk to a user-provided project.
+  The resources to be moved are selected by applying the user-provided
+  filters.
 
 ## How to install
 

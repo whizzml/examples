@@ -4,9 +4,7 @@
 ;; Auxiliary functions to select resources based on usual filters
 ;; -- to become a library
 
-(define RES_LISTERS {"project" list-projects
-                     "execution" list-executions
-                     "fusion" list-fusions
+(define RES_LISTERS {"fusion" list-fusions
                      "ensemble" list-ensembles
                      "composite" list-composites
                      "cluster" list-clusters
@@ -38,8 +36,6 @@
                      "script" list-scripts
                      "library" list-libraries})
 
-(define RES_CONTAINERS ["project" "execution"])
-(define RES_COMBINERS ["fusion" "composite" "ensemble" "cluster"])
 
 (define (list-res project-id
                   tags
