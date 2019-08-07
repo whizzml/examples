@@ -17,28 +17,29 @@ script.
 
 ## How to install
 
-### Using bigmler
-
-If you have `bigmler` installed in your system, just checkout the
-[Whizzml examples repository](https://github.com/whizzml/examples/)
-and, at its [top level](https://github.com/whizzml/examples/), issue
-the command:
+If you have [bigmler](https://bigmler.readthedocs.io/en/latest/) and
+`make` installed in your system, just check out the [Whizzml examples
+repository](https://github.com/whizzml/examples/) and, at its [top
+level directory](https://github.com/whizzml/examples/), issue the
+command:
 
         make compile PKG=automl
 
-That will create all necessary libraries and scripts for you.  Plase,
-remember not to execute `make compile` from the [examples/automl](./)
-folder, you should execute it from its parent folder, [examples](../).
+That will create all necessary libraries and scripts resources for
+you, and clean up any previous installations.  Please, make sure to
+execute the `make` command above in the repository's top level
+directory, *not* in [automl](./).
 
-If you can't execute `make` in your system, you can install the
-library and the script simply with this command (from the
-[examples/automl](./) directory):
+If `make` is not available in your system, you can install the library
+and the script simply with this command (this time, [inside this
+directory](./)):
 
      bigmler whizzml --package-dir=./
 
-If necessary, please see [the top-level readme](../readme.md) for more general
-installation instructions.
+See also [the top-level readme](../readme.md) for general information
+on installing packages in this repository.
 
 ## How to execute
+
 To create a new execution of the AutoML, please read the [script
 readme](./automl-script).
