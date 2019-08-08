@@ -9,10 +9,12 @@
   (let (get-value (lambda(input) (if reuse-resources
                                    (input-from-exec automl-execution name)
                                    input)))
-    (cond (= name "excluded-fields") (get-value excluded-fields)
-          (= name "excluded-models") (get-value excluded-models)
-          (= name "pca-variance-threshold") (get-value pca-variance-threshold)
-          (= name "leverage-threshold") (get-value leverage-threshold))))
+    (cond (= name "excluded-fields") (or (get-value excluded-fields) [])
+          (= name "excluded-models") (or (get-value excluded-models) [])
+          (= name "pca-variance-threshold") (or (get-value pca-variance-threshold)
+                                                1)
+          (= name "leverage-threshold") (or (get-value leverage-threshold)
+                                            0))))
 
 (log-featured "Initial checks")
 (log-info "Checking execution input datasets")

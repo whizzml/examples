@@ -88,9 +88,6 @@
 ;; given by the user in the current execution
 ;; If so, values from automl-execution will be used
 (define (check-config-input new-input prev-input name)
-  (log-info new-input)
-  (log-info prev-input)
-  (log-info name)
   (when (not (= new-input prev-input))
     (log-warn (str name " input is overwritten by the one from the "
                    "previous execution with value "

@@ -48,7 +48,7 @@
       "default": 1,
       "description": "The PCA projection uses the minimum number of components such that the cumulative explained variance is greater than the given threshold. Values from 0 to 1. Overwritten if automl-execution is given. All the components will be used by default "
     },
-bsc    {
+    {
       "name": "leverage-threshold",
       "type": "number",
       "default": 0,
