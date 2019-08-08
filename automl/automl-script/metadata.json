@@ -35,6 +35,12 @@
       "type": "list",
       "default": [],
       "description": "List of field names to be excluded from all the datasets. Empty by default"
+    },
+    {
+      "name": "excluded-models",
+      "type": "list",
+      "default": [],
+      "description": "List of unsupervised models that won't be created nor reused during feature generation, e.g. ['association', 'pca']. Empty by default"
     }
   ],
   "outputs":[

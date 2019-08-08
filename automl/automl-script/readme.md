@@ -45,6 +45,10 @@ The **inputs** for the script are:
 * `excluded-fields`: (list) List of fields that will be excluded from
   any dataset before any other process starts. e.g. ["bmi",
   "age"]. Empty by default
+* `excluded-models`: (list) List of unsupervised models that won't be
+  created nor reused during feature generation. e.g. ["anomaly",
+  "cluster"]. Possible values are: association, cluster, anomaly, pca
+  or topicmodel. Empty by default
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset

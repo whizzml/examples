@@ -97,6 +97,15 @@
                 " the training execution) or provide a training dataset to start"
                 " training again with the new excluded_fields"))))
 
+;; Checks if excluded-models are valid unsupervised models
+(define (check-excluded-models excluded-models)
+  (let (all-models #["cluster" "anomaly" "association" "pca" "topicmodel"]
+        bads (difference (set* excluded-models) all-models))
+    (when (not (empty? bads))
+      (log-warn "WARNING: The following unsupervised models from "
+                "excluded-models are not valid: "
+                (str (list* bads))))))
+
 ;; Checks if train validation and test datasets contain the same fields
 (define (check-datasets-fields train valid test)
   (let (fields-set (lambda (ds)
@@ -121,6 +130,12 @@
 ;;;;;;;;;;;;; Creation of unsupervised models ;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; Whether the model "type" should be created based on the
+;; list of excluded models
+(define (create-unsupervised? type excluded-models)
+  (when (string? type)
+    (not (member? type (or excluded-models [])))))
+
 (define (_set-unsupervised-params dataset params exclude)
   (let (name (str (resource-name dataset) " | unsupervised-gen")
         params (assoc (or params {}) "name" name)
@@ -131,10 +146,11 @@
       params)))
 
 ;; Creates an unsupervised model (specified by type) from a given
-;; dataset and some params. exclude is a flag to exclude
-;; objective id for the model creation
-(define (create-unsupervised type dataset params exclude)
-  (let (final-params (_set-unsupervised-params dataset params exclude))
+;; dataset and some params. Objective field is excluded from all
+;; models but associations
+(define (create-unsupervised type dataset params)
+  (let (exclude (not (= type "association"))
+        final-params (_set-unsupervised-params dataset params exclude))
     (try
      (log-info " - Creating " type)
      (create type dataset final-params)

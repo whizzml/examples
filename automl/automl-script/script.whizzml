@@ -5,35 +5,38 @@
 (check-excluded-fields train-dataset automl-execution excluded-fields)
 (log-info "Checking input dataset fields")
 (check-datasets-fields train-dataset validation-dataset test-dataset)
+(log-info "Checking excluded-models")
+(check-excluded-models excluded-models)
 
 ;; Whether we should reuse resources from a given execution
 (define reuse-resources (not (= (resource-type train-dataset) "dataset")))
 (log-featured "Feature generation")
 (log-info "Obtaining unsupervised models")
 ;; Returns a list of unsupervised-models from a dataset
-(define (create-unsupervised-models dataset excluded)
+(define (create-unsupervised-models dataset excluded excluded-models)
   (let (params {"excluded_fields" (field-ids-from-names excluded dataset)}
         objective-id (dataset-get-objective-id dataset)
         lev-params (merge params {"rhs_predicate" [{"field" objective-id}]
                                   "search_strategy" "leverage"})
         lift-params (merge params {"rhs_predicate" [{"field" objective-id}]
                                    "search_strategy" "lift"})
-        all-models [(create-unsupervised "association" dataset lev-params false)
-                    (create-unsupervised "association" dataset lift-params false)
-                    (create-unsupervised "cluster" dataset params true)
-                    (create-unsupervised "anomaly" dataset params true)
-                    (create-unsupervised "pca" dataset params true)
-                    (create-unsupervised "topicmodel" dataset params true)])
+        all-models
+        (map (lambda (type params*)
+               (when (create-unsupervised? type excluded-models)
+                 (create-unsupervised type dataset params*)))
+        ["association" "association" "cluster" "anomaly" "pca" "topicmodel"]
+        [lev-params lift-params params params params params]))
     (remove-false all-models)))
 
 ;; Returns a list of unsupervised model from an execution output
-(define (get-unsupervised-models automl-exec)
-  (output-from-exec automl-exec "unsupervised-models"))
+(define (get-unsupervised-models automl-exec excluded-models)
+  (filter (lambda(m)(create-unsupervised? (resource-type m) excluded-models))
+          (output-from-exec automl-exec "unsupervised-models")))
 ;; List that contains all the created unsupervised models
 (define unsupervised-models
   (if reuse-resources
-    (get-unsupervised-models automl-execution)
-    (create-unsupervised-models train-dataset excluded-fields)))
+    (get-unsupervised-models automl-execution excluded-models)
+    (create-unsupervised-models train-dataset excluded-fields excluded-models)))
 
 (log-info "Generating new features from unsupervised models")
 (define (feature-generation dataset-id model-list excluded)
