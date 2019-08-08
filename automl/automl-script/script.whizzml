@@ -8,7 +8,7 @@
 (log-info "Checking excluded-models")
 (check-excluded-models excluded-models)
 (log-info "Checking the rest of input parameters")
-(check-params pca-variance-threshold)
+(check-params pca-variance-threshold leverage-threshold)
 
 ;; Whether we should reuse resources from a given execution
 (define reuse-resources (not (= (resource-type train-dataset) "dataset")))
@@ -41,7 +41,11 @@
     (create-unsupervised-models train-dataset excluded-fields excluded-models)))
 
 (log-info "Generating new features from unsupervised models")
-(define (feature-generation dataset-id model-list excluded threshold)
+(define (feature-generation dataset-id
+                            model-list
+                            excluded
+                            pca-threshold
+                            leverage-threshold)
   (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
         objective-id (dataset-get-objective-id dataset-id)
         name (resource-name dataset-id)
@@ -55,9 +59,13 @@
         cluster-fields (feat-gen "cluster" "batchcentroid" {})
         anomaly-fields (feat-gen "anomaly" "batchanomalyscore" {})
         topic-fields (feat-gen "topicmodel" "batchtopicdistribution" {})
-        pca-params {"variance_threshold" threshold}
+        pca-params {"variance_threshold" pca-threshold}
         pca-fields (feat-gen "pca""batchprojection" pca-params)
-        dataset-assoc (assoc-feature-gen dataset-id  model-list name excluded)
+        dataset-assoc (assoc-feature-gen dataset-id
+                                         model-list
+                                         name
+                                         excluded
+                                         leverage-threshold)
         all-fields [cluster-fields anomaly-fields topic-fields pca-fields]
         all-ds (cons dataset-assoc (map batch-output-ds all-fields)))
     (feature-generation-dataset all-ds name objective-id)))
@@ -68,7 +76,8 @@
                     (feature-generation dataset
                                         unsupervised-models
                                         excluded-fields
-                                        pca-variance-threshold)))
+                                        pca-variance-threshold
+                                        leverage-threshold)))
        [train-dataset validation-dataset test-dataset]))
 
 

@@ -10,7 +10,7 @@ automatically done:
 
 -  `Unsupervised Models Generation`: Creating the following
   **unsupervised models**: `Cluster`, `Anomaly Detector`, `Association
-  Discovery` (with lift and leverage as search_strategies), `PCA` and
+  Discovery` (with leverage and lift as search_strategy), `PCA` and
   `Topic Model` (for datasets that contain text fields).
 -  `Feature Generation`: Using the unsupervised models created
   previously to append automatically generated new features to all the
@@ -53,8 +53,10 @@ The **inputs** for the script are:
   minimum number of components such that the cumulative explained
   variance is greater than the given threshold. Values from 0
   to 1. Default value is 1 (all the components will be used)
-
-
+* `leverage-threshold`: (number) Associations with a leverage
+  (absolute value) lower than the threshold will be ignored. Default
+  value is 0 (all the association will be added to the extended
+  dataset)
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
