@@ -125,6 +125,13 @@
                 " and not in your validation or test datasets (besides the"
                 " objective field"))))
 
+;; Checks the rest of params
+(define (check-params pca-variance-threshold)
+  (if (or (not (number? pca-variance-threshold))
+          (not (<= 0 pca-variance-threshold 1)))
+    (raise (str "pca-variance-threshold must be a positive number "
+                "in the interval [0,1]"))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; UNSUPERVISED  GENERATION ;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;; Creation of unsupervised models ;;;;;;;;;;;;;;;;;
@@ -320,18 +327,20 @@
 ;;;;;;;;;;;;; Extend datasets generating new features;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (_unsupervised-batch dataset-id model-id name batch-type)
-  (let (params {"name" (str name " | " batch-type) "output_dataset" true})
+(define (_unsupervised-batch dataset-id model-id name batch-type params)
+  (let (params (merge (or params {})
+                      {"name" (str name " | " batch-type)
+                       "output_dataset" true}))
     (try
      (create batch-type dataset-id  model-id params)
      (catch e
        (log-warn "   WARNING: Could not create the " batch-type)))))
 
 ;; Creates a batch scoring from a dataset and an unsupervised model
-(define (unsupervised-feature-gen dataset-id model-list name m-type b-type)
+(define (unsupervised-feature-gen dataset-id model-list name m-type b-type params)
   (let (models (_model-from-list model-list m-type))
     (when (not (empty? models))
-      (_unsupervised-batch dataset-id (head models) name b-type))))
+      (_unsupervised-batch dataset-id (head models) name b-type params))))
 
 ;; Adds to the dataset a new set of fields coming from batch
 ;; association sets from association discovery models in model-list

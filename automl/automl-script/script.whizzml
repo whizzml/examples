@@ -1,5 +1,5 @@
 (log-featured "Initial checks")
-(log-info "Checking execution inputs")
+(log-info "Checking execution input datasets")
 (check-inputs train-dataset validation-dataset test-dataset automl-execution)
 (log-info "Checking excluded fields")
 (check-excluded-fields train-dataset automl-execution excluded-fields)
@@ -7,6 +7,8 @@
 (check-datasets-fields train-dataset validation-dataset test-dataset)
 (log-info "Checking excluded-models")
 (check-excluded-models excluded-models)
+(log-info "Checking the rest of input parameters")
+(check-params pca-variance-threshold)
 
 ;; Whether we should reuse resources from a given execution
 (define reuse-resources (not (= (resource-type train-dataset) "dataset")))
@@ -39,25 +41,34 @@
     (create-unsupervised-models train-dataset excluded-fields excluded-models)))
 
 (log-info "Generating new features from unsupervised models")
-(define (feature-generation dataset-id model-list excluded)
+(define (feature-generation dataset-id model-list excluded threshold)
   (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
         objective-id (dataset-get-objective-id dataset-id)
         name (resource-name dataset-id)
-        feat-gen (lambda (m b)
-                   (unsupervised-feature-gen dataset-id model-list name m b))
-        cluster-fields (feat-gen "cluster" "batchcentroid")
-        anomaly-fields (feat-gen "anomaly" "batchanomalyscore")
-        topic-fields (feat-gen "topicmodel" "batchtopicdistribution")
-        pca-fields (feat-gen "pca" "batchprojection")
+        feat-gen (lambda (model-type batch-type params)
+                   (unsupervised-feature-gen dataset-id
+                                             model-list
+                                             name
+                                             model-type
+                                             batch-type
+                                             params))
+        cluster-fields (feat-gen "cluster" "batchcentroid" {})
+        anomaly-fields (feat-gen "anomaly" "batchanomalyscore" {})
+        topic-fields (feat-gen "topicmodel" "batchtopicdistribution" {})
+        pca-params {"variance_threshold" threshold}
+        pca-fields (feat-gen "pca""batchprojection" pca-params)
         dataset-assoc (assoc-feature-gen dataset-id  model-list name excluded)
         all-fields [cluster-fields anomaly-fields topic-fields pca-fields]
         all-ds (cons dataset-assoc (map batch-output-ds all-fields)))
     (feature-generation-dataset all-ds name objective-id)))
 
 (define extended-datasets
-  (map (lambda(d) (when (= (resource-type d) "dataset")
-                    (log-info " - Extending dataset: " (resource-name d))
-                    (feature-generation d unsupervised-models excluded-fields)))
+  (map (lambda(dataset) (when (= (resource-type dataset) "dataset")
+                    (log-info " - Extending dataset: " (resource-name dataset))
+                    (feature-generation dataset
+                                        unsupervised-models
+                                        excluded-fields
+                                        pca-variance-threshold)))
        [train-dataset validation-dataset test-dataset]))
 
 

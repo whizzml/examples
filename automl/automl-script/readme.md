@@ -49,6 +49,12 @@ The **inputs** for the script are:
   created nor reused during feature generation. e.g. ["anomaly",
   "cluster"]. Possible values are: association, cluster, anomaly, pca
   or topicmodel. Empty by default
+* `pca-variance-threshold`: (number) The PCA projection uses the
+  minimum number of components such that the cumulative explained
+  variance is greater than the given threshold. Values from 0
+  to 1. Default value is 1 (all the components will be used)
+
+
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
