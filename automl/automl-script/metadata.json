@@ -34,25 +34,25 @@
       "name": "excluded-fields",
       "type": "list",
       "default": [],
-      "description": "List of field names to be excluded from all the datasets. Empty by default"
+      "description": "List of field names to be excluded from all the datasets. Overwritten if automl-execution is given. Empty by default"
     },
     {
       "name": "excluded-models",
       "type": "list",
       "default": [],
-      "description": "List of unsupervised models that won't be created nor reused during feature generation, e.g. ['association', 'pca']. Empty by default"
+      "description": "List of unsupervised models that won't be created during feature generation, e.g. ['association', 'pca']. Overwritten if automl-execution is given. Empty by default"
     },
     {
       "name": "pca-variance-threshold",
       "type": "number",
       "default": 1,
-      "description": "The PCA projection uses the minimum number of components such that the cumulative explained variance is greater than the given threshold. Values from 0 to 1. All the components will be used by default "
+      "description": "The PCA projection uses the minimum number of components such that the cumulative explained variance is greater than the given threshold. Values from 0 to 1. Overwritten if automl-execution is given. All the components will be used by default "
     },
-    {
+bsc    {
       "name": "leverage-threshold",
       "type": "number",
       "default": 0,
-      "description": "Associations with a leverage (absolute value) lower than the threshold will be ignored. Values from 0 to 1. Default value is 0 (all the associations will be included in the extended dataset)"
+      "description": "Associations with an absolute leverage value lower than the threshold will be ignored. Values from 0 to 1. Overwritten if automl-execution is given. Default value is 0 (all the associations will be included in the extended dataset)"
     }
   ],
   "outputs":[
@@ -66,7 +66,6 @@
       "type": "evaluation-id",
       "description": "Evaluation of the fusion model with the validation dataset"
     },
-
     {
       "name": "output-fusion",
       "type": "fusion-id",

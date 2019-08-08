@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.1 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.2 ;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -83,19 +83,19 @@
     (raise (str "If you don't define a correct train-dataset,"
                 "you must define a correct previous execution"))))
 
-;; Checks excluded fields. We can't reuse resources from
-;; previous executions if the excluded_fields were different.
-(define (check-excluded-fields train exec excluded)
-  (if (and (not (= (resource-type train) "dataset"))
-           (= (resource-type exec) "execution")
-           (not (empty? excluded))
-           (not (= excluded (input-from-exec exec "excluded_fields"))))
-    (raise (str "Your excluded_fields are different to the ones you provided"
-                " in the given previous execution of automl."
-                " Please, provide the same excluded_fields (or leave blank the"
-                " excluded_fields input to use the same excluded_fields as in"
-                " the training execution) or provide a training dataset to start"
-                " training again with the new excluded_fields"))))
+;; Checks if the values of the configuration inputs from
+;; the given automl-execution are different from the ones
+;; given by the user in the current execution
+;; If so, values from automl-execution will be used
+(define (check-config-input new-input prev-input name)
+  (log-info new-input)
+  (log-info prev-input)
+  (log-info name)
+  (when (not (= new-input prev-input))
+    (log-warn (str name " input is overwritten by the one from the "
+                   "previous execution with value "
+                   prev-input))))
+
 
 ;; Checks if excluded-models are valid unsupervised models
 (define (check-excluded-models excluded-models)

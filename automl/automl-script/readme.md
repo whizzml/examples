@@ -44,19 +44,27 @@ The **inputs** for the script are:
   new resources are generated from the training data.
 * `excluded-fields`: (list) List of fields that will be excluded from
   any dataset before any other process starts. e.g. ["bmi",
-  "age"]. Empty by default
+  "age"]. Overwritten if automl-execution is given. Empty by default.
 * `excluded-models`: (list) List of unsupervised models that won't be
   created nor reused during feature generation. e.g. ["anomaly",
   "cluster"]. Possible values are: association, cluster, anomaly, pca
-  or topicmodel. Empty by default
+  or topicmodel. Overwritten if automl-execution is given.  Empty by
+  default
 * `pca-variance-threshold`: (number) The PCA projection uses the
   minimum number of components such that the cumulative explained
   variance is greater than the given threshold. Values from 0
-  to 1. Default value is 1 (all the components will be used)
-* `leverage-threshold`: (number) Associations with a leverage
-  (absolute value) lower than the threshold will be ignored. Default
-  value is 0 (all the association will be added to the extended
-  dataset)
+  to 1. Overwritten if automl-execution is given. Default value is 1
+  (all the components will be used)
+* `leverage-threshold`: (number) Associations with an absolute
+  leverage lower than the threshold will be ignored. Overwritten if
+  automl-execution is given. Default value is 0 (all the association
+  will be added to the extended dataset)
+
+
+**WARNING** All the configuration inputs (`excluded-fields`,
+`excluded-models`, `pca-variance-threshold`, `leverage-threshold`) are
+overwritten by the corresponding input in `automl-execution` if this
+is given.
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
