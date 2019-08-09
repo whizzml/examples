@@ -83,25 +83,23 @@
     (raise (str "If you don't define a correct train-dataset,"
                 "you must define a correct previous execution"))))
 
-;; Checks if the values of the configuration inputs from
-;; the given automl-execution are different from the ones
-;; given by the user in the current execution
-;; If so, values from automl-execution will be used
-(define (check-config-input new-input prev-input name)
-  (when (not (= new-input prev-input))
-    (log-warn (str name " input is overwritten by the one from the "
-                   "previous execution with value "
-                   prev-input))))
-
+;; Checks that all the needed params are in the configuration
+(define (check-configuration-params config)
+  (let (correct #["excluded-fields" "excluded-models"
+                  "pca-variance-threshold" "leverage-threshold"]
+        dif (difference correct (set* (keys (or config {})))))
+    (when (not (empty? dif))
+      (raise (str "Can't find the following parameters in the "
+                  "configuration-params: " dif)))))
 
 ;; Checks if excluded-models are valid unsupervised models
 (define (check-excluded-models excluded-models)
   (let (all-models #["cluster" "anomaly" "association" "pca" "topicmodel"]
         bads (difference (set* excluded-models) all-models))
     (when (not (empty? bads))
-      (log-warn "WARNING: The following unsupervised models from "
-                "excluded-models are not valid: "
-                (str (list* bads))))))
+      (log-warn (str "WARNING: The following unsupervised models from "
+                     "excluded-models are not valid: "
+                     (list* bads))))))
 
 ;; Checks if train validation and test datasets contain the same fields
 (define (check-datasets-fields train valid test)
@@ -122,7 +120,6 @@
                 " and not in your validation or test datasets (besides the"
                 " objective field)"))))
 
-
 (define (_check-number value min-value max-value name)
   (when (or (not (number? value))
             (not (<= min-value value max-value)))
@@ -130,8 +127,7 @@
                 " must be a positive number "
                 " in the interval [" min-value  ","  max-value  "]"))))
 
-
-;; Checks the rest of params
+;; Checks params values
 (define (check-params pca-variance-threshold leverage-threshold)
   (_check-number pca-variance-threshold 0 1 "pca-variance-threshold")
   (_check-number leverage-threshold 0 1 "leverage-threshold"))
@@ -476,9 +472,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (_filter-dataset-fields dataset excluded-fields)
-  (let (fields (resource-fields dataset))
+  (let (fields (resource-fields dataset)
+        excluded (or excluded-fields []))
     (field-names-from-ids
-     (filter (lambda (f) (not (member? ((fields f) "name") excluded-fields)))
+     (filter (lambda (f) (not (member? ((fields f) "name") excluded)))
              (keys fields))
      dataset)))
 

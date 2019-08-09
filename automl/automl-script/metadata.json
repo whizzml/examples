@@ -31,28 +31,13 @@
       "description": "Previous execution of this script, to reuse created resources, e.g. execution/5d272205eba31d61920005cd"
     },
     {
-      "name": "excluded-fields",
-      "type": "list",
-      "default": [],
-      "description": "List of field names to be excluded from all the datasets. Overwritten if automl-execution is given. Empty by default"
-    },
-    {
-      "name": "excluded-models",
-      "type": "list",
-      "default": [],
-      "description": "List of unsupervised models that won't be created during feature generation, e.g. ['association', 'pca']. Overwritten if automl-execution is given. Empty by default"
-    },
-    {
-      "name": "pca-variance-threshold",
-      "type": "number",
-      "default": 1,
-      "description": "The PCA projection uses the minimum number of components such that the cumulative explained variance is greater than the given threshold. Values from 0 to 1. Overwritten if automl-execution is given. All the components will be used by default "
-    },
-    {
-      "name": "leverage-threshold",
-      "type": "number",
-      "default": 0,
-      "description": "Associations with an absolute leverage value lower than the threshold will be ignored. Values from 0 to 1. Overwritten if automl-execution is given. Default value is 0 (all the associations will be included in the extended dataset)"
+      "name": "configuration-params",
+      "type": "map",
+      "default": {"excluded-fields": [],
+                  "excluded-models": [],
+                  "pca-variance-threshold": 1,
+                  "leverage-threshold": 0},
+      "description": "Execution configuration parameters. They will be overwritten if automl-execution is given. See README for more information"
     }
   ],
   "outputs":[

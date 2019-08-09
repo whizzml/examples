@@ -42,29 +42,29 @@ The **inputs** for the script are:
   `automl-execution` should be provided for the script to work. When
   both are provided, the `automl-execution` argument is discarded and
   new resources are generated from the training data.
-* `excluded-fields`: (list) List of fields that will be excluded from
-  any dataset before any other process starts. e.g. ["bmi",
-  "age"]. Overwritten if automl-execution is given. Empty by default.
-* `excluded-models`: (list) List of unsupervised models that won't be
-  created nor reused during feature generation. e.g. ["anomaly",
+* `configuration-params`: (map) Execution configuration
+  parameters. They will be overwritten if automl-execution is
+  given. Overwritten if automl-execution is given. The following
+  values must be provided:
+  * `excluded-fields`: (list) List of fields that will be excluded
+  from any dataset before any other process starts. e.g. ["bmi",
+  "age"]. Empty by default.
+  * `excluded-models`: (list) List of unsupervised models that won't
+  be created nor reused during feature generation. e.g. ["anomaly",
   "cluster"]. Possible values are: association, cluster, anomaly, pca
-  or topicmodel. Overwritten if automl-execution is given.  Empty by
-  default
-* `pca-variance-threshold`: (number) The PCA projection uses the
+  or topicmodel. Empty by default
+  * `pca-variance-threshold`: (number) The PCA projection uses the
   minimum number of components such that the cumulative explained
-  variance is greater than the given threshold. Values from 0
-  to 1. Overwritten if automl-execution is given. Default value is 1
-  (all the components will be used)
-* `leverage-threshold`: (number) Associations with an absolute
-  leverage lower than the threshold will be ignored. Overwritten if
-  automl-execution is given. Default value is 0 (all the association
-  will be added to the extended dataset)
+  variance is greater than the given threshold. Values from 0 to 1.
+  Default value is 1 (all the components will be used)
+  * `leverage-threshold`: (number) Associations with an absolute
+  leverage lower than the threshold will be ignored.  Default value is
+  0 (all the association will be added to the extended dataset)
 
 
-**WARNING** All the configuration inputs (`excluded-fields`,
-`excluded-models`, `pca-variance-threshold`, `leverage-threshold`) are
-overwritten by the corresponding input in `automl-execution` if this
-is given.
+**WARNING** Remember that, to avoid confusion, `configuration-params`
+are overwritten by the corresponding input in `automl-execution` if
+this is given.
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
