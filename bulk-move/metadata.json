@@ -1,17 +1,17 @@
 {
   "name": "Bulk Move of Resources",
-  "description": "Moving the selected resources to a destination Project. The first parameter is the destination project, and the rest of parameters are used to filter the resources to be lected. All provided conditions are applied to the filter. ",
+  "description": "Moving the selected resources to a destination project. The first parameter is the destination project, and the rest of parameters are used to filter the resources to be selected. All provided conditions are applied to the filter. ",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
     {
-          "name": "destination-id",
+          "name": "destination-project",
           "type": "string",
-          "default": "",
-          "description": "Project ID used as destination to move the resources. If empty, a new project named \"Unknown\" will be created and the selected resources will be moved there."
+          "default": "Unknown",
+          "description": "Project ID used as destination to move the resources. A new project will be created by default."
      },
     {
-          "name": "project-id",
+          "name": "source-project",
           "type": "string",
           "default": "",
           "description": "Project ID of the resources to be selected. If empty, the filter is not applied (default)."
@@ -29,7 +29,7 @@
         "description": "Map of parameters to be used as filter (e.g. {\"name\": \"iris\"}). If empty, the filter is not applied (default).)"
     },
     {
-        "name": "resource-types",
+        "name": "res-types",
         "type": "list",
         "default": [],
         "description": "List of types for the resources to be selected (e.g. [\"source\", \"ensemble\"]). If empty, the filter is not applied (default)."
