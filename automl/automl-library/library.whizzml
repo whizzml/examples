@@ -130,7 +130,7 @@
 ;; Checks params values
 (define (check-params pca-variance-threshold max-rules)
   (_check-in-range pca-variance-threshold 0 1 "pca-variance-threshold")
-  (_check-in-range max-rules 0 1000 "max-rules"))
+  (_check-in-range  (floor max-rules) 0 1000 "max-rules"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

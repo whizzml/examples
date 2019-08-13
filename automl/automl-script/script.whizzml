@@ -99,7 +99,7 @@
 (define extended-datasets
   (let (exc-fields (config "excluded-fields")
         pca-threshold (config "pca-variance-threshold")
-        max-rules (config "max-rules"))
+        max-rules (floor (config "max-rules")))
     (map (lambda(dataset)
            (when (= (resource-type dataset) "dataset")
              (log-info " - Extending dataset: " (resource-name dataset))

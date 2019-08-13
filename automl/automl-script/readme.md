@@ -56,7 +56,7 @@ The **inputs** for the script are:
   minimum number of components such that the cumulative explained
   variance is greater than the given threshold. Values from 0 to 1.
   Default value is 1 (all the components will be used)
-  * `max-rules`: (number) Maximum number of association rules
+  * `max-rules`: (integer) Maximum number of association rules
     that should be included in the extended datasets. Default value
     is 20. The final number of rules added to the dataset can be lower
     than this value if there aren't enough rules in the created
