@@ -36,7 +36,7 @@
       "default": {"excluded-fields": [],
                   "excluded-models": [],
                   "pca-variance-threshold": 1,
-                  "leverage-threshold": 0},
+                  "max-rules": 20},
       "description": "Execution configuration parameters. They will be overwritten if automl-execution is given. See README for more information"
     }
   ],

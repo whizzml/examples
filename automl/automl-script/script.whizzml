@@ -33,7 +33,7 @@
 (check-excluded-models (config "excluded-models"))
 (log-info "More configuration parameters checks")
 (check-params (config "pca-variance-threshold")
-              (config "leverage-threshold"))
+              (config "max-rules"))
 
 (log-featured "Feature generation")
 (log-info "Obtaining unsupervised models")
@@ -71,7 +71,7 @@
                             model-list
                             excluded
                             pca-threshold
-                            leverage-threshold)
+                            max-rules)
   (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
         objective-id (dataset-get-objective-id dataset-id)
         name (resource-name dataset-id)
@@ -86,12 +86,12 @@
         anomaly-fields (feat-gen "anomaly" "batchanomalyscore" {})
         topic-fields (feat-gen "topicmodel" "batchtopicdistribution" {})
         pca-params {"variance_threshold" pca-threshold}
-        pca-fields (feat-gen "pca""batchprojection" pca-params)
+        pca-fields (feat-gen "pca" "batchprojection" pca-params)
         dataset-assoc (assoc-feature-gen dataset-id
                                          model-list
                                          name
                                          excluded
-                                         leverage-threshold)
+                                         max-rules)
         all-fields [cluster-fields anomaly-fields topic-fields pca-fields]
         all-ds (cons dataset-assoc (map batch-output-ds all-fields)))
     (feature-generation-dataset all-ds name objective-id)))
@@ -99,7 +99,7 @@
 (define extended-datasets
   (let (exc-fields (config "excluded-fields")
         pca-threshold (config "pca-variance-threshold")
-        lev-threshold (config "leverage-threshold"))
+        max-rules (config "max-rules"))
     (map (lambda(dataset)
            (when (= (resource-type dataset) "dataset")
              (log-info " - Extending dataset: " (resource-name dataset))
@@ -107,7 +107,7 @@
                                  unsupervised-models
                                  exc-fields
                                  pca-threshold
-                                 lev-threshold)))
+                                 max-rules)))
          [train-dataset validation-dataset test-dataset])))
 
 

@@ -44,8 +44,7 @@ The **inputs** for the script are:
   new resources are generated from the training data.
 * `configuration-params`: (map) Execution configuration
   parameters. They will be overwritten if automl-execution is
-  given. Overwritten if automl-execution is given. The following
-  values must be provided:
+  given. The following values must be provided:
   * `excluded-fields`: (list) List of fields that will be excluded
   from any dataset before any other process starts. e.g. ["bmi",
   "age"]. Empty by default.
@@ -57,10 +56,12 @@ The **inputs** for the script are:
   minimum number of components such that the cumulative explained
   variance is greater than the given threshold. Values from 0 to 1.
   Default value is 1 (all the components will be used)
-  * `leverage-threshold`: (number) Associations with an absolute
-  leverage lower than the threshold will be ignored.  Default value is
-  0 (all the association will be added to the extended dataset)
-
+  * `max-rules`: (number) Maximum number of association rules
+    that should be included in the extended datasets. Default value
+    is 20. The final number of rules added to the dataset can be lower
+    than this value if there aren't enough rules in the created
+    association discovery models or if the same rules appear on more
+    than one association discovery model.
 
 **WARNING** Remember that, to avoid confusion, `configuration-params`
 are overwritten by the corresponding input in `automl-execution` if

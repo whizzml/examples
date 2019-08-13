@@ -86,7 +86,7 @@
 ;; Checks that all the needed params are in the configuration
 (define (check-configuration-params config)
   (let (correct #["excluded-fields" "excluded-models"
-                  "pca-variance-threshold" "leverage-threshold"]
+                  "pca-variance-threshold" "max-rules"]
         dif (difference correct (set* (keys (or config {})))))
     (when (not (empty? dif))
       (raise (str "Can't find the following parameters in the "
@@ -120,17 +120,17 @@
                 " and not in your validation or test datasets (besides the"
                 " objective field)"))))
 
-(define (_check-number value min-value max-value name)
+(define (_check-in-range value min-value max-value name)
   (when (or (not (number? value))
             (not (<= min-value value max-value)))
     (raise (str name
-                " must be a positive number "
+                " must be a number "
                 " in the interval [" min-value  ","  max-value  "]"))))
 
 ;; Checks params values
-(define (check-params pca-variance-threshold leverage-threshold)
-  (_check-number pca-variance-threshold 0 1 "pca-variance-threshold")
-  (_check-number leverage-threshold 0 1 "leverage-threshold"))
+(define (check-params pca-variance-threshold max-rules)
+  (_check-in-range pca-variance-threshold 0 1 "pca-variance-threshold")
+  (_check-in-range max-rules 0 1000 "max-rules"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -257,7 +257,7 @@
         total (+ (count lhs) (count rhs)))
     (= total (count (field-names-from-ids (concat lhs rhs) dataset-id)))))
 
-(define (_flatline-rule association rule match dataset-id threshold)
+(define (_flatline-rule association rule match dataset-id)
   (when (_check-assoc-field-exists association rule dataset-id)
     (let (fields (resource-fields association)
           associations (association "associations" {})
@@ -266,34 +266,30 @@
           (lambda (i) (_flatline-item (items i) (fields ((items i) "field_id"))))
           lhs (map get-item-fn (rule "lhs"))
           rhs (map get-item-fn (rule "rhs"))
-          metric (rule "leverage" 1)
           lhs (if (> (count lhs) 1)
                 (str "(and " (join " " lhs) ")")
                 (join " " lhs))
           rhs (if (> (count rhs) 1)
                 (str "(and " (join " " rhs) ")")
                 (join " " rhs)))
-      (when (>= (abs metric) threshold)
-        (cond (= match "antecedent")
-              lhs
-              (= match "consequent")
-              rhs
-              (str "(and " lhs " " rhs ")"))))))
+      (cond (= match "antecedent")
+            lhs
+            (= match "consequent")
+            rhs
+            (str "(and " lhs " " rhs ")")))))
 
-(define (_batch-association-sets dataset-id association-id match threshold)
+(define (_batch-association-sets dataset-id association-id match max-rules)
   (let (association (fetch association-id)
         associations (association "associations" {})
         rules (associations "rules" [])
-        rule-ids (map (lambda (r) (r "id")) rules)
-        rules (filter (lambda (r) (member? (r "id") rule-ids))
-                      rules)
-        flatline-rules (map (lambda (rule)
-                              (_flatline-rule association
-                                              rule
-                                              match
-                                              dataset-id
-                                              threshold))
-                            rules)
+        flatline-rules (take max-rules
+                             (map (lambda (rule)
+                                    (_flatline-rule association
+                                                    rule
+                                                    match
+                                                    dataset-id))
+                                  rules))
+
         new-fields (iterate (acc [] flatline-rule flatline-rules rule rules)
                      (if flatline-rule
                        (append acc {"field" flatline-rule
@@ -349,12 +345,13 @@
 
 ;; Adds to the dataset a new set of fields coming from batch
 ;; association sets from association discovery models in model-list
-;; User can also set a list of fields to be excluded and a threshold
-;; value for the association metric value
-(define (assoc-feature-gen dataset-id model-list name excluded th)
-  (let (new-fields
-        (map (lambda(m) (_batch-association-sets dataset-id m "antecedent" th))
-             (_model-from-list model-list "association")))
+;; User can also set a list of fields to be excluded and a maximum
+;; number of rules that should be obtained
+(define (assoc-feature-gen dataset-id model-list name excluded num-of-rules)
+  (let (rules (floor (/ num-of-rules 2))
+        new-fields
+        (map (lambda(m) (_batch-association-sets dataset-id m "antecedent" rules))
+                        (_model-from-list model-list "association")))
     (_dataset-with-rules dataset-id name (_flatten new-fields) excluded)))
 
 ;; From a batch score, obtains the generated output dataset
