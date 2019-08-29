@@ -16,13 +16,13 @@
   (let (my-ds (fetch ds)
         field-id (my-ds ["objective_field" "id"])
         my-name (my-ds "name")
-        anomalous (head (head (my-ds ["fields" 
-                                      field-id 
-                                      "summary" 
+        anomalous (head (head (my-ds ["fields"
+                                      field-id
+                                      "summary"
                                       "categories"]))))
     (create-and-wait-dataset {"origin_dataset" ds
-                              "new_fields" [{"field" (two-class-filter 
-                                                      field-id 
+                              "new_fields" [{"field" (two-class-filter
+                                                      field-id
                                                       anomalous)
                                              "name" "instance type"}]
                               "all_but" [field-id]
@@ -34,7 +34,7 @@
 
 ;; Multi-to-Binary
 
-;; Creating the Evaluation 
+;; Creating the Evaluation
 ;; (mostly from jao's
 ;;  model-per-cluster/create-cluster-models)
 
@@ -61,7 +61,7 @@
      ev-id))
 
 ;; Graphs
- 
+
 ;; Given an evaluation id, takes the confustion matrix of the model
 ;; result and represents it as a complete graph as outlined in
 ;; http://www.outlier-analytics.org/odd13kdd/papers/emmott,das,dietterich,fern,wong.pdf,
@@ -90,23 +90,9 @@
 
 (define (create-edges matrix)
   (let (count (count matrix))
-    (map (lambda (x) (map (lambda (y) 
-                                  (make-edge matrix [x, y])) 
+    (map (lambda (x) (map (lambda (y)
+                                  (make-edge matrix [x, y]))
                           (range (+ x 1) count))) (range 0 (- count 1)))))
-              
-;; Given a nested list, returns its contents as a single flat
-;; list.
-
-(define (flatten flat-list list-of-lists)
-  (if (empty? list-of-lists)
-    flat-list
-    (let (element (head list-of-lists)
-          rest (tail list-of-lists))
-      (if (list? element)
-        (if (some list? element)
-            (flatten (concat flat-list (flatten [] element)) rest)
-            (flatten (concat flat-list element) rest))
-        (flatten (append flat-list element) rest)))))
 
 ;; Given an evaluation, returns a graph based on its confusion matrix.
 
@@ -115,8 +101,8 @@
         my-matrix (get-in my-result ["model" "confusion_matrix"])
         my-classes (get my-result "class_names")
         nodes (map (lambda (x) (make-map ["id" "name"] [x (nth my-classes x)])) (range (count my-classes)))
-        edges (flatten [] (create-edges my-matrix)))
-    (make-map ["nodes" "edges"] [nodes edges])))        
+        edges (flatten (create-edges my-matrix)))
+    (make-map ["nodes" "edges"] [nodes edges])))
 
 ;; Given a list of node maps and two keys of those maps, returns a map
 ;; between those keys. This is useful later when looking up colors or
@@ -146,10 +132,10 @@
                           (if (= parent -1)
                             node-id
                             (find-subgraph parent subgraphs)))))
-    (loop (span-edges [] 
-           subgraphs (make-map (map (lambda (x) (str (get x "id"))) nodes) 
-                              (repeat (count nodes) -1)) 
-           list-of-edges sorted) 
+    (loop (span-edges []
+           subgraphs (make-map (map (lambda (x) (str (get x "id"))) nodes)
+                              (repeat (count nodes) -1))
+           list-of-edges sorted)
       (cond (= (count span-edges) (- (count nodes) 1)) span-edges
             (empty? list-of-edges) "Graph is disconnected"
             (let (edge (head list-of-edges)
@@ -159,7 +145,7 @@
                   subgraph2 (find-subgraph (last ends) subgraphs))
               (if (= subgraph1 subgraph2)
                 (recur span-edges subgraphs rest)
-                (recur (append span-edges edge) 
+                (recur (append span-edges edge)
                        (assoc subgraphs (str subgraph1) subgraph2)
                        rest)))))))
 
@@ -171,7 +157,7 @@
 (define (find-neighbors node span-tree)
   (let (end-list (map (lambda (x) (get x "ends")) span-tree)
         ends-with-node (filter (lambda (x) (member? node x)) end-list))
-    (filter (lambda (x) (not (= x node))) (flatten [] ends-with-node)))) 
+    (filter (lambda (x) (not (= x node))) (flatten ends-with-node))))
 
 ;; Given a list of nodes, a node id, and a color ("normal" or
 ;; "anomalous"), returns the list with the color of the node changed
@@ -187,14 +173,14 @@
 ;; touching nodes have the same color.
 
 (define (two-color graph span-tree)
-  (let (old-nodes (map (lambda (x) (assoc x "color" "none")) 
+  (let (old-nodes (map (lambda (x) (assoc x "color" "none"))
                     (get graph "nodes"))
         edges (get graph "edges")
         uncolored? (lambda (id color-map) (= (color-map (str id)) "none"))
-        color-lots (lambda (nodes list-of-ids color) 
+        color-lots (lambda (nodes list-of-ids color)
                      (reduce (lambda (x y) (color-a-node x y color))
                              nodes list-of-ids))
-        new-color (lambda (color) (if (= color "normal") 
+        new-color (lambda (color) (if (= color "normal")
                                       "anomalous" "normal")))
     (loop (queue [0] nodes (color-a-node old-nodes 0 "normal"))
       (if (empty? queue)
@@ -202,9 +188,9 @@
           (let (node (head queue)
                 rest (tail queue)
                 node-color (mapify nodes "id" "color")
-                neighbors (filter (lambda (x) (uncolored? x node-color)) 
+                neighbors (filter (lambda (x) (uncolored? x node-color))
                                   (find-neighbors node span-tree))
-                colored-nodes (color-lots nodes neighbors 
+                colored-nodes (color-lots nodes neighbors
                                          (new-color (node-color (str node))))
                 new-queue (concat rest neighbors))
             (recur new-queue colored-nodes))))))
@@ -217,10 +203,10 @@
 
 (define (color-filter field-id color-map)
   (let (classes (keys color-map)
-        one-line (lambda (class color) 
+        one-line (lambda (class color)
                    (flatline "(matches? (field {{field-id}}) {{class}}) {{color}}"))
-        conditions (reduce (lambda (x y) 
-                       (join " " [x (one-line y (color-map y))])) 
+        conditions (reduce (lambda (x y)
+                       (join " " [x (one-line y (color-map y))]))
                      "" (keys color-map)))
     (join " " ["(cond" conditions ")"])))
 
@@ -273,12 +259,12 @@
   (let (my-ds (fetch ds)
         my-optype (my-ds ["fields" field-id "optype"]))
     (if (= my-optype "categorical")
-      (let (classes (count (get-in my-ds 
-                                 ["fields" 
-                                  field-id 
-                                  "summary" 
+      (let (classes (count (get-in my-ds
+                                 ["fields"
+                                  field-id
+                                  "summary"
                                   "categories"])))
         (if (= classes 2)
           (two-to-binary ds field-id)
           (multi-to-binary ds field-id delete-resources)))
-      (numeric-to-binary ds field-id))))                                
+      (numeric-to-binary ds field-id))))

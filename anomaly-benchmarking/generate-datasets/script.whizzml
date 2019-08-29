@@ -3,7 +3,7 @@
 
 (define (map-to-list edges-map)
   (let (labels (keys edges-map)
-        edges-list (map (lambda (x) (make-map ["level" "max"] 
+        edges-list (map (lambda (x) (make-map ["level" "max"]
                                               [x (edges-map x)]))
                      labels))
     (sort-by-key "max" edges-list)))
@@ -13,8 +13,8 @@
 (define (all-preferred ds-id)
   (let (ds (fetch ds-id)
         field-list (keys (ds "fields")))
-    (update ds-id 
-            {"fields" (make-map field-list (repeat (count field-list) 
+    (update ds-id
+            {"fields" (make-map field-list (repeat (count field-list)
                                                    {"preferred" true}))})))
 
 ;; Given a dataset and a field name, returns the field id with that name
@@ -22,7 +22,7 @@
 (define (get-id ds name)
   (let (fields (ds "fields"))
     (try
-      (head (filter (lambda (x) (= (fields [x "name"]) name)) 
+      (head (filter (lambda (x) (= (fields [x "name"]) name))
                     (keys fields)))
       (catch e
         (log-warn "Could not find field name " name " : " e)))))
@@ -34,13 +34,13 @@
 (define (point-difficulty ds-id new-obj delete-resources diff-list)
   (let (ds (all-preferred ds-id)
         lr-id (create-and-wait-logisticregression ds)
-        pred-name (str "prediction for " 
+        pred-name (str "prediction for "
                        ((fetch ds) ["objective_field" "name"]))
-        bp-id (wait (create-batchprediction lr-id 
-                                            ds 
-                                            {"probabilities" true 
-                                             "output_dataset" true 
-                                             "all_fields" true 
+        bp-id (wait (create-batchprediction lr-id
+                                            ds
+                                            {"probabilities" true
+                                             "output_dataset" true
+                                             "all_fields" true
                                              "prediction_name" pred-name}))
         prob-ds-id ((fetch bp-id) "output_dataset_resource")
         prob-ds (fetch (wait prob-ds-id))
@@ -49,20 +49,20 @@
         ano-field (get-id prob-ds "anomalous probability")
         other-bins (butlast diff-list)
         last-bin ((last diff-list) "level")
-        my-bins (reduce (lambda (x y) 
+        my-bins (reduce (lambda (x y)
                           (str x "\"" (y "level") "\" " (y "max") " "))
                         ""
                         other-bins)
         diff-sort (flatline "(segment-label {{norm-field}}"
                             "               {my-bins}"
-                            "               {{last-bin}})") 
+                            "               {{last-bin}})")
         my-filter (flatline "(= (field {{new-obj}}) \"anomalous\")")
-        diff-ds (wait (create-dataset prob-ds-id 
+        diff-ds (wait (create-dataset prob-ds-id
                                       {"lisp_filter" my-filter
                                        "new_fields" [{"field" diff-sort
                                                       "name" "sorted"}]
-                                       "all_but" [norm-field 
-                                                  ano-field 
+                                       "all_but" [norm-field
+                                                  ano-field
                                                   pred-field]})))
     (when delete-resources
       (map safe-delete [lr-id bp-id prob-ds-id]))
@@ -75,13 +75,13 @@
 (define (split-difficulty ds-id diff-list)
   (let (ds (fetch ds-id)
         split-field (get-id ds "sorted")
-        split-list (ds ["fields" split-field "summary" "categories"]) 
+        split-list (ds ["fields" split-field "summary" "categories"])
         split-map (make-map (map head split-list)(map last split-list))
         split-it (lambda (level)
                    (let (my-filter (flatline "(= (f {{split-field}})"
                                              " "
                                              "      {{level}})"))
-                     (if (contains? split-map level) 
+                     (if (contains? split-map level)
                        (wait (create-dataset {"origin_dataset" ds-id
                                               "lisp_filter" my-filter
                                               "excluded_fields" [split-field]
@@ -109,12 +109,12 @@
         score-high (flatline "(within-percentiles? {{id}} 0.8 1)")
         low-ds (create-and-wait-dataset {"origin_dataset" score-ds
                                          "lisp_filter" score-low
-                                         "name" (str ds-name 
+                                         "name" (str ds-name
                                                      " - high clusteredness")
                                          "excluded_fields" [id]})
         high-ds (create-and-wait-dataset {"origin_dataset" score-ds
                                           "lisp_filter" score-high
-                                          "name" (str ds-name 
+                                          "name" (str ds-name
                                                       " - low clusteredness")
                                           "excluded_fields" [id]}))
     (when delete-resources
@@ -128,16 +128,16 @@
 ;; found by abusing k-means; it creates just one cluster which contains
 ;; all the data.
 
-(define (variance-ratios ano-ds-id 
-                         norm-var 
-                         norm-scales 
-                         delete-resources 
+(define (variance-ratios ano-ds-id
+                         norm-var
+                         norm-scales
+                         delete-resources
                          var-list)
   (let (ano-ds (fetch ano-ds-id)
         my-tags (ano-ds "tags")
-        ano-cl-id (create-and-wait-cluster {"dataset" ano-ds-id 
-                                            "k" 1 
-                                            "balance_fields" false 
+        ano-cl-id (create-and-wait-cluster {"dataset" ano-ds-id
+                                            "k" 1
+                                            "balance_fields" false
                                             "field_scales" norm-scales})
         ano-var ((fetch ano-cl-id) ["clusters"
                                     "global"
@@ -166,17 +166,17 @@
       (try
         (let (k (/ (* freq normal-rows) (- 1 freq)))
           (when (and (> max-freq freq) (> k 10))
-            (repeatedly (min replicates (floor (/ rows k))) 
+            (repeatedly (min replicates (floor (/ rows k)))
                         (lambda () (create-dataset {"origin_dataset" ds-id
                                                     "sample_rate" (/ k rows)
-                                                    "name" (str ds-name 
-                                                                " - " 
+                                                    "name" (str ds-name
+                                                                " - "
                                                                 freq)
-                                                    "tags" (append my-tags 
+                                                    "tags" (append my-tags
                                                                    (str freq))})))))
         (catch e
           (log-error "Skipping frequency " freq ": " e))))))
-  
+
 ;; Given an anomalous dataset and a normal dataset, combines them into
 ;; a single dataset, and returns a map with key/value pairs from the
 ;; tags from the anomalous dataset (difficulty, frequency, and
@@ -184,9 +184,9 @@
 
 (define (generate-map ds-id normal-ds)
   (let (ds (fetch ds-id)
-        combined (create-dataset {"origin_datasets" [ds-id normal-ds]}) 
+        combined (create-dataset {"origin_datasets" [ds-id normal-ds]})
         my-tags (ds "tags"))
-    (make-map ["difficulty" "frequency" "variation"  "resource"] 
+    (make-map ["difficulty" "frequency" "variation"  "resource"]
               (append my-tags combined))))
 
 ;; Putting it all together. This function takes a dataset, makes the
@@ -197,11 +197,11 @@
 ;; specifying the resource id, difficulty, semantic variation, and
 ;; frequency.
 
-(define (generate ds-id 
-                  diff-map 
-                  var-map 
-                  freq-list 
-                  replicates 
+(define (generate ds-id
+                  diff-map
+                  var-map
+                  freq-list
+                  replicates
                   delete-resources)
   (let (diff-list (map-to-list diff-map)
         var-list (map-to-list var-map)
@@ -215,50 +215,48 @@
         normal-rows ((fetch normal-ds) "rows")
         norm-cl-id (create-and-wait-cluster {"dataset" normal-ds "k" 1})
         norm-cl (fetch norm-cl-id)
-        norm-var (norm-cl ["clusters" 
-                           "global" 
-                           "distance" 
+        norm-var (norm-cl ["clusters"
+                           "global"
+                           "distance"
                            "standard_deviation"])
         norm-scales (norm-cl "scales")
         diff-ds (point-difficulty binary new-obj delete-resources diff-list)
-        difficulty-list (filter (lambda (x) x) 
+        difficulty-list (filter (lambda (x) x)
                                 (split-difficulty diff-ds diff-list))
-        variation-list (flatten [] 
-                                (for (x difficulty-list)
-                                  (when x 
-                                    (semantic-variation x 
-                                                        new-obj 
-                                                        delete-resources)))) 
-        frequency-list (flatten []
-                                (for (x variation-list)
-                                  (when x 
-                                    (relative-frequency x 
-                                                        normal-rows 
-                                                        replicates 
+        variation-list (flatten (for (x difficulty-list)
+                                  (when x
+                                    (semantic-variation x
+                                                        new-obj
+                                                        delete-resources))))
+        frequency-list (flatten (for (x variation-list)
+                                  (when x
+                                    (relative-frequency x
+                                                        normal-rows
+                                                        replicates
                                                         freq-list))))
         labeled-by-variation (for (x frequency-list)
-                               (when x 
-                                 (variance-ratios x 
-                                                  norm-var 
-                                                  norm-scales 
+                               (when x
+                                 (variance-ratios x
+                                                  norm-var
+                                                  norm-scales
                                                   delete-resources
-                                                  var-list))) 
+                                                  var-list)))
         final-list (for (x labeled-by-variation)
                      (if x (generate-map x normal-ds))))
     (when delete-resources
-      (map safe-delete (flatten [] [binary
-                                    normal-ds
-                                    norm-cl-id
-                                    diff-ds 
-                                    difficulty-list 
-                                    variation-list
-                                    frequency-list])))
+      (map safe-delete (flatten [binary
+                                 normal-ds
+                                 norm-cl-id
+                                 diff-ds
+                                 difficulty-list
+                                 variation-list
+                                 frequency-list])))
     (filter (lambda (x) x) final-list)))
 
 (define generated-datasets
-  (for (x dataset-list) (generate x 
-                                  difficulty-map 
-                                  variance-map 
-                                  frequency-list 
-                                  replicates 
+  (for (x dataset-list) (generate x
+                                  difficulty-map
+                                  variance-map
+                                  frequency-list
+                                  replicates
                                   delete-resources)))
