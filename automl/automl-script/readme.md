@@ -26,17 +26,17 @@ automatically done:
 
 The **inputs** for the script are:
 
-* `train-dataset`: (string) Dataset id for the train dataset
+* `train-dataset`: (dataset-id) Dataset id for the train dataset
   (e.g. dataset/5d272205eba31d61920005cd). If no train dataset is
   provided, the script will expect an `automl-execution` to be
   provided and will use its models as starting point.
-* `validation-dataset`: (string) Dataset id for the validation dataset
+* `validation-dataset`: (dataset-id) Dataset id for the validation dataset
   (e.g. dataset/5d272205eba31d61920005cd). If empty, no
   output-evalution is returned.
-* `test-dataset`: (string) Dataset id for the test dataset
+* `test-dataset`: (dataset-id) Dataset id for the test dataset
   (e.g. dataset/7j272205eba31d61920005vf). If empty, no output-dataset
   is returned.
-* `automl-exection`: (string) Previous execution of this script, to
+* `automl-exection`: (execution-id) Previous execution of this script, to
   reuse created executions and models,
   e.g. execution/5d272205eba31d61920005cd. Either `train-dataset` or
   `automl-execution` should be provided for the script to work. When
@@ -105,11 +105,3 @@ previous execution and provide the test dataset ID in the
 In this case, some steps of the process will be bypassed. The script
 won't generate neither a new `OptiML`, unsupervised model nor a
 **Recursive Feature Selection** execution.
-
-## FAQ
-### Why can't I see, in the scripts inputs in the BigML's dashboard, dropdowns menus to select the dataset, script, etc?
-All the input parameters of these scripts are optional. So, they use a
-**string** input type instead a `dataset-id` input type,
-`execution-id` input type, etc. Using a **string** input type we can
-provide a **default empty value** if the user don't want to pass one
-input.
