@@ -8,25 +8,25 @@
   "inputs":[
     {
       "name": "train-dataset",
-      "type": "string",
+      "type": "dataset-id",
       "default": "",
       "description": "Train dataset id (e.g. dataset/5d272205eba31d61920005cd)"
     },
     {
       "name": "validation-dataset",
-      "type": "string",
+      "type": "dataset-id",
       "default": "",
       "description": "Validation dataset id (e.g. dataset/5d272205eba31d61920005cd)"
     },
     {
       "name": "test-dataset",
-      "type": "string",
+      "type": "dataset-id",
       "default": "",
       "description": "Test dataset id (e.g. dataset/5d272205eba31d61920005cd)"
     },
     {
       "name": "automl-execution",
-      "type": "string",
+      "type": "execution-id",
       "default": "",
       "description": "Previous execution of this script, to reuse created resources, e.g. execution/5d272205eba31d61920005cd"
     },
