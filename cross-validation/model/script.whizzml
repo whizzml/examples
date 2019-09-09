@@ -52,19 +52,24 @@
                           k-folds
                           objective-id
                           model-options
-                          evaluation-options)
+                          evaluation-options
+                          . stratified?)
   (check-resource-id dataset-id "dataset")
   (check-integer k-folds 2 false)
+  (check-minority-instances k-folds dataset-id objective-id)
   (let (dataset (fetch dataset-id)
         dataset-name (dataset "name" false))
     (check-dataset-objective-id objective-id dataset)
-    (let (k-fold-datasets (create-k-folds dataset-id k-folds)
-         objective-name (get-objective-name dataset objective-id)
-         evaluations (create-k-evaluations k-fold-datasets
-                                           objective-name
-                                           dataset-name
-                                           model-options
-                                           evaluation-options))
+    (let (k-fold-datasets (if (or (empty? stratified?)
+                                  (not (stratified? 0)))
+                              (create-k-folds dataset-id k-folds)
+                              (stratified-k-folds dataset k-folds objective-id))
+          objective-name (get-objective-name dataset objective-id)
+          evaluations (create-k-evaluations k-fold-datasets
+                                            objective-name
+                                            dataset-name
+                                            model-options
+                                            evaluation-options))
      (create-and-wait-evaluation {"evaluations" evaluations}))))
 
 ;; check-resource-id
@@ -111,6 +116,23 @@
                            " found.")
             "code" 105}))
   value)
+
+
+;; check-minority-instances
+;;
+;; Checks whether the number of instances in the minority class is greater
+;; than the number of folds
+(define (check-minority-instances k-folds dataset-id objective-id)
+  (let (dataset (fetch dataset-id)
+        min-cat (last (dataset ["fields" objective-id "summary" "categories"]
+                               []))
+        min-inst (if (empty? min-cat)
+                     0
+                     (min-cat 1)))
+    (when (< min-inst k-folds)
+      (raise {"message" (str "Failed to create a " k-folds "-folds sample: "
+                             "not enough instances in some categories")
+              "code" 107}))))
 
 ;; choosable-objective-ids
 ;;
@@ -160,6 +182,22 @@
   (let (fields (dataset "fields" {}))
     (fields [objective-id "name"] false)))
 
+
+(define (stratified-k-folds dataset k-folds objective-id)
+  (let (summary (dataset ["fields" objective-id "summary" "categories"] [])
+        cat-names (map (lambda (x) (x 0)) summary)
+        ds-ids (for (cat cat-names)
+                 (create-k-folds
+                   (create-dataset {"origin_dataset" (dataset "resource")
+                                    "lisp_filter" (flatline "(= "
+                                                            "(f {objective-id})"
+                                                            " {{cat}})")
+                                    "name" (str (dataset "name") " - " cat)})
+                   k-folds))
+        ds-ids (for (index (range 0 (count (ds-ids 0))))
+                 (create-dataset {"origin_datasets" (map (lambda (x) (x index))
+                                                         ds-ids)})))
+    (wait* ds-ids)))
 
 ;; create-k-folds
 ;;
@@ -349,7 +387,8 @@
                                 balance-objective
                                 weight-field
                                 objective-weights
-                                node-threshold)
+                                node-threshold
+                                . stratified?)
   (let (options (get-model-options missing-splits
                                    stat-pruning
                                    balance-objective
@@ -359,7 +398,7 @@
         objective-id (if (empty? objective-id)
                          (dataset-get-objective-id dataset-id)
                          objective-id))
-    (cross-validation dataset-id k-folds objective-id options {})))
+    (cross-validation dataset-id k-folds objective-id options {} stratified?)))
 
 
 (define cross-validation-output (model-cross-validation
@@ -371,4 +410,5 @@
                                  balance-objective
                                  weight-field
                                  objective-weights
-                                 node-threshold))
+                                 node-threshold
+                                 stratified?))

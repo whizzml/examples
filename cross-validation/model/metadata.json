@@ -56,6 +56,12 @@
           "type": "number",
           "default": -1,
           "description": "Maximum number of nodes in the model, or -1 for all"
+      },
+      {
+          "name": "stratified?",
+          "type": "boolean",
+          "default": false,
+          "description": "Stratify every k-fold"
       }
   ],
   "outputs": [
