@@ -29,6 +29,7 @@ The **inputs** for the script are:
 * `randomize`: (boolean) Sets the ensemble randomize flag --random forest -- (optional, default=false)
 * `seed`: (string) Seed used in random sampling (optional, default="cross-validation")
 * `delete-resources`: (boolean) Whether to delete intermediate resources (optional, default=true)
+* `stratified?`: (boolean) Whether to stratify the k-folds across classes (optional, default=false)
 
 as you can see, most of the inputs are optional. They default to the defaults
 in the platform. The `objective-id` will also be inferred from the one in
@@ -53,7 +54,8 @@ One just needs to call
                            replacement
                            randomize
                            seed
-                           delete-resources)
+                           delete-resources?
+                           stratified?)
 ```
 
 using the previously described inputs.

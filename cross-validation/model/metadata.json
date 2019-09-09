@@ -58,6 +58,12 @@
           "description": "Maximum number of nodes in the model, or -1 for all"
       },
       {
+          "name": "delete-resources?",
+          "type": "boolean",
+          "default": false,
+          "description": "Delete intermediate resources"
+      },
+      {
           "name": "stratified?",
           "type": "boolean",
           "default": false,

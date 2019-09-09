@@ -36,7 +36,10 @@ The **inputs** for the script are:
                              default="l2")
 * `seed`: (string) Seed used in random samplings (optional,
                    default="cross-validation")
-* `delete-resources`: (boolean) Whether to delete intermediate resources (optional, default=true)
+* `delete-resources`: (boolean) Whether to delete intermediate resources
+                      (optional, default=true)
+* `stratified?`: (boolean) Whether to stratify the k-folds across classes
+                      (optional, default=false)
 
 As you can see, most of the inputs are optional. They default to the defaults
 in the platform. The `objective-id` will also be inferred from the one in

@@ -16,7 +16,8 @@
                             "operating_kind"
                             "operating_point"])
 
-(define SLMS ["model" "ensemble" "logisticregression" "deepnet"])
+(define SLMS ["model" "ensemble" "logisticregression"
+              "linearregression" "deepnet"])
 
 ;; cross-validation
 ;;
@@ -25,7 +26,7 @@
 ;;   slm-id: (string) Supervised Model ID
 ;;   k-folds: (integer) Number of folds
 ;;   evaluation-options: (map) Options to use in evaluation creation
-;;   delete-resources: (boolean) Whether to delete all intermediate resources
+;;   delete-resources?: (boolean) Whether to delete all intermediate resources
 ;;
 ;; Output: (map) Average of evaluations results
 ;;
@@ -35,33 +36,41 @@
 ;;  103: The k-folds argument is not an integer
 ;;  104: The k-folds argument is not >= 2
 ;;  106: The model is not a classification model
+;;  107: The number of instances in minority class is less than k
 ;;
 (define (cross-validation slm-id
                           k-folds
                           evaluation-options
-                          delete-resources)
+                          delete-resources?
+                          . stratified?)
   (check-resource-id slm-id SLMS)
   (check-integer k-folds 2 false)
   (let (slm (fetch slm-id)
         model-type (resource-type slm-id)
         [dataset-id model-options] (slm-arguments slm-id)
+        _ (check-minority-instances k-folds dataset-id objective-id)
         dataset (fetch dataset-id)
         dataset-name (dataset "name" false)
         fields (resource-fields dataset-id)
         objective-id (slm "objective_field")
         _ (check-categorical-objective-id objective-id fields)
         objective-name (fields [objective-id "name"] false)
-        k-fold-datasets (create-k-folds dataset-id k-folds)
+        k-fold-datasets (if (or (empty? stratified?)
+                                  (not (stratified? 0)))
+                              (create-k-folds dataset-id k-folds)
+                              (stratified-k-folds dataset
+                                                  k-folds
+                                                  objective-id))
         evaluations (create-k-evaluations k-fold-datasets
                                           objective-name
                                           dataset-name
                                           model-type
                                           model-options
                                           evaluation-options
-                                          delete-resources)
+                                          delete-resources?)
         evaluations-average (create-and-wait-evaluation {"evaluations"
                                                          evaluations}))
-      (when delete-resources
+      (when delete-resources?
         (map safe-delete (concat k-fold-datasets evaluations)))
       evaluations-average))
 
@@ -130,6 +139,23 @@
                            " cross-validated")
             "code" 106})))
 
+
+;; check-minority-instances
+;;
+;; Checks whether the number of instances in the minority class is greater
+;; than the number of folds
+(define (check-minority-instances k-folds dataset-id objective-id)
+  (let (dataset (fetch dataset-id)
+        min-cat (last (dataset ["fields" objective-id "summary" "categories"]
+                               []))
+        min-inst (if (empty? min-cat)
+                     0
+                     (min-cat 1)))
+    (when (< min-inst k-folds)
+      (raise {"message" (str "Failed to create a " k-folds "-folds sample: "
+                             "not enough instances in some categories")
+              "code" 107}))))
+
 ;; --------------------------------------------------------------------------
 
 
@@ -154,6 +180,30 @@
         conf (dissoc conf ((keys (step "origin")) 0)))
   (log-info "Dataset ID and configuration: " dataset-id conf)
   [dataset-id conf]))
+
+;; Stratified sampling: Keeping proportions in sampling across classes
+
+(define (stratified-k-folds dataset k-folds objective-id)
+  (let (summary (dataset ["fields" objective-id "summary" "categories"] [])
+        cat-names (map (lambda (x) (x 0)) summary)
+        cat-ds-ids (for (cat cat-names)
+                     (create-k-folds
+                       (create-dataset {"origin_dataset" (dataset "resource")
+                                        "lisp_filter" (flatline
+                                                        "(= "
+                                                        "(f {objective-id})"
+                                                        " {{cat}})")
+                                        "name" (str (dataset "name")
+                                                    " - "
+                                                    cat)})
+                       k-folds))
+        ds-ids (for (index (range 0 (count (cat-ds-ids 0))))
+                 (create-dataset {"origin_datasets" (map (lambda (x) (x index))
+                                                         cat-ds-ids)})))
+    (wait* ds-ids)
+    (map safe-delete cat-ds-ids)
+    ds-ids))
+
 
 ;; create-k-folds
 ;;
@@ -241,7 +291,7 @@
 ;;   model-type: (string) Type of supervised learning model
 ;;   model-options: (map) Options used to build the models/ensembles
 ;;   evaluation-options: (map) Options used to build evaluations
-;;   delete-resources: (boolean) Whether to delete all intermediate resources
+;;   delete-resources?: (boolean) Whether to delete all intermediate resources
 ;;
 ;; Output: (list) List of evaluation IDs
 ;;
@@ -251,7 +301,7 @@
                               model-type
                               model-options
                               evaluation-options
-                              delete-resources)
+                              delete-resources?)
   (let (number-of-models (model-options "number_of_models" 1)
         k-fold-pairs (pair-k-folds dataset-ids)
         evaluation-options (select-map-keys evaluation-options
@@ -271,7 +321,7 @@
                             opts (assoc evaluation-options "name" name))
                        (append es (create-evaluation id mid opts)))))
     (wait* evaluations)
-    (when delete-resources
+    (when delete-resources?
       (map safe-delete models))
     evaluations))
 
@@ -294,4 +344,5 @@
   (cross-validation slm-id
                     k-folds
                     evaluation-options
-                    delete-resources))
+                    delete-resources?
+                    stratified?))

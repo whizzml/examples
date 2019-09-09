@@ -82,11 +82,17 @@
         "description": "Seed for deterministic samples"
     },
     {
-        "name": "delete-resources",
+        "name": "delete-resources?",
         "type": "boolean",
         "default": true,
         "description": "Whether to delete intermediate resources"
-    }
+    },
+      {
+          "name": "stratified?",
+          "type": "boolean",
+          "default": false,
+          "description": "Stratify every k-fold"
+      }
   ],
   "outputs": [
     {

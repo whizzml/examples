@@ -1,6 +1,6 @@
 {
   "name": "Supervised Learning models k-fold cross-validation",
-  "description": "The objective of this script is to perform a k-fold cross validation of an\n already built Supervised Learning Model. The algorithm:\n\n - Retrives the dataset and configuration of the model\n - Divides the dataset in k parts\n - Holds out the data in one of the parts and builds a deepnet\n with the rest of data\n - Evaluates the deepnet with the hold out data\n - The second and third steps are repeated with each of the k parts, so that\n k evaluations are generated\n - Finally, the evaluation metrics are averaged to provide the cross-validation\n metrics.\n\n The **output** of the script will be an `evaluation ID`. This evaluation is a\n cross-validation, meaning that its metrics are averages of the k evaluations\n created in the cross-validation process.\n\n For more information, please see the [readme](https://github.com/whizzml/examples/tree/master/cross-validation/deepnet).",
+  "description": "The objective of this script is to perform a k-fold cross validation of an\n already built Supervised Learning Model. The algorithm:\n\n - Retrives the dataset and configuration of the model\n - Divides the dataset in k parts\n - Holds out the data in one of the parts and builds a supervised model\n with the rest of data\n - Evaluates the model with the hold out data\n - The second and third steps are repeated with each of the k parts, so that\n k evaluations are generated\n - Finally, the evaluation metrics are averaged to provide the cross-validation\n metrics.\n\n The **output** of the script will be an `evaluation ID`. This evaluation is a\n cross-validation, meaning that its metrics are averages of the k evaluations\n created in the cross-validation process.\n\n For more information, please see the [readme](https://github.com/whizzml/examples/tree/master/cross-validation/supervised-conf).",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
@@ -22,10 +22,16 @@
         "description": "Options for the evaluation predictions"
     },
     {
-        "name": "delete-resources",
+        "name": "delete-resources?",
         "type": "boolean",
         "default": true,
         "description": "Whether to delete intermediate resources"
+    },
+    {
+        "name": "stratified?",
+        "type": "boolean",
+        "default": false,
+        "description": "Stratify every k-fold"
     }
   ],
   "outputs": [

@@ -23,6 +23,7 @@ The **inputs** for the script are:
 * `weight-field`: (string) ID of the field used in the model as weight field (optional, default="")
 * `objective-weights`: (list) List of objective weights for the model (optional, default=[])
 * `node-threshold`: (integer) Maximum number of nodes in the model (optional, default=-1)
+* `delete-resources?`: (boolean) Whether to delete intermediate resources (optional, default=true)
 * `stratified?`: (boolean) Whether to stratify the k-folds across classes (optional, default=false)
 
 as you can see, most of the inputs are optional. They default to the defaults
@@ -43,6 +44,7 @@ One just needs to call
                         weight-field
                         objective-weights
                         node-threshold
+                        delete-resources?
                         stratified?)
 ```
 

@@ -19,7 +19,8 @@ The **inputs** for the script are:
 * `k-folds`: (integer) Number of folds to split the dataset into (optional,
                        default=5)
 * `evaluation-options`: (map) Options to be used in predictions when evaluating (optional)
-* `delete-resources`: (boolean) Whether to delete intermediate resources (optional, default=true)
+* `delete-resources?`: (boolean) Whether to delete intermediate resources (optional, default=true)
+* `stratified?`: (boolean) Whether to stratify the k-folds across classes (optional, default=false)
 
 As you can see, most of the inputs are optional. They default to the defaults
 in the platform.
@@ -32,7 +33,8 @@ One just needs to call
 (cross-validation slm-id
                   k-folds
                   evaluation-options
-                  delete-resources)
+                  delete-resources?
+                  stratified?)
 ```
 
 using the previously described inputs.
