@@ -127,12 +127,3 @@ run_bigmler delete --from-dir cmd --output-dir cmd_del
 run_bigmler delete --from-dir .build --output-dir cmd_del
 rm -f -R test_inputs.json cmd cmd_del
 rm -f -R .build .bigmler*
-
-
-
-log "-------------------------------------------------------"
-# remove the created resources
-run_bigmler delete --from-dir cmd --output-dir cmd_del
-run_bigmler delete --from-dir .build --output-dir cmd_del
-rm -f -R test_inputs.json cmd cmd_del
-rm -f -R .build .bigmler*

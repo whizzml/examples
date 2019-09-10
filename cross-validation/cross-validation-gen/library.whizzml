@@ -18,6 +18,8 @@
 ;; list of available classification models
 (define SLMS ["model" "ensemble" "logisticregression" "deepnet"])
 
+(define (_transpose m)
+  (apply map list m))
 
 ;; cross-validation-pre
 ;;
@@ -191,14 +193,9 @@
 ;; than the number of folds
 (define (check-minority-instances k-folds dataset-id objective-id)
   (let (dataset (fetch dataset-id)
-        _ (log-info (dataset ["fields" objective-id "summary" "categories"]
-                               []))
-        _ (log-info "objective " objective-id)
         min-cat (last (dataset ["fields" objective-id "summary" "categories"]
-                               []))
-        min-inst (if (empty? min-cat)
-                     0
-                     (min-cat 1)))
+                               [[]]))
+        min-inst (min-cat 1 0))
     (when (< min-inst k-folds)
       (raise {"message" (str "Failed to create a " k-folds "-folds sample: "
                              "not enough instances in some categories")
@@ -224,7 +221,9 @@
         origin-key ((keys (step "origin")) 0)
         dataset-id (if (= origin-key "dataset")
                        input
-                       (create-dataset (assoc {} (str "origin_" origin-key) input)))
+                       (create-dataset (assoc {}
+                                              (str "origin_" origin-key)
+                                              input)))
         conf (dissoc conf ((keys (step "origin")) 0)))
   (log-info "Dataset ID and configuration: " dataset-id conf)
   [dataset-id conf]))
@@ -232,8 +231,8 @@
 ;; Stratified sampling: Keeping proportions in sampling across classes
 
 (define (stratified-k-folds dataset k-folds objective-id)
-  (let (summary (dataset ["fields" objective-id "summary" "categories"] [])
-        cat-names (map (lambda (x) (x 0)) summary)
+  (let (summary (dataset ["fields" objective-id "summary" "categories"] [[]])
+        cat-names (map head summary)
         cat-ds-ids (for (cat cat-names)
                      (create-k-folds
                        (create-dataset {"origin_dataset" (dataset "resource")
@@ -245,9 +244,9 @@
                                                     " - "
                                                     cat)})
                        k-folds))
-        ds-ids (for (index (range 0 (count (cat-ds-ids 0))))
-                 (create-dataset {"origin_datasets" (map (lambda (x) (x index))
-                                                         cat-ds-ids)})))
+
+        ds-ids (map (lambda (ids) (create-dataset {"origin_datasets" ids}))
+                    (_transpose cat-ds-ids)))
     (wait* ds-ids)
     (map safe-delete cat-ds-ids)
     ds-ids))
