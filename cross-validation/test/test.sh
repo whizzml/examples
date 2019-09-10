@@ -15,7 +15,7 @@ run_bigmler --train s3://bigml-public/csv/iris.csv --no-model \
 
 # building the inputs for the test
 prefix='[["dataset-id", "'
-suffix='"]]'
+suffix='"],["model-type", "model"]]'
 text=''
 cat cmd/pre_test/dataset | while read dataset
 do
@@ -120,6 +120,15 @@ if [[ " $file_content " =~ $regex ]]
         echo "deepnet KO:\n $file_content"
         exit 1
 fi
+
+log "-------------------------------------------------------"
+# remove the created resources
+run_bigmler delete --from-dir cmd --output-dir cmd_del
+run_bigmler delete --from-dir .build --output-dir cmd_del
+rm -f -R test_inputs.json cmd cmd_del
+rm -f -R .build .bigmler*
+
+
 
 log "-------------------------------------------------------"
 # remove the created resources

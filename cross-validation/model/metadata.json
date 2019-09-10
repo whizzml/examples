@@ -2,6 +2,7 @@
   "name": "Model's k-fold cross-validation",
   "description": "k-fold cross-validation for models",
   "kind": "script",
+  "imports": ["../cross-validation-gen"],
   "source_code": "script.whizzml",
   "inputs": [
       {
