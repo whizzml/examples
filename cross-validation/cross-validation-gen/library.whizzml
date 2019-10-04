@@ -238,7 +238,7 @@
                        (create-dataset {"origin_dataset" (dataset "resource")
                                         "lisp_filter" (flatline
                                                         "(= "
-                                                        "(f {objective-id})"
+                                                        "(f {{objective-id}})"
                                                         " {{cat}})")
                                         "name" (str (dataset "name")
                                                     " - "
