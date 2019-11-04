@@ -39,7 +39,9 @@
 (log-info "Obtaining unsupervised models")
 ;; Returns a list of unsupervised-models from a dataset
 (define (create-unsupervised-models dataset excluded excluded-models)
-  (let (params {"excluded_fields" (field-ids-from-names excluded dataset)}
+  (let (params {"excluded_fields"
+                (concat (non-preferred dataset)
+                        (field-ids-from-names excluded dataset))}
         objective-id (dataset-get-objective-id dataset)
         lev-params (merge params {"rhs_predicate" [{"field" objective-id}]
                                   "search_strategy" "leverage"})
@@ -72,7 +74,9 @@
                             excluded
                             pca-threshold
                             max-rules)
-  (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
+  (let (excluded (concat (non-preferred dataset-id)
+                         (remove-false (field-ids-from-names excluded
+                                                             dataset-id)))
         objective-id (dataset-get-objective-id dataset-id)
         name (resource-name dataset-id)
         feat-gen (lambda (model-type batch-type params)

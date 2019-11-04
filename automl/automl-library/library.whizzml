@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.2 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.3 ;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -53,6 +53,14 @@
   (try (delete id)
        (catch e
          (log-info  "Error deleting resource " id " ignored"))))
+
+;; Return list of field ids of non-preferred fields
+;; from a given dataset
+(define (non-preferred dataset-id)
+  (when (= (resource-type dataset-id) "dataset")
+    (let (fields (resource-fields dataset-id))
+      (filter (lambda (k) (not (fields [k "preferred"] true)))
+              (keys fields)))))
 
 ;; Returns a list of field ids from a list of field names
 ;; Not found fields are ignored
@@ -314,14 +322,14 @@
 (define (_dataset-with-rules dataset-id dataset-name new-fields excluded)
   (when (= (resource-type dataset-id) "dataset")
     (let (params {"origin_dataset" dataset-id
-                     "excluded_fields" excluded
-                     "name" (str dataset-name " | with-assoc-rules")}
+                  "excluded_fields" excluded
+                  "name" (str dataset-name " | with-assoc-rules")}
           final-params (if (and (list? new-fields) (not (empty? new-fields)))
                          (merge params
                                 {"new_fields"
                                  (or (_remove-duplicate-rules new-fields) [])})
                          params))
-    (create-dataset final-params))))
+      (create-dataset final-params))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; FEATURE  GENERATION ;;;;;;;;;;;;;;;;;;;;;
