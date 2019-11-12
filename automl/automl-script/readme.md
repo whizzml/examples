@@ -69,8 +69,8 @@ is given.
 
 **WARNING** All the fields that appear as `non-preferred` in train,
 validation or test datasets will be considered `non-preferred` in all
-the resources created by AutoML. It doesn't matter if they are set as
-non-preferred in train, validation or test dataset.
+the resources created by AutoML. It doesn't matter in which dataset
+(train, validation or test) they are set as non-preferred fields.
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
