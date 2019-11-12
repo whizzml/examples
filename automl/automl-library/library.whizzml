@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.3 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.4 ;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -40,10 +40,6 @@
   (when (list? items)
     (filter (lambda (n) n) items)))
 
-(define (_flatten items)
-  (when (and (list? items) (not (empty? items)))
-    (if (every? list? items) (_flatten (reduce concat [] items)) items)))
-
 (define (_model-from-list model-list model-type)
   (when (list? model-list)
     (filter (lambda (m) (= (resource-type m) model-type))
@@ -53,14 +49,6 @@
   (try (delete id)
        (catch e
          (log-info  "Error deleting resource " id " ignored"))))
-
-;; Return list of field ids of non-preferred fields
-;; from a given dataset
-(define (non-preferred dataset-id)
-  (when (= (resource-type dataset-id) "dataset")
-    (let (fields (resource-fields dataset-id))
-      (filter (lambda (k) (not (fields [k "preferred"] true)))
-              (keys fields)))))
 
 ;; Returns a list of field ids from a list of field names
 ;; Not found fields are ignored
@@ -76,7 +64,21 @@
   (let (dataset-fields (resource-fields dataset))
     (remove-false
      (map (lambda(f) (get (or (find-field dataset-fields f) {}) "name" false))
-          field-ids))))
+          (or field-ids [])))))
+
+;; Return list of field ids of non-preferred fields
+;; from a given dataset
+(define (non-preferred dataset-id)
+  (when (= (resource-type dataset-id) "dataset")
+    (let (fields (resource-fields dataset-id))
+      (filter (lambda (k) (not (fields [k "preferred"] true)))
+              (keys fields)))))
+
+;; Set a list of fields from a dataset as non-preferred
+(define (set-non-preferred dataset-id field-names)
+  (let (fids (field-ids-from-names field-names dataset-id)
+        fvalues (repeat (count fids) {"preferred" false}))
+    (update dataset-id {"fields" (make-map fids fvalues)})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;; CHECKS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -360,7 +362,7 @@
         new-fields
         (map (lambda(m) (_batch-association-sets dataset-id m "antecedent" rules))
                         (_model-from-list model-list "association")))
-    (_dataset-with-rules dataset-id name (_flatten new-fields) excluded)))
+    (_dataset-with-rules dataset-id name (flatten new-fields) excluded)))
 
 ;; From a batch score, obtains the generated output dataset
 (define (batch-output-ds res)
@@ -368,11 +370,13 @@
     ((fetch (wait res)) "output_dataset_resource" false)))
 
 ;; Creates a new dataset by juxtaposing a list of datasets
-(define (feature-generation-dataset ds-list name objective-id)
-  (update (create-dataset {"origin_datasets" (remove-false ds-list)
-                           "juxtapose" true
-                           "name" (str name " | extended")})
-          {"objective_field" {"id" objective-id}}))
+(define (feature-generation-dataset ds-list name objective-id non-pref)
+  (let (params {"origin_datasets" (remove-false ds-list)
+                "juxtapose" true
+                "name" (str name " | extended")})
+  (set-non-preferred (update (create-dataset params)
+                             {"objective_field" {"id" objective-id}})
+                     non-pref)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; FEATURE  SELECTION ;;;;;;;;;;;;;;;;;;;;;;
@@ -498,7 +502,7 @@
     (log-info "Finished feature selection")
     (log-info "Removing " (count excluded) " features")
     (log-info "Using " num-features " features")
-    (_filter-dataset-fields dataset (_flatten excluded))))
+    (_filter-dataset-fields dataset (flatten excluded))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;; MODEL  SELECTION ;;;;;;;;;;;;;;;;;;;;;;

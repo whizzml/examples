@@ -35,13 +35,23 @@
 (check-params (config "pca-variance-threshold")
               (config "max-rules"))
 
+;; Retrieve all non-preferred fields from all the datasets
+(define non-preferred-fields
+  (remove-duplicates
+   (flatten
+    (map (lambda(ds) (field-names-from-ids (non-preferred ds) ds))
+         [(get-input "train-dataset") validation-dataset test-dataset]))))
+
+(log-info "These fields will be set as non-preferred:")
+(log-info non-preferred-fields)
+
+
 (log-featured "Feature generation")
 (log-info "Obtaining unsupervised models")
 ;; Returns a list of unsupervised-models from a dataset
 (define (create-unsupervised-models dataset excluded excluded-models)
-  (let (params {"excluded_fields"
-                (concat (non-preferred dataset)
-                        (field-ids-from-names excluded dataset))}
+  (let (_ (set-non-preferred dataset non-preferred-fields)
+        params {"excluded_fields" (field-ids-from-names excluded dataset)}
         objective-id (dataset-get-objective-id dataset)
         lev-params (merge params {"rhs_predicate" [{"field" objective-id}]
                                   "search_strategy" "leverage"})
@@ -74,9 +84,7 @@
                             excluded
                             pca-threshold
                             max-rules)
-  (let (excluded (concat (non-preferred dataset-id)
-                         (remove-false (field-ids-from-names excluded
-                                                             dataset-id)))
+  (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
         objective-id (dataset-get-objective-id dataset-id)
         name (resource-name dataset-id)
         feat-gen (lambda (model-type batch-type params)
@@ -98,7 +106,7 @@
                                          max-rules)
         all-fields [cluster-fields anomaly-fields topic-fields pca-fields]
         all-ds (cons dataset-assoc (map batch-output-ds all-fields)))
-    (feature-generation-dataset all-ds name objective-id)))
+    (feature-generation-dataset all-ds name objective-id non-preferred-fields)))
 
 (define extended-datasets
   (let (exc-fields (config "excluded-fields")

@@ -63,9 +63,14 @@ The **inputs** for the script are:
     association discovery models or if the same rules appear on more
     than one association discovery model.
 
-**WARNING** Remember that, to avoid confusion, `configuration-params`
-are overwritten by the corresponding input in `automl-execution` if
-this is given.
+**WARNING** To avoid confusion, `configuration-params` are always
+overwritten by the corresponding input in `automl-execution` if this
+is given.
+
+**WARNING** All the fields that appear as `non-preferred` in train,
+validation or test datasets will be considered `non-preferred` in all
+the resources created by AutoML. It doesn't matter if they are set as
+non-preferred in train, validation or test dataset.
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
