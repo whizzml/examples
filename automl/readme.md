@@ -31,9 +31,13 @@ you would do with a WhizzML Script, using [the link to the library
 
 ![Import Library](./res/import-library.png)
 
+![Import Library](./res/import-library2.png)
+
 Then, import the [`WhizzML Script`](./automl-script) from Github as
 you would do with other WhizzML scripts, using [the link to the
 script](./automl-script)
+
+![Import Script](./res/import-script.png)
 
 You may see the following error
 
