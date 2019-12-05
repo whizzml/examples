@@ -17,6 +17,35 @@ script.
 
 ## How to install
 
+AutoML [`WhizzML Script`](./automl-script) imports a [`WhizzML
+Library`](./automl-library), so the installation is a litle bit
+different to other WhizzML scripts. You can still install it from the
+Dashboard but you will need to perform an additional step.
+
+### Using the Dashboard - 2 steps
+
+Firstly, you should install the library. Open the WhizzML Libraries
+view, as shown in the image, and import the library from Github, as
+you would do with a WhizzML Script, using [the link to the library
+](./automl-library)
+
+![Import Library](./res/import-library.png)
+
+Then, import the [`WhizzML Script`](./automl-script) from Github as
+you would do with other WhizzML scripts, using [the link to the
+script](./automl-script)
+
+You may see the following error
+
+![Import Library Error](./res/lib-error.png)
+
+In that case, you will have to find, in the selector, the library you
+uploaded previously. After selecting it the error will disappear.
+
+After these steps, you will be able to import the script correctly into your
+BigML account.
+
+### Using BigMLer - 1 step
 If you have [bigmler](https://bigmler.readthedocs.io/en/latest/) and
 `make` installed in your system, just check out the [WhizzML examples
 repository](https://github.com/whizzml/examples/) and, at its [top
