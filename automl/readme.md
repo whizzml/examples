@@ -25,17 +25,18 @@ Dashboard but you will need to perform an additional step.
 ### Using the Dashboard - 2 steps
 
 Firstly, you should install the library. Open the WhizzML Libraries
-view, as shown in the image, and import the library from Github, as
-you would do with a WhizzML Script, using [the link to the library
-](./automl-library)
+view, as shown in the image.
 
 ![Import Library](./res/import-library.png)
 
+From that view, import the library from Github, as you would do with a
+WhizzML Script, using [the link to the library ](./automl-library).
+
 ![Import Library](./res/import-library2.png)
 
-Then, import the [`WhizzML Script`](./automl-script) from Github as
-you would do with other WhizzML scripts, using [the link to the
-script](./automl-script)
+Then, in the Scripts view, import the [`WhizzML
+Script`](./automl-script) from Github as you would do with other
+WhizzML scripts, using [the link to the script](./automl-script)
 
 ![Import Script](./res/import-script.png)
 
