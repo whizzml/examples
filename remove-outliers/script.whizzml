@@ -1,0 +1,22 @@
+;; Remove the anomalies higher than a score threshold from a dataset
+
+
+;; Given a dataset and a number of anomalies, generate a new one
+;; that removes from the original the anomalous rows.
+(define (normalize-dataset dataset-id max-score)
+  (let (a-id (create-anomaly {"dataset" dataset-id})
+        b-s-id (create-and-wait-batchanomalyscore {"dataset" dataset-id
+                                                   "anomaly" a-id
+                                                   "output_dataset" true
+                                                   "all_fields" true})
+        b-s-ds ((fetch b-s-id) "output_dataset_resource")
+        filter (flatline "(<= (f \"score\") {max-score})")
+        garbage (created-resources)
+        result-ds (create-and-wait-dataset {"origin_dataset" b-s-ds
+                                            "lisp_filter" filter
+                                            "excluded_fields" ["score"]}))
+    (delete* garbage)
+    result-ds))
+
+;; Script with parameters dataset-id and the maximum allowed score
+(define normalized-dataset (normalize-dataset dataset-id max-score))
