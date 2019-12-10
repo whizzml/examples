@@ -5,8 +5,8 @@ Machine Learning pipeline** in BigML.
 
 ![BigML AutoML Steps](../res/steps.png)
 
-From a train, validation and test datasets, the following tasks will be
-automatically done:
+From a train, validation and test datasets, the following tasks will
+be automatically done:
 
 -  `Unsupervised Models Generation`: Creating the following
   **unsupervised models**: `Cluster`, `Anomaly Detector`, `Association
@@ -30,9 +30,12 @@ The **inputs** for the script are:
   (e.g. dataset/5d272205eba31d61920005cd). If no train dataset is
   provided, the script will expect an `automl-execution` to be
   provided and will use its models as starting point.
-* `validation-dataset`: (dataset-id) Dataset id for the validation dataset
-  (e.g. dataset/5d272205eba31d61920005cd). If empty, no
-  output-evalution is returned.
+* `validation-dataset`: (dataset-id) Dataset id for the validation
+  dataset (e.g. dataset/5d272205ea31d61920005cd). If empty, some
+  random rows from the `train-dataset` will be set aside and used as
+  `validation-dataset`. The parameter `validation-rate` indicates the
+  portion of the `train-dataset` that is sampled in the
+  `validation-dataset`
 * `test-dataset`: (dataset-id) Dataset id for the test dataset
   (e.g. dataset/7j272205eba31d61920005vf). If empty, no output-dataset
   is returned.
@@ -62,6 +65,11 @@ The **inputs** for the script are:
     than this value if there aren't enough rules in the created
     association discovery models or if the same rules appear on more
     than one association discovery model.
+  * `validation-rate`: (number) The portion of the `train-dataset`
+    that is sampled in the `validation-dataset`. Values from 0 to 0.5.
+    This is used only if a `validation-dataset` is not provided by the
+    user. If `validation-rate` is 0, the `validation-dataset` won't be
+    created. 0.2 by default (20% of the rows).
 
 **WARNING** To avoid confusion, `configuration-params` are always
 overwritten by the corresponding input in `automl-execution` if this

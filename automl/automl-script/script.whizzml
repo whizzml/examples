@@ -33,14 +33,28 @@
 (check-excluded-models (config "excluded-models"))
 (log-info "More configuration parameters checks")
 (check-params (config "pca-variance-threshold")
-              (config "max-rules"))
+              (config "max-rules")
+              (config "validation-rate"))
+
+(define [validation-split-dataset train-split-dataset]
+  (if (and (not (= (resource-type validation-dataset) "dataset"))
+           (> (config "validation-rate") 0))
+    (let (train-ds-id (get-input "train-dataset")
+          name (resource-name train-ds-id)
+          rate (config "validation-rate"))
+      (create-random-dataset-split
+       train-ds-id
+       rate
+       {"name" (str name " - Validation " (* 100 rate) "%")}
+       {"name" (str name " - Train " (* 100 (- 1 rate)) "%")}))
+    [validation-dataset (get-input "train-dataset")]))
 
 ;; Retrieve all non-preferred fields from all the datasets
 (define non-preferred-fields
   (remove-duplicates
    (flatten
     (map (lambda(ds) (field-names-from-ids (non-preferred ds) ds))
-         [(get-input "train-dataset") validation-dataset test-dataset]))))
+         [train-split-dataset validation-split-dataset test-dataset]))))
 
 (log-info "These fields will be set as non-preferred:")
 (log-info non-preferred-fields)
@@ -76,7 +90,7 @@
         exc-models (config "excluded-models"))
     (if reuse-resources
       (get-unsupervised-models automl-execution exc-models)
-      (create-unsupervised-models train-dataset exc-fields exc-models))))
+      (create-unsupervised-models train-split-dataset exc-fields exc-models))))
 
 (log-info "Generating new features from unsupervised models")
 (define (feature-generation dataset-id
@@ -120,7 +134,7 @@
                                  exc-fields
                                  pca-threshold
                                  max-rules)))
-         [train-dataset validation-dataset test-dataset])))
+         [train-split-dataset validation-split-dataset test-dataset])))
 
 
 (log-featured "Feature Selection")
@@ -186,6 +200,6 @@
 ;; Creates the final evaluation from the validation
 ;; dataset and the fusion
 (define output-evaluation
-  (when (= (resource-type validation-dataset) "dataset")
+  (when (= (resource-type validation-split-dataset) "dataset")
     (let ([_ valid _] filtered-datasets)
       (create-evaluation output-fusion valid))))

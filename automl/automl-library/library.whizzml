@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.4 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.5 ;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -96,7 +96,8 @@
 ;; Checks that all the needed params are in the configuration
 (define (check-configuration-params config)
   (let (correct #["excluded-fields" "excluded-models"
-                  "pca-variance-threshold" "max-rules"]
+                  "pca-variance-threshold" "max-rules"
+                  "validation-rate"]
         dif (difference correct (set* (keys (or config {})))))
     (when (not (empty? dif))
       (raise (str "Can't find the following parameters in the "
@@ -138,9 +139,10 @@
                 " in the interval [" min-value  ","  max-value  "]"))))
 
 ;; Checks params values
-(define (check-params pca-variance-threshold max-rules)
+(define (check-params pca-variance-threshold max-rules validation-rate)
   (_check-in-range pca-variance-threshold 0 1 "pca-variance-threshold")
-  (_check-in-range  (floor max-rules) 0 1000 "max-rules"))
+  (_check-in-range  (floor max-rules) 0 1000 "max-rules")
+  (_check-in-range validation-rate 0 0.5 "validation-rate"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
