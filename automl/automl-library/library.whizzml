@@ -97,7 +97,7 @@
 (define (check-configuration-params config)
   (let (correct #["excluded-fields" "excluded-models"
                   "pca-variance-threshold" "max-rules"
-                  "validation-rate"]
+                  "validation-rate" "balance-objective"]
         dif (difference correct (set* (keys (or config {})))))
     (when (not (empty? dif))
       (raise (str "Can't find the following parameters in the "
@@ -392,15 +392,16 @@
                                (not (= obj-id k))))
               (keys fields)))))
 
-(define (_random-forest dataset-id obj seed input-fields)
+(define (_random-forest dataset-id obj seed input-fields balance)
   (create-and-wait-ensemble {"dataset" dataset-id
                              "objective_field" obj
                              "randomize" true
                              "random_candidate_ratio" 0.33
-                             "sample_rate" 0.8
+                             "sample_rate" 1
+                             "balance_objective" balance
                              "seed" seed
                              "input_fields" input-fields
-                             "ensemble_sample" {"rate" 1
+                             "ensemble_sample" {"rate" 0.8
                                                 "replacement" true
                                                 "seed" seed}}))
 
@@ -436,7 +437,8 @@
 
 ;; Applies recursive feature elimination to obtain the most important
 ;; fields from a dataset, evaluating each iteration with the test-ds-id
-(define (recursive-feature-elimination ds-id nfeatures obj-id test-ds-id metric)
+(define (recursive-feature-elimination ds-id nfeatures obj-id
+                                       test-ds-id metric balance)
   (let (do-evaluation (= (resource-type test-ds-id) "dataset")
         [obj-id otype] (_get-objective ds-id obj-id)
         fields (resource-fields ds-id)
@@ -456,7 +458,7 @@
 			  " fields -------")
               seed "BigML-RFE"
               ;; Create random forest and obtain its importances
-              rf-id (_random-forest ds-id obj-id seed selected)
+              rf-id (_random-forest ds-id obj-id seed selected balance)
               imps ((fetch rf-id) "importance")
 	      ;; Check least important fields
 	      removed-fields (_check-no-imp imps selected)

@@ -37,7 +37,8 @@
                   "excluded-models": [],
                   "pca-variance-threshold": 1,
                   "max-rules": 20,
-                  "validation-rate": 0.2},
+                  "validation-rate": 0.2,
+                  "balance-objective": false},
       "description": "Execution configuration parameters. They will be overwritten if automl-execution is given. See README for more information"
     }
   ],

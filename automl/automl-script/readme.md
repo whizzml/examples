@@ -70,6 +70,9 @@ The **inputs** for the script are:
     This is used only if a `validation-dataset` is not provided by the
     user. If `validation-rate` is 0, the `validation-dataset` won't be
     created. 0.2 by default (20% of the rows).
+  * `balance-objective`: (boolean) Whether to balance classes
+    proportionally to their category counts or not (during the
+    creation of models). False by default.
 
 **WARNING** To avoid confusion, `configuration-params` are always
 overwritten by the corresponding input in `automl-execution` if this

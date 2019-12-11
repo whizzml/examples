@@ -148,7 +148,8 @@
 ;; Obtains the most important fields from a dataset
 ;; using recursive feature elimination
 (define (compute-important-fields train test)
-  (let (rfe-output (recursive-feature-elimination train 1 "" test "")
+  (let (balance (config "balance-objective")
+        rfe-output (recursive-feature-elimination train 1 "" test "" balance)
         evaluations (rfe-output "evaluations" {})
         num-features (rfe-best-num-features evaluations))
     (rfe-output-fields train evaluations num-features)))
