@@ -36,7 +36,7 @@ WhizzML Script, using [the link to the library ](./automl-library).
 
 Then, in the Scripts view, import the [`WhizzML
 Script`](./automl-script) from Github as you would do with other
-WhizzML scripts, using [the link to the script](./automl-script)
+WhizzML scripts.
 
 ![Import Script](./res/import-script.png)
 
@@ -51,24 +51,29 @@ After these steps, you will be able to import the script correctly into your
 BigML account.
 
 ### Using BigMLer - 1 step
-If you have [bigmler](https://bigmler.readthedocs.io/en/latest/) and
-`make` installed in your system, just check out the [WhizzML examples
+After checking that you have
+[bigmler](https://bigmler.readthedocs.io/en/latest/) installed in your
+system, just check out the [WhizzML examples
 repository](https://github.com/whizzml/examples/) and, at its [top
 level directory](https://github.com/whizzml/examples/), issue the
 command:
 
-    make compile PKG=automl
-
-That will create all necessary library and script resources for you,
-and clean up any previous installations.  Please, make sure to execute
-the `make` command above in the repository's top level directory,
-*not* in [automl](./).
-
-If `make` is not available in your system, you can install the library
-and the script simply with this command (again, at the repository's
-top level):
-
      bigmler whizzml --package-dir=automl
+
+That will create all necessary library and script resources for you.
+Please, make sure to execute the command above in the repository's top
+level directory, *not* in [automl](./).
+
+
+Alternatively, if `make` (besides `bigmler`) is available in your
+system, you could install the library and the script with this command
+(again, at the repository's top level):
+
+     make compile PKG=automl
+
+
+The advantage of this is that `make compile` will clean up any
+previous installation.
 
 See also [the top-level readme](../readme.md) for general information
 on installing packages in this repository.
