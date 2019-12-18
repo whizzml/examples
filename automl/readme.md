@@ -44,11 +44,13 @@ You may see the following error
 
 ![Import Library Error](./res/lib-error.png)
 
-In that case, you will have to find, in the selector, the library you
-uploaded previously. After selecting it the error will disappear.
+In that case, import the library that you created in the previous step
+by selecting it with the drop-down selector. After selecting it the
+error will disappear.
 
-After these steps, you will be able to import the script correctly into your
+Following these steps, you should be able to create the script in your
 BigML account.
+
 
 ### Using BigMLer - 1 step
 After checking that you have
@@ -60,7 +62,9 @@ command:
 
      bigmler whizzml --package-dir=automl
 
-That will create all necessary library and script resources for you.
+
+
+That will create both the AutoML library and script resources for you.
 Please, make sure to execute the command above in the repository's top
 level directory, *not* in [automl](./).
 
