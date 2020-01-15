@@ -45,6 +45,13 @@ The **inputs** for the script are:
   `automl-execution` should be provided for the script to work. When
   both are provided, the `automl-execution` argument is discarded and
   new resources are generated from the training data.
+* `models-configuration`: (map) Configuration parameters for the models
+  created by AutoML. They won't be used if `automl-execution` is
+  given. The following keys are accepted: `cluster`, `anomaly`,
+  `association`, `pca`, `topicmodel`, `optiml`.
+  E.g. `{"cluster": {"critical_value": 4},
+         "anomaly": {"forest_size": 256},
+         "optiml": {"number_of_model_candidates": 64}}`
 * `configuration-params`: (map) Execution configuration
   parameters. They will be overwritten if automl-execution is
   given. The following values must be provided:

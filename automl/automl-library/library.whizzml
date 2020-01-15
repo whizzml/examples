@@ -103,6 +103,15 @@
       (raise (str "Can't find the following parameters in the "
                   "configuration-params: " dif)))))
 
+;; Check if the keys in models-configuration are correct
+(define (check-models-configuration config)
+  (let (correct ["cluster" "anomaly" "association"
+                 "pca" "topicmodel" "optiml"])
+    (map (lambda (k)
+           (when (not (member? k correct))
+             (raise (str "Wrong key for models-configuration: " k ))))
+         (keys config))))
+
 ;; Checks if excluded-models are valid unsupervised models
 (define (check-excluded-models excluded-models)
   (let (all-models #["cluster" "anomaly" "association" "pca" "topicmodel"]
@@ -515,12 +524,12 @@
 
 ;; Creates an optiml model from a train and an
 ;; optional validation dataset
-(define (create-optiml-model train validation)
+(define (create-optiml-model train validation params)
   (when (= (resource-type train) "dataset")
     (log-info "Creating Optiml, this  can last several minutes (or even hours)")
     (create-optiml train (if (= (resource-type validation) "dataset")
-                           {"test_dataset" validation}
-                           {}))))
+                           (merge params {"test_dataset" validation})
+                           params))))
 
 ;; Obtains a fusion from the outpus of an execution
 (define (retrieve-fusion exec)

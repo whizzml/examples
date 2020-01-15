@@ -29,6 +29,7 @@
                        test-dataset)
 (log-info "Check configuration params")
 (check-configuration-params config)
+(check-models-configuration models-configuration)
 (log-info "Checking excluded-models")
 (check-excluded-models (config "excluded-models"))
 (log-info "More configuration parameters checks")
@@ -76,7 +77,8 @@
         all-models
         (map (lambda (type params*)
                (when (create-unsupervised? type excluded-models)
-                 (create-unsupervised type dataset params*)))
+                 (let (opt (merge params* (models-configuration type {})))
+                   (create-unsupervised type dataset opt))))
         ["association" "association" "cluster" "anomaly" "pca" "topicmodel"]
         [lev-params lift-params params params params params]))
     (remove-false all-models)))
@@ -186,7 +188,11 @@
   (let ([train valid _] filtered-datasets)
     (if reuse-resources
       (retrieve-fusion automl-execution)
-      (fusion-from-optiml (create-optiml-model train valid) 3))))
+      (fusion-from-optiml
+       (create-optiml-model train
+                            valid
+                            (models-configuration "optiml" {}))
+       3))))
 
 
 (log-featured "Final dataset and evaluation")

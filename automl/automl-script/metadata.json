@@ -31,6 +31,12 @@
       "description": "Previous execution of this script, to reuse created resources, e.g. execution/5d272205eba31d61920005cd"
     },
     {
+      "name": "models-configuration",
+      "type": "map",
+      "default": {},
+      "description": "Configuration parameters for created models. See README for more information"
+    },
+    {
       "name": "configuration-params",
       "type": "map",
       "default": {"excluded-fields": [],
