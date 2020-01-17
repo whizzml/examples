@@ -37,17 +37,20 @@
               (config "validation-rate"))
 
 (define [validation-split-dataset train-split-dataset]
-  (if (and (not (= (resource-type validation-dataset) "dataset"))
-           (> (config "validation-rate") 0))
-    (let (train-ds-id (get-input "train-dataset")
-          name (resource-name train-ds-id)
-          rate (config "validation-rate"))
-      (create-random-dataset-split
-       train-ds-id
-       rate
-       {"name" (str name " - Validation " (* 100 rate) "%")}
-       {"name" (str name " - Train " (* 100 (- 1 rate)) "%")}))
-    [validation-dataset (get-input "train-dataset")]))
+  (if reuse-resources
+    ;; If we are reusing resources, we don't need the train dataset
+    [validation-dataset ""]
+    (if (and (not (= (resource-type validation-dataset) "dataset"))
+             (> (config "validation-rate") 0))
+      (let (train-ds-id (get-input "train-dataset")
+            name (resource-name train-ds-id)
+            rate (config "validation-rate"))
+        (create-random-dataset-split
+         train-ds-id
+         rate
+         {"name" (str name " - Validation " (* 100 rate) "%")}
+         {"name" (str name " - Train " (* 100 (- 1 rate)) "%")}))
+      [validation-dataset (get-input "train-dataset")])))
 
 ;; Retrieve all non-preferred fields from all the datasets
 (define non-preferred-fields
@@ -58,7 +61,6 @@
 
 (log-info "These fields will be set as non-preferred:")
 (log-info non-preferred-fields)
-
 
 (log-featured "Feature generation")
 (log-info "Obtaining unsupervised models")
