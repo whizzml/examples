@@ -7,13 +7,13 @@
 ;; cluster whose output dataset is the original cluster dataset
 ;; appended with the centroids the instances are part of.
 
-(define (label-by-cluster cl-id) 
+(define (label-by-cluster cl-id)
   (let (cl (fetch cl-id)
         cl-ds (cl "dataset")
         cl-fields (cl "input_fields"))
     (create-and-wait-batchcentroid
-     {"cluster" cl-id 
-      "dataset" cl-ds 
+     {"cluster" cl-id
+      "dataset" cl-ds
       "output_dataset" true
       "output_fields" cl-fields})))
 
@@ -27,13 +27,13 @@
 ;; Given a function of two values and two maps, returns a new map
 ;; where if a key appears in only one of the original maps its value
 ;; is unchanged, but if it appears in both its value is the function
-;; of the two original values.  
+;; of the two original values.
 
-(define (merge-with fn map1 map2) 
+(define (merge-with fn map1 map2)
   (let (subset-keys (filter (lambda (x) (contains? map1 x)) (keys map2))
-        subset-values (map (lambda (x) 
-                             (fn (get map1 x) (get map2 x))) subset-keys) 
-        subset (make-map subset-keys subset-values)) 
+        subset-values (map (lambda (x)
+                             (fn (get map1 x) (get map2 x))) subset-keys)
+        subset (make-map subset-keys subset-values))
     (merge map1 (merge map2 subset))))
 
 ;; Given a ensemble id and a list of field ids, returns a map of those
@@ -42,14 +42,14 @@
 (define (make-importance-map en-id ids)
   (let (models ((fetch en-id) ["models"])
         len-models (count models)
-        imp-lst (map (lambda (md-id) 
-                       ((fetch md-id) ["model" "importance"])) 
+        imp-lst (map (lambda (md-id)
+                       ((fetch md-id) ["model" "importance"]))
                      models)
         imp-map (map list-to-map imp-lst)
         imp-sum (reduce (lambda (x y) (merge-with + x y)) {} imp-map))
-    (make-map ids (map (lambda (x) 
-                         (if (contains? imp-sum x) 
-                           (/ (get imp-sum x) len-models) 0)) 
+    (make-map ids (map (lambda (x)
+                         (if (contains? imp-sum x)
+                           (/ (get imp-sum x) len-models) 0))
                        ids))))
 
 ;; Given a cluster-id, builds a random forest on centroid membership,
@@ -60,25 +60,25 @@
   (let (bc-id (label-by-cluster cl-id)
         bc (fetch bc-id)
         old-ids (bc "output_fields")
-        labeled (bc "output_dataset_resource")
+        labeled (wait (bc "output_dataset_resource"))
         new-ids (butlast ((fetch labeled) "input_fields"))
         cl-en (create-and-wait-ensemble labeled {"randomize" true})
         ds-fields ((fetch labeled) "fields")
         imp-map (make-importance-map cl-en new-ids)
-        name-map (make-map new-ids 
-                           (map (lambda (x) 
-                                  (ds-fields [x "name"])) 
+        name-map (make-map new-ids
+                           (map (lambda (x)
+                                  (ds-fields [x "name"]))
                                 new-ids))
-        id-map (make-map new-ids old-ids)       
-        total-map (map (lambda (x) 
-                         (make-map ["field id", "name", "importance"] 
-                                   [(get id-map x), 
-                                    (get name-map x), 
-                                    (get imp-map x)])) 
+        id-map (make-map new-ids old-ids)
+        total-map (map (lambda (x)
+                         (make-map ["field id", "name", "importance"]
+                                   [(get id-map x),
+                                    (get name-map x),
+                                    (get imp-map x)]))
                        (keys imp-map)))
   (delete* [labeled bc-id cl-en])
   (reverse (sort-by-key "importance" total-map))))
 
 ;; Putting it all together...
-(define importance-list 
+(define importance-list
   (cluster-classification cluster-id))
