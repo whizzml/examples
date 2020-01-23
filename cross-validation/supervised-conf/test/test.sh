@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ../../test-utils.sh
+source ../../../test-utils.sh
 
 rm -f -R cmd_del
 rm -f -R cmd
@@ -8,7 +8,7 @@ rm -f -R .build
 
 log "-------------------------------------------------------"
 log "Test for cross-validation"
-run_bigmler whizzml --package-dir ../supervised-conf --output-dir ./.build
+run_bigmler whizzml --package-dir ../ --output-dir ./.build
 # creating the resources needed to run the test
 run_bigmler --train s3://bigml-public/csv/iris.csv \
             --model-fields "petal length,species" \
@@ -24,7 +24,7 @@ echo "$prefix$model$suffix" > "test_inputs.json"
 done
 log "Testing supervised learning model script --------------------"
 # running the execution with the given inputs
-run_bigmler execute --scripts .build/supervised-conf/scripts \
+run_bigmler execute --scripts .build/scripts \
                     --inputs test_inputs.json  --output-dir cmd/results
 # check the outputs
 declare file="cmd/results/whizzml_results.json"
