@@ -15,7 +15,7 @@ run_bigmler --train s3://bigml-public/csv/iris.csv --no-model \
             --project "Whizzml examples tests" --output-dir cmd/pre_test
 # building the inputs for the test
 prefix='[["dataset-id", "'
-suffix='"], ["threshold", 0], ["objective-id", "000004"]]'
+suffix='"], ["threshold", 0.05], ["objective-id", "000004"]]'
 text=''
 cat cmd/pre_test/dataset | while read dataset
 do

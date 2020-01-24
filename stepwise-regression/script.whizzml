@@ -29,7 +29,7 @@
 (define (select-feature test-dataset-id potentials model-ids)
   (let (eval-req {"dataset" test-dataset-id}
         make-req (lambda (mid) (assoc eval-req "model" mid))
-        all-reqs (map make-req model-ids)        
+        all-reqs (map make-req model-ids)
         evs (map fetch (create-and-wait* "evaluation" all-reqs))
         vs (map (lambda (ev) (ev ["result" "model" "average_f_measure"] 0)) evs)
         value-map (make-map potentials vs)
@@ -63,8 +63,8 @@
     (loop (selected []
            potentials input-ids
            f-measure 0)
-      (let (_ (log-info "Splitting dataset...")        
-            [train-id test-id] (create-random-dataset-split dataset-id 0.5)
+      (let (_ (log-info "Splitting dataset...")
+            [train-id test-id] (create-dataset-split dataset-id 0.5 "bigml")
             _ (log-info "Making logistic regressions...")
             model-ids (make-lr train-id obj-id selected potentials)
             _ (log-info "Selecting feature...")
