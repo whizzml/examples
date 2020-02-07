@@ -28,7 +28,7 @@
       "name": "automl-execution",
       "type": "execution-id",
       "default": "",
-      "description": "Previous execution of this script, to reuse created resources, e.g. execution/5d272205eba31d61920005cd"
+      "description": "For test executions. Previous execution of this script, to reuse created resources during training, e.g. execution/5d272205eba31d61920005cd"
     },
     {
       "name": "models-configuration",

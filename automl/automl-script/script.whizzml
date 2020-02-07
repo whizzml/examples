@@ -173,12 +173,13 @@
 ;; Creates the filtered datasets from the extended datasets,
 ;; filtering out all the fields not present in selected-fields list
 (define filtered-datasets
-  (map (lambda (ds) (when (= "dataset" (resource-type ds))
-                      (let (name (str (resource-name ds) " | filtered")
-                            fields (field-ids-from-names selected-fields ds))
-                        (create-dataset {"name" name
-                                         "origin_dataset" ds
-                                         "input_fields" fields}))))
+  (map (lambda (ds)
+         (when (= "dataset" (resource-type ds))
+           (let (name (str (resource-name ds) " | filtered")
+                 fields (field-ids-from-names selected-fields ds))
+             (create-dataset {"name" name
+                              "origin_dataset" ds
+                              "input_fields" (remove-duplicates fields)}))))
        extended-datasets))
 
 (log-featured "Model Selection")

@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.5 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.6 ;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -200,12 +200,12 @@
     (if (item "name" false)
       (cond (and (numeric-field? field-info) start end)
             (if (< start end)
-              (str start " < " field-name " <= " end)
-              (str field-name " > " start " or <=" end))
+              (str start " ＜ " field-name " ＜= " end)
+              (str field-name " ＞ " start " or ＜=" end))
             (and (numeric-field? field-info) start)
-            (str field-name " > " start)
+            (str field-name " ＞ " start)
             (and (numeric-field? field-info) end)
-            (str field-name " <= " end)
+            (str field-name " ＜= " end)
             (categorical-field? field-info)
             (str field-name " " (if complement? "!=" "=")
                  " " (item "name"))
@@ -329,7 +329,8 @@
                         (some (lambda(saved-rule)
                                 (= (saved-rule "name") (rule "name")))
                               rules)))
-      (reduce (lambda (l r) (if (not (rule-exists r l) ) (cons r l) l)) []
+      (reduce (lambda (l r) (if (not (rule-exists r l)) (cons r l) l))
+              []
               rules))))
 
 (define (_dataset-with-rules dataset-id dataset-name new-fields excluded)
@@ -372,7 +373,7 @@
   (let (rules (floor (/ num-of-rules 2))
         new-fields
         (map (lambda(m) (_batch-association-sets dataset-id m "antecedent" rules))
-                        (_model-from-list model-list "association")))
+             (_model-from-list model-list "association")))
     (_dataset-with-rules dataset-id name (flatten new-fields) excluded)))
 
 ;; From a batch score, obtains the generated output dataset
