@@ -1,8 +1,11 @@
 ;; Remove the top n anomalies from a dataset
 
+(define TOP-N-DFT 10)
+(define SEED "bigml")
+
 ;; Given an anomaly resource, get the list of its top_anomaly row numbers
-(define (anomalous-rows a)
-  (map (lambda (x) (x "row_number")) (a ["model" "top_anomalies"])))
+(define (anomalous-rows a attr)
+  (map (lambda (x) (x attr)) (a ["model" "top_anomalies"])))
 
 ;; Given a list of row numbers, generate a flatline expression
 ;; that discards those rows.
@@ -10,16 +13,44 @@
   (let (eqs (map (lambda (n) (flatline "(= (row-number) {n})")) rows))
     (flatline "(not (or @{eqs}))")))
 
+;; Given an anomaly and a datset, create a batch-anomaly-score and return
+;; the associated dataset
+(define (make-b-a-s-ds a-id ds-id)
+  (let (b-a-s (create-and-wait-batchanomalyscore {"anomaly" a-id
+                                                  "dataset" ds-id
+                                                  "all_fields" true
+                                                  "output_dataset" true}))
+    (wait ((fetch b-a-s) "output_dataset_resource"))))
+
+
 ;; Given a dataset and a number of anomalies, generate a new one
 ;; that removes from the original the anomalous rows.
-(define (normalize-dataset dataset-id n)
-  (let (a-id (create-and-wait-anomaly {"dataset" dataset-id "top_n" n})
+(define (normalize-dataset dataset-id n max-score)
+  (when (and (= n -1) (= max-score -1))
+        (raise "You need to set a number or a maximum score"))
+  (let (t-n (if (> n 0)
+                n
+                TOP-N-DFT)
+        a-id (create-and-wait-anomaly {"dataset" dataset-id "top_n" t-n
+                                       "seed" SEED "anomaly_seed" SEED})
         anomaly (fetch a-id {"exclude" "trees,fields"})
-        rows (anomalous-rows anomaly)
-        filter (row-filter rows))
+        anomalies (anomaly ["model" "top_anomalies"])
+        scores (filter (lambda (s) (> s max-score))
+                       (anomalous-rows anomaly "score"))
+        rows (drop (- (count anomalies) (count scores))
+                   (anomalous-rows anomaly "row_number"))
+        dataset-id (if (and (> max-score -1) (= n -1))
+                       (make-b-a-s-ds a-id dataset-id)
+                       dataset-id)
+        filter (if (> n 0)
+                   (row-filter rows)
+                   (flatline "(> (f \"score\") {max-score})"))
+        ds-args (if (> n 0)
+                    {"lisp_filter" filter}
+                    {"lisp_filter" filter "excluded_fields" ["score"]}))
      (delete a-id)
-     (create-and-wait-dataset {"origin_dataset" dataset-id
-                               "lisp_filter" filter})))
+     (create-and-wait-dataset (merge {"origin_dataset" dataset-id}
+                              ds-args))))
 
 ;; Script with parameters dataset-id and n
-(define normalized-dataset (normalize-dataset dataset-id n))
+(define normalized-dataset (normalize-dataset dataset-id n max-score))

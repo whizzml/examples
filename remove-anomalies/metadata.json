@@ -1,6 +1,6 @@
 {
   "name": "Remove Anomalies",
-  "description": "Remove the top n anomalies from a dataset",
+  "description": "Remove the top n anomalies from a dataset or the ones over a maximum score. By default, the top number of anomalies returned in the anomaly detector will be removed. You can choose to limit by number or by max-score. If both are set, both limits will be used.",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
@@ -10,9 +10,16 @@
       "description": "Dataset identifier"
     },
     {
+      "name": "max-score",
+      "type": "number",
+      "default": -1,
+      "description": "Maximum score allowed"
+    },
+    {
       "name": "n",
       "type": "number",
-      "description": "Number of anomalies to remove"
+      "default": -1,
+      "description": "Number of anomalies to remove. Default "
     }
   ],
   "outputs": [
