@@ -44,7 +44,12 @@
     {
       "name": "anomalies",
       "type": "list",
-      "description": "The list of anomalies"
+      "description": "List of anomalies"
+    },
+    {
+      "name": "anomalies-ds",
+      "type": "dataset-id",
+      "description": "Dataset that contains the anomalies"
     },
     {
       "name": "similarities",

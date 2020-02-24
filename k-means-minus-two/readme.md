@@ -30,6 +30,6 @@ some maximum number of iterations.
 - dataset: the original dataset appended with fields for cluster
   membership and distance to centroid
 
-- anomalies: a list of the anomalous instances
+- anomalies-ds: The ID of a dataset containing the anomalies
 
 - similarities: a list of the similarity coefficients from each step

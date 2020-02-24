@@ -1,5 +1,5 @@
 ;; An implementation of the k-means--
-;; algorithm. http://pmg.it.usyd.edu.au/outliers.pdf 
+;; algorithm. http://pmg.it.usyd.edu.au/outliers.pdf
 ;;
 ;; Given a dataset of points to be clustered, a number of clusters k, a
 ;; number of anomalies l, a Jaccard index threshold, and a maximum
@@ -8,23 +8,41 @@
 ;; centroid distance, the list of l anomalous points, and a list of the
 ;; similarity between sets of anomalies at each step of the algorithm.
 
+(define (headers fields)
+  (let (sorted-fields (sort-by-key "column_number" (values fields)))
+    (map (lambda (f) (f "name")) sorted-fields)))
+
+(define (make-anomalies-ds clustering)
+  (let (a-sample-id (clustering 3)
+        anomalies (clustering 2)
+        a-headers (cons "Row" (headers (resource-fields (clustering 1))))
+        anomalies-data (join "\n" (map (lambda (r) (join "," r)) (cons a-headers anomalies)))
+        _ (log-info anomalies-data)
+        anomalies-ds (create-and-wait-dataset
+                       {"source" (create-source
+                         {"data" anomalies-data})
+                        "name" (str ((fetch a-sample-id) "name")
+                                    " - anomalies")}))
+    (delete a-sample-id)
+    (append (butlast clustering) anomalies-ds)))
+
 (define (get-anomalies ds-id filtered-ds k l)
   (let (cluster-id (create-cluster {"k" k "dataset" filtered-ds})
-        batchcentroid-id (create-and-wait-batchcentroid {"cluster" cluster-id 
-                                                         "dataset" ds-id 
-                                                         "all_fields" true 
-                                                         "distance" true 
+        batchcentroid-id (create-and-wait-batchcentroid {"cluster" cluster-id
+                                                         "dataset" ds-id
+                                                         "all_fields" true
+                                                         "distance" true
                                                          "output_dataset" true})
         batchcentroid (fetch batchcentroid-id)
         centroid-ds (batchcentroid "output_dataset_resource")
         sample-id (create-and-wait-sample centroid-ds)
-        field-id ((fetch centroid-ds) ["objective_field" "id"]) 
-        anomalies (fetch sample-id {"row_order_by" (str "-" field-id) 
+        field-id ((fetch centroid-ds) ["objective_field" "id"])
+        anomalies (fetch sample-id {"row_order_by" (str "-" field-id)
                                     "mode" "linear"
                                     "rows" l
                                     "index" true}))
-    (delete* [batchcentroid-id sample-id])
-    [cluster-id  centroid-ds ((anomalies "sample") "rows")]))
+    (delete batchcentroid-id)
+    [cluster-id centroid-ds (anomalies ["sample" "rows"]) sample-id]))
 
 (define (k-minus-two ds-id k l threshold max)
   (let (fields ((fetch ds-id) "input_fields"))
@@ -32,27 +50,27 @@
       (let (clustering (get-anomalies ds-id dataset k l)
             distance (last (last (nth clustering 2)))
             point-ids (map head (nth clustering 2))
-            intersect-count (reduce (lambda (n k) 
-                                      (if (member? k point-ids) (+ 1 n) n)) 
+            intersect-count (reduce (lambda (n k)
+                                      (if (member? k point-ids) (+ 1 n) n))
                                     0 old-ids)
-            union-count (reduce (lambda (n k) 
-                                  (if (member? k old-ids) n (+ 1 n))) 
+            union-count (reduce (lambda (n k)
+                                  (if (member? k old-ids) n (+ 1 n)))
                                 (count old-ids) point-ids)
             similarity-list (append old-list (/ intersect-count union-count))
             new-dataset (create-and-wait-dataset (nth clustering 1)
                                         {"input_fields" fields
-                                         "lisp_filter" (flatline 
+                                         "lisp_filter" (flatline
                                                         "(< (field "
                                                         "    \"distance\")"
-                                                        "   {distance})")})) 
-        (cond (= cnt max) (prog (delete new-dataset) 
-                                (append clustering similarity-list))
-              (> (last similarity-list) threshold) (prog (delete new-dataset)
-                                                         (append 
-                                                            clustering  
-                                                            similarity-list))
+                                                        "   {distance})")}))
+        (cond (or (= cnt max)
+                  (> (last similarity-list) threshold))
+              (prog (delete new-dataset)
+                (let (clustering (make-anomalies-ds clustering))
+                  (append clustering similarity-list)))
               (prog
                 (delete* [(nth clustering 0) (nth clustering 1)])
                 (recur new-dataset (+ cnt 1) point-ids similarity-list)))))))
 
-(define [cluster dataset-id anomalies similarities] (k-minus-two dataset k l threshold maximum))
+(define [cluster dataset-id anomalies anomalies-ds similarities]
+  (k-minus-two dataset k l threshold maximum))
