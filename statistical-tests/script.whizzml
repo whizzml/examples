@@ -1,0 +1,66 @@
+(define sample 1024)
+
+(define (field-name fields fid)
+  (fields [fid "name"]))
+
+(define (flatten-map list-of-maps)
+  (reduce merge {} list-of-maps))
+
+(define (first-match-key list-of-maps key value)
+  (head (filter (lambda (n) (= (n key) value)) list-of-maps)))
+
+(define (analyze-test-field fields test-results fid)
+  (let (test-field (test-results fid)
+        fname (field-name fields fid))
+    {fname (dissoc test-field "significant")}))
+
+(define (analyze-test type subtype test)
+  (let (test-results ((first-match-key (test type)  "name" subtype) "result"))
+    (flatten-map (map (partial analyze-test-field (test "fields") test-results)
+                      (keys test-results)))))
+
+(define (analyze-benford-field fields benford fid)
+  (let (benford-field (benford fid)
+        fname (field-name fields fid))
+    {fname {"chi_square" (benford-field ["chi_square" "chi_square_value"])
+            "p_value" (benford-field ["chi_square" "p_value"])
+            "distribution" (benford-field "distribution")
+            "d_statistic" (benford-field ["cho_gaines" "d_statistic"])}}))
+
+(define (analyze-benford test)
+  (let (benford (get (head (test "fraud")) "result"))
+    (flatten-map (map (partial analyze-benford-field (test "fields") benford)
+                      (keys benford)))))
+
+(define (statistical-tests)
+  (let (tests (get (fetch (create-and-wait-statisticaltest
+                           dataset-id
+                           {"ad_sample_size" ad-sample-size
+                            "ad_seed" ad-seed}))
+                   "statistical_tests"))))
+
+(define (summary-metric test metric)
+  (let (metric-values (map (lambda (field) (get (test field) metric))
+                           (keys test)))
+    {"average" (mean metric-values)
+     "stdev" (stdev metric-values)}))
+
+(define (summary-metrics test test-name metrics)
+  {test-name
+   (flatten-map (map (lambda (m) {m (summary-metric test m)}) metrics))})
+
+;(define output (statistical-tests) "fields")
+(define benford (analyze-benford (statistical-tests)))
+(define anderson (analyze-test "normality" "anderson_darling" (statistical-tests)))
+(define jarque-bera (analyze-test "normality" "jarque_bera" (statistical-tests)))
+(define z-score (analyze-test "normality" "z_score" (statistical-tests)))
+(define grubbs (analyze-test "outliers" "grubbs" (statistical-tests)))
+(define summary
+  (flatten-map (map summary-metrics
+                    [benford anderson jarque-bera z-score grubbs]
+                    ["benford" "anderson" "jarque-bera" "z-score" "grubs"]
+                    [["chi_square" "p_value" "d_statistic"]
+                     ["p_value"]
+                     ["p_value"]
+                     ["expected_max_z" "max_z"]
+                     ["p_value"]])))
