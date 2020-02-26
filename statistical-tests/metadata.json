@@ -24,6 +24,11 @@
   ],
   "outputs": [
     {
+      "name": "output",
+      "type": "map",
+      "description": "Full statisticall tests output"
+    },
+    {
       "name": "benford",
       "type": "map",
       "description": "Benford tets results"
