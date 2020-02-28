@@ -42,6 +42,7 @@
     "supervised-model-quality",
     "correlations-matrix",
     "batch-association-sets",
-    "bulk-move"
+    "bulk-move",
+    "statistical-tests"
   ]
 }

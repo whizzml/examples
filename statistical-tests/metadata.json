@@ -57,6 +57,11 @@
       "name": "summary",
       "type": "map",
       "description": "Summary results aggregating metrics from all numeric fields"
+    },
+    {
+      "name": "tests-results-dataset",
+      "type": "map",
+      "description": "Dataset with the results of the tests for each field"
     }
 
   ]
