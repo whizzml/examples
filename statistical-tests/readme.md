@@ -9,9 +9,9 @@ tests for a given dataset and creates a report dataset with the
 results. It also returns a map with aggregated metrics across all the
 numeric fields.
 
-One interesting thing to do with the output dataset is creating a
-**Scatter Plot** to visualize the metrics for all the fields in your
-original dataset.
+One interesting thing to do with the output dataset is using the
+**Scatter Plot** view to visualize the metrics for all the fields in
+your original dataset.
 
 ![Visualization](visualization.png)
 
@@ -21,11 +21,11 @@ The **inputs** for the script are:
 * `dataset-id`: (dataset-id) Dataset ID to analyze
 * `add-sample-size`: (integer) The number of samples to be used during
   the normality test. **Default**: 1024
-* `ad-seet:` (string) A string to be hashed to generate deterministic
+* `ad-seed:` (string) A string to be hashed to generate deterministic
   samples for the Anderson-Darling normality test. **Default**: bigml
 
 The **outputs** for the script are:
-* `output`: (map) Full statisticall tests output
+* `output`: (map) Full statistical tests output
 * `benford`: (map) Benford test results
 * `anderson`: (map) Anderson-Darling test results
 * `jarque-bera`: (map) Jarque-Bera tests results

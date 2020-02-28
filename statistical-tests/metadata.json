@@ -1,6 +1,6 @@
 {
   "name": "Statistical Tests",
-  "description": "Calculates statistical tests and creates a report with the results",
+  "description": "Performs statistical tests and creates a report with the results",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
@@ -26,7 +26,7 @@
     {
       "name": "output",
       "type": "map",
-      "description": "Full statisticall tests output"
+      "description": "Complete statistical tests output"
     },
     {
       "name": "benford",
