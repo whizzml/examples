@@ -58,11 +58,11 @@
 ;; Performs all the statistical tests for the configured dataset-id
 ;; using the ad-sample-size and ad-seed values set by the user
 (define (statistical-tests)
-  (let (ad-seed (if (> (count ad-seed) 0) ad-seed "bigml")
+  (let (seed (if (> (count ad-seed) 0) ad-seed "bigml")
         tests (get (fetch (create-and-wait-statisticaltest
                            dataset-id
                            {"ad_sample_size" ad-sample-size
-                            "ad_seed" ad-seed}))
+                            "ad_seed" seed}))
                    "statistical_tests"))))
 
 ;; From a given statistical test, computes average and standard
