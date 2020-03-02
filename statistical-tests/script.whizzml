@@ -3,7 +3,7 @@
 ;; given a dataset
 ;; performs several statistical tests and returns their results,
 ;; along with a summary of the average values and standard
-;; deviations ac
+;; deviations across all the fields
 
 
 ;; From a map with all the fields and a field id,
@@ -30,10 +30,10 @@
     {fname (dissoc test-field "significant")}))
 
 ;; From the complete set of statistical tests, returns a map with all
-;; the metrics from one of them removing unnecesary keys and
+;; the metrics for one of them removing unnecesary keys and
 ;; transforming field ids into field names
 (define (analyze-test type subtype test)
-  (let (test-results ((first-match-key (test type)  "name" subtype) "result"))
+  (let (test-results ((first-match-key (test type) "name" subtype) "result"))
     (flatten-map (map (partial analyze-test-field (test "fields") test-results)
                       (keys test-results)))))
 
@@ -57,7 +57,7 @@
 
 ;; Performs all the statistical tests for the configured dataset-id
 ;; using the ad-sample-size and ad-seed values set by the user
-(define (statistical-tests)
+(define (statistical-tests dataset-id ad-sample-size ad-seed)
   (let (seed (if (> (count ad-seed) 0) ad-seed "bigml")
         tests (get (fetch (create-and-wait-statisticaltest
                            dataset-id
@@ -93,26 +93,26 @@
 
 ;; Obtains the names of all the metrics
 (define (field-tests-keys field)
-  (join ","  (flatten (map (lambda (test name)
-                             (map (lambda (n) (str name "-" n))
-                                  (keys (clean-test (test field)))))
-                           [benford anderson jarque-bera z-score grubbs]
-                           ["benford" "anderson" "jarque" "z-score" "grubbs"]))))
+  (join "," (flatten (map (lambda (test name)
+                            (map (lambda (n) (str name "-" n))
+                                 (keys (clean-test (test field)))))
+                          [benford anderson jarque-bera z-score grubbs]
+                          ["benford" "anderson" "jarque" "z-score" "grubbs"]))))
 
 ;; Creates a Source with all the metrics from all the statistical tests
-(define (create-source-data)
+(define (create-source-data benford)
   (let (fields (keys benford)
         header (str "field," (field-tests-keys (head fields))))
     (join "\n" (cons header (map field-tests-data fields)))))
 
 ;; Creates the final Dataset with the tests results
-(define (create-output-dataset)
-  (create-dataset (create-source {"data" (create-source-data)
+(define (create-output-dataset dataset-id)
+  (create-dataset (create-source {"data" (create-source-data benford)
                                   "name" (str (resource-name dataset-id)
                                               "-StatisticalTests")})))
 
 
-(define output (statistical-tests))
+(define output (statistical-tests dataset-id ad-sample-size ad-seed))
 (define benford (analyze-benford output))
 (define anderson (analyze-test "normality" "anderson_darling" output))
 (define jarque-bera (analyze-test "normality" "jarque_bera" output))
@@ -127,4 +127,4 @@
                      ["p_value"]
                      ["expected_max_z" "max_z"]
                      ["p_value"]])))
-(define tests-results-dataset (create-output-dataset))
+(define tests-results-dataset (create-output-dataset dataset-id))
