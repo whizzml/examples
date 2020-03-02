@@ -18,6 +18,8 @@ some maximum number of iterations.
 - k: the number of clusters desired
 
 - l: the number of anomalies to be removed at each step
+     If 0<l<1, it will be considered as a percentage of
+     the total number of rows.
 
 - threshold: the minimum desired Jaccard index between iterations
 

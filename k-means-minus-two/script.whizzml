@@ -45,7 +45,9 @@
     [cluster-id centroid-ds (anomalies ["sample" "rows"]) sample-id]))
 
 (define (k-minus-two ds-id k l threshold max)
-  (let (fields ((fetch ds-id) "input_fields"))
+  (let (dataset (fetch ds-id)
+        fields (dataset "input_fields")
+        l (if (> l 1) (round (* l (dataset "rows"))) l)
     (loop (dataset ds-id cnt 1 old-ids [] old-list [])
       (let (clustering (get-anomalies ds-id dataset k l)
             distance (last (last (nth clustering 2)))
