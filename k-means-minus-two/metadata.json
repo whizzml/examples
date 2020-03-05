@@ -1,6 +1,6 @@
 {
   "name": "K-means minus two",
-  "description": "Implementation of the k-means-- algorithm",
+  "description": "Implementation of the k-means-minus-two algorithm",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
@@ -12,22 +12,26 @@
     {
       "name": "k",
       "type": "number",
-      "description": "Number of clusters"
+      "description": "Number of clusters (-1 to use  G-Means)",
+      "default": -1
     },
     {
       "name": "l",
       "type": "number",
-      "description": "Number of anomalies (or percent of total rows if 0<l<1)"
+      "description": "Number of anomalies (or percent of total rows if 0<l<1)",
+      "default": 0.05
     },
     {
       "name": "threshold",
       "type": "number",
-      "description": "Minimum cutoff similarity between sets of anomalies"
+      "description": "Minimum cutoff similarity between sets of anomalies",
+      "default": "0.8"
     },
     {
       "name": "maximum",
       "type": "number",
-      "description": "Maximum number of iterations"
+      "description": "Maximum number of iterations.",
+      "default": 10
     }
   ],
   "outputs": [

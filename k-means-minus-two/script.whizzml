@@ -17,7 +17,6 @@
         anomalies (clustering 2)
         a-headers (cons "Row" (headers (resource-fields (clustering 1))))
         anomalies-data (join "\n" (map (lambda (r) (join "," r)) (cons a-headers anomalies)))
-        _ (log-info anomalies-data)
         anomalies-ds (create-and-wait-dataset
                        {"source" (create-source
                          {"data" anomalies-data})
@@ -27,7 +26,8 @@
     (append (butlast clustering) anomalies-ds)))
 
 (define (get-anomalies ds-id filtered-ds k l)
-  (let (cluster-id (create-cluster {"k" k "dataset" filtered-ds})
+  (let (cluster-params (merge (if (> k 0) {"k" k} {}) {"dataset" filtered-ds})
+        cluster-id (create-cluster cluster-params)
         batchcentroid-id (create-and-wait-batchcentroid {"cluster" cluster-id
                                                          "dataset" ds-id
                                                          "all_fields" true
@@ -44,11 +44,12 @@
     (delete batchcentroid-id)
     [cluster-id centroid-ds (anomalies ["sample" "rows"]) sample-id]))
 
-(define (k-minus-two ds-id k l threshold max)
+(define (k-minus-two ds-id k l threshold max-iter)
   (let (dataset (fetch ds-id)
         fields (dataset "input_fields")
-        l (if (> l 1) (round (* l (dataset "rows"))) l)
+        l (if (> l 1) l (max (round (* l (dataset "rows"))))))
     (loop (dataset ds-id cnt 1 old-ids [] old-list [])
+      (log-info "Iteration number " cnt)
       (let (clustering (get-anomalies ds-id dataset k l)
             distance (last (last (nth clustering 2)))
             point-ids (map head (nth clustering 2))
@@ -65,7 +66,7 @@
                                                         "(< (field "
                                                         "    \"distance\")"
                                                         "   {distance})")}))
-        (cond (or (= cnt max)
+        (cond (or (= cnt max-iter)
                   (> (last similarity-list) threshold))
               (prog (delete new-dataset)
                 (let (clustering (make-anomalies-ds clustering))

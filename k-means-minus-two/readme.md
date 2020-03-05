@@ -15,15 +15,18 @@ some maximum number of iterations.
 
 - dataset: the dataset of interest
 
-- k: the number of clusters desired
+- k: the number of clusters desired. By default is -1, which means
+  that G-Means algorithm will be used to find the optimal number
+  of clusters.
 
 - l: the number of anomalies to be removed at each step
      If 0<l<1, it will be considered as a percentage of
-     the total number of rows.
+     the total number of rows. 0.05% by default.
 
-- threshold: the minimum desired Jaccard index between iterations
+- threshold: the minimum desired Jaccard index between iterations. 0.8
+  by default.
 
-- maximum: the maximum number of desired iterations
+- maximum: the maximum number of desired iterations. 10 by default.
 
 # Outputs
 
