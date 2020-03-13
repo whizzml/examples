@@ -97,7 +97,8 @@
 (define (check-configuration-params config)
   (let (correct #["excluded-fields" "excluded-models"
                   "pca-variance-threshold" "max-rules"
-                  "validation-rate" "balance-objective"]
+                  "validation-rate" "balance-objective"
+                  "configuration-params"]
         dif (difference correct (set* (keys (or config {})))))
     (when (not (empty? dif))
       (raise (str "Can't find the following parameters in the "

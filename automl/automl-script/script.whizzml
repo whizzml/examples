@@ -29,12 +29,12 @@
                        test-dataset)
 (log-info "Check configuration params")
 (check-configuration-params config)
-(check-models-configuration models-configuration)
+(check-models-configuration (config "models-configuration"))
 (log-info "Checking excluded-models")
 (check-excluded-models (config "excluded-models"))
 (log-info "More configuration parameters checks")
 (check-params (config "pca-variance-threshold")
-              (config "max-rules")
+              (config "max-associations-rules")
               (config "validation-rate"))
 
 (define [validation-split-dataset train-split-dataset]
@@ -77,7 +77,8 @@
         all-models
         (map (lambda (type params*)
                (when (create-unsupervised? type excluded-models)
-                 (let (opt (merge params* (models-configuration type {})))
+                 (let (opt (merge params*
+                                  ((config "models-configuration") type {})))
                    (create-unsupervised type dataset opt))))
         ["association" "association" "cluster" "anomaly" "pca" "topicmodel"]
         [lev-params lift-params params params params params]))
@@ -101,7 +102,7 @@
                             model-list
                             excluded
                             pca-threshold
-                            max-rules)
+                            max-associations-rules)
   (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
         objective-id (dataset-get-objective-id dataset-id)
         name (resource-name dataset-id)
@@ -121,7 +122,7 @@
                                          model-list
                                          name
                                          excluded
-                                         max-rules)
+                                         max-associations-rules)
         all-fields [cluster-fields anomaly-fields topic-fields pca-fields]
         all-ds (cons dataset-assoc (map batch-output-ds all-fields)))
     (feature-generation-dataset all-ds name objective-id non-preferred-fields)))
@@ -129,7 +130,7 @@
 (define extended-datasets
   (let (exc-fields (config "excluded-fields")
         pca-threshold (config "pca-variance-threshold")
-        max-rules (floor (config "max-rules")))
+        max-associations-rules (floor (config "max-associations-rules")))
     (map (lambda(dataset)
            (when (= (resource-type dataset) "dataset")
              (log-info " - Extending dataset: " (resource-name dataset))
@@ -137,7 +138,7 @@
                                  unsupervised-models
                                  exc-fields
                                  pca-threshold
-                                 max-rules)))
+                                 max-associations-rules)))
          [train-split-dataset validation-split-dataset test-dataset])))
 
 
@@ -192,7 +193,7 @@
       (fusion-from-optiml
        (create-optiml-model train
                             valid
-                            (models-configuration "optiml" {}))
+                            ((config "models-configuration") "optiml" {}))
        3))))
 
 
