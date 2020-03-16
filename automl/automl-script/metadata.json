@@ -1,7 +1,7 @@
 {
   "name": "AutoML",
   "description":
-  "This script executes, in the correct order, all the steps from the BigML's Automated Machine Learning pipeline",
+  "This script executes all the steps from the BigML's Automated Machine Learning pipeline",
   "kind": "script",
   "source_code": "script.whizzml",
   "imports":["../automl-library"],
@@ -42,7 +42,7 @@
       "default": {"excluded-fields": [],
                   "excluded-models": [],
                   "pca-variance-threshold": 0.6,
-                  "max-associations-rules": 20,
+                  "max-association-rules": 10,
                   "validation-rate": 0.2,
                   "balance-objective": false,
                   "models-configuration": {}},

@@ -47,7 +47,8 @@ The **inputs** for the script are:
   new resources are generated from the training data.
 * `shallow-search`: (boolean) If true, AutoML will perform a more
   shallow (but faster) search of the best features and models. A
-  ramdomly sampled dataset will be used in some stages of the process
+  ramdomly sampled dataset will be used in some stages of the process,
+  only one association discovery will be created (with lift metric)
   and the maximum training time of the OptiML will be more
   limited. Default value is `False`.
 * `configuration-params`: (map) Execution configuration
@@ -65,12 +66,12 @@ The **inputs** for the script are:
     variance is greater than the given threshold. Values from 0 to 1. A
     value of 1 means all the components will be used. Default value is
     0.8.
-  * `max-associations-rules`: (integer) Maximum number of association
-    rules that should be included in the extended datasets. Default
-    value is 20. The final number of rules added to the dataset can be
-    lower than this value if there aren't enough rules in the created
-    association discovery models or if the same rules appear on more
-    than one association discovery model.
+  * `max-association-rules`: (integer) Maximum number of association
+    rules that should be included in the extended datasets for each
+    association discovery created. Default value is 10. Please, note
+    that the final number of association rules in the extended
+    datasets can be higher than this value if more than one
+    association discovery is created.
   * `validation-rate`: (number) The portion of the `train-dataset`
     that is sampled in the `validation-dataset`. Values from 0 to 0.5.
     This is used only if a `validation-dataset` is not provided by the

@@ -34,7 +34,7 @@
 (check-excluded-models (config "excluded-models"))
 (log-info "More configuration parameters checks")
 (check-params (config "pca-variance-threshold")
-              (config "max-associations-rules")
+              (config "max-association-rules")
               (config "validation-rate"))
 
 (define [validation-split-dataset train-split-dataset]
@@ -53,6 +53,19 @@
          {"name" (str name " - Train " (* 100 (- 1 rate)) "%")}))
       [validation-dataset (get-input "train-dataset")])))
 
+(define (sampled-ds-maybe ds-id shallow)
+  (let (columns (resource-property (wait ds-id) "columns")
+        rows (resource-property ds-id "rows")
+        name (resource-name ds-id)
+        ;; The sampled dataset should contain at least 20
+        ;; rows per dataset column
+        ratio (/ (* columns 20) rows))
+    (log-info "Sampling dataset with ratio: " ratio)
+    (if (or (> ratio 1) (not shallow))
+      ds-id
+      (create-dataset ds-id {"sample_rate" ratio
+                             "name" (str name " - sampled")}))))
+
 ;; Retrieve all non-preferred fields from all the datasets
 (define non-preferred-fields
   (remove-duplicates
@@ -66,17 +79,20 @@
 (log-featured "Feature generation")
 (log-info "Obtaining unsupervised models")
 ;; Returns a list of unsupervised-models from a dataset
-(define (create-unsupervised-models dataset excluded excluded-models)
-  (let (_ (set-non-preferred dataset non-preferred-fields)
+(define (create-unsupervised-models dataset excluded excluded-models shallow)
+  (let (dataset (sampled-ds-maybe dataset shallow)
+        _ (set-non-preferred dataset non-preferred-fields)
         params {"excluded_fields" (field-ids-from-names excluded dataset)}
         objective-id (dataset-get-objective-id dataset)
-        lev-params (merge params {"rhs_predicate" [{"field" objective-id}]
-                                  "search_strategy" "leverage"})
         lift-params (merge params {"rhs_predicate" [{"field" objective-id}]
                                    "search_strategy" "lift"})
+        ;; leverage metric is not used in shallow-search
+        lev-params (when (not shallow)
+                     (merge params {"rhs_predicate" [{"field" objective-id}]
+                                    "search_strategy" "leverage"}))
         all-models
         (map (lambda (type params*)
-               (when (create-unsupervised? type excluded-models)
+               (when (and (create-unsupervised? type excluded-models) params*)
                  (let (opt (merge params*
                                   ((config "models-configuration") type {})))
                    (create-unsupervised type dataset opt))))
@@ -95,14 +111,17 @@
         exc-models (config "excluded-models"))
     (if reuse-resources
       (get-unsupervised-models automl-execution exc-models)
-      (create-unsupervised-models train-split-dataset exc-fields exc-models))))
+      (create-unsupervised-models train-split-dataset
+                                  exc-fields
+                                  exc-models
+                                  shallow-search))))
 
 (log-info "Generating new features from unsupervised models")
 (define (feature-generation dataset-id
                             model-list
                             excluded
                             pca-threshold
-                            max-associations-rules)
+                            max-rules)
   (let (excluded (remove-false (field-ids-from-names excluded dataset-id))
         objective-id (dataset-get-objective-id dataset-id)
         name (resource-name dataset-id)
@@ -122,7 +141,7 @@
                                          model-list
                                          name
                                          excluded
-                                         max-associations-rules)
+                                         max-rules)
         all-fields [cluster-fields anomaly-fields topic-fields pca-fields]
         all-ds (cons dataset-assoc (map batch-output-ds all-fields)))
     (feature-generation-dataset all-ds name objective-id non-preferred-fields)))
@@ -130,7 +149,7 @@
 (define extended-datasets
   (let (exc-fields (config "excluded-fields")
         pca-threshold (config "pca-variance-threshold")
-        max-associations-rules (floor (config "max-associations-rules")))
+        max-rules (floor (config "max-association-rules")))
     (map (lambda(dataset)
            (when (= (resource-type dataset) "dataset")
              (log-info " - Extending dataset: " (resource-name dataset))
@@ -138,7 +157,7 @@
                                  unsupervised-models
                                  exc-fields
                                  pca-threshold
-                                 max-associations-rules)))
+                                 max-rules)))
          [train-split-dataset validation-split-dataset test-dataset])))
 
 
@@ -152,12 +171,21 @@
 
 ;; Obtains the most important fields from a dataset
 ;; using recursive feature elimination
-(define (compute-important-fields train test)
+(define (compute-important-fields train test shallow)
   (let (balance (config "balance-objective")
-        rfe-output (recursive-feature-elimination train 1 "" test "" balance)
+        train (wait (sampled-ds-maybe train shallow))
+        rfe-output (if shallow
+                     ;; If shallow-search, fixed number
+                     ;; of columns  after rfe, 30
+                     ;; No evaluations
+                     (rfe train 30 "" ""   "" balance)
+                     (rfe train  1 "" test "" balance))
         evaluations (rfe-output "evaluations" {})
-        num-features (rfe-best-num-features evaluations))
-    (rfe-output-fields train evaluations num-features)))
+        num-features (if shallow
+                       30
+                       (rfe-best-num-features evaluations)))
+    (rfe-output-fields train rfe-output num-features shallow)))
+
 
 ;; Obtains the most important fields (a list with their names)
 ;; from a train and an optional test dataset
@@ -168,7 +196,7 @@
           [train* test*] (if (= "dataset" (resource-type valid))
                            [train valid]
                            (wait* (create-random-dataset-split train 0.8))))
-      (compute-important-fields train* test*))))
+      (compute-important-fields train* test* shallow-search))))
 
 (log-info "Filtering the datasets")
 ;; Creates the filtered datasets from the extended datasets,
@@ -193,7 +221,8 @@
       (fusion-from-optiml
        (create-optiml-model train
                             valid
-                            ((config "models-configuration") "optiml" {}))
+                            ((config "models-configuration") "optiml" {})
+                            shallow-search)
        3))))
 
 
