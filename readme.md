@@ -103,6 +103,8 @@ By convention, when the artifact is a library, the files are called
 - `bulk-move`: Moves selected resources in bulk to a user-provided project.
   The resources to be moved are selected by applying the user-provided
   filters.
+- `statistical-tests`: Performs statistical tests from a given dataset
+  and creates a report with the results
 
 ## How to install
 
