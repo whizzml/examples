@@ -46,9 +46,10 @@
             model-list)))
 
 (define (_safe-delete id)
-  (try (delete id)
-       (catch e
-         (log-info  "Error deleting resource " id " ignored"))))
+  (when id
+    (try (delete id)
+         (catch e
+           (log-info  "Error deleting resource " id " ignored")))))
 
 ;; Returns a list of field ids from a list of field names
 ;; Not found fields are ignored
@@ -531,7 +532,7 @@
 (define (create-optiml-model train validation params shallow)
   (when (= (resource-type train) "dataset")
     (log-info "Creating Optiml, this  can last several minutes (or even hours)")
-    (let (max-time {"max_training_time" (if shallow 900 1800)}
+    (let (max-time {"max_training_time" (if shallow 900 3600)}
           params (merge params
                         (if (= (resource-type validation) "dataset")
                           (merge max-time {"test_dataset" validation})

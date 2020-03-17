@@ -15,9 +15,10 @@ be automatically done:
 -  `Feature Generation`: Using the unsupervised models created
   previously to append automatically generated new features to all the
   user given datasets.
-- `Feature Selection`: Reducing, automatically,
-  the number of fields of the datasets using the **Recursive Feature
-  Eliminination** algorithm.
+- `Feature Selection`: Reducing, automatically, the number of fields
+  of the datasets using the **Recursive Feature Eliminination**
+  algorithm. This step is bypassed if the total number of fields is
+  lower than 50 (or 30 if `shallow_search` is `True`)
 -  `Model Selection` Using OptiML to find the best models and using
   the top 3 models to create a `Fusion` model to predict all the test
   dataset instances. If a validation dataset is given, this script
@@ -48,9 +49,10 @@ The **inputs** for the script are:
 * `shallow-search`: (boolean) If true, AutoML will perform a more
   shallow (but faster) search of the best features and models. A
   ramdomly sampled dataset will be used in some stages of the process,
-  only one association discovery will be created (with lift metric)
-  and the maximum training time of the OptiML will be more
-  limited. Default value is `False`.
+  only one association discovery will be created (with lift metric),
+  the objective number of features to obtain from the feature
+  selection process will be fixed to 30 and the maximum training time
+  of the OptiML will be more limited. Default value is `True`.
 * `configuration-params`: (map) Execution configuration
   parameters. They will be overwritten if automl-execution is
   given. The following values must be provided:

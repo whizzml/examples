@@ -33,7 +33,7 @@
     {
       "name": "shallow-search",
       "type": "boolean",
-      "default": false,
+      "default": true,
       "description": "If true, AutoML will perform a more shallow (but faster) search of the best features and models"
     },
     {

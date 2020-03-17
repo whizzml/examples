@@ -174,16 +174,26 @@
 (define (compute-important-fields train test shallow)
   (let (balance (config "balance-objective")
         train (wait (sampled-ds-maybe train shallow))
+        num-fields (count (keys (resource-fields train)))
+        min-fields-shallow 30
+        min-fields 50
         rfe-output (if shallow
                      ;; If shallow-search, fixed number
-                     ;; of columns  after rfe, 30
+                     ;; of fields  after rfe, 30
                      ;; No evaluations
-                     (rfe train 30 "" ""   "" balance)
-                     (rfe train  1 "" test "" balance))
+                     (rfe train min-fields-shallow "" ""   "" balance)
+                     ;; We want, at least 50 fields. If the total
+                     ;; number of fields is lower, we will skip
+                     ;; feature selection stage
+                     (rfe train min-fields "" test "" balance))
         evaluations (rfe-output "evaluations" {})
         num-features (if shallow
-                       30
-                       (rfe-best-num-features evaluations)))
+                       (if (> num-fields min-fields-shallow)
+                         min-fields-shallow
+                         num-fields)
+                       (if (> num-fields min-fields)
+                         (rfe-best-num-features evaluations)
+                         num-fields)))
     (rfe-output-fields train rfe-output num-features shallow)))
 
 
