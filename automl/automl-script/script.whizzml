@@ -188,9 +188,7 @@
                      (rfe train min-fields "" test "" balance))
         evaluations (rfe-output "evaluations" {})
         num-features (if shallow
-                       (if (> num-fields min-fields-shallow)
-                         min-fields-shallow
-                         num-fields)
+                       (min num-fields min-fields-shallow)
                        (if (> num-fields min-fields)
                          (rfe-best-num-features evaluations)
                          num-fields)))
