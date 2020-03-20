@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.6 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.7 ;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -46,9 +46,10 @@
             model-list)))
 
 (define (_safe-delete id)
-  (try (delete id)
-       (catch e
-         (log-info  "Error deleting resource " id " ignored"))))
+  (when id
+    (try (delete id)
+         (catch e
+           (log-info  "Error deleting resource " id " ignored")))))
 
 ;; Returns a list of field ids from a list of field names
 ;; Not found fields are ignored
@@ -96,8 +97,9 @@
 ;; Checks that all the needed params are in the configuration
 (define (check-configuration-params config)
   (let (correct #["excluded-fields" "excluded-models"
-                  "pca-variance-threshold" "max-rules"
-                  "validation-rate" "balance-objective"]
+                  "pca-variance-threshold" "max-association-rules"
+                  "validation-rate" "balance-objective"
+                  "models-configuration"]
         dif (difference correct (set* (keys (or config {})))))
     (when (not (empty? dif))
       (raise (str "Can't find the following parameters in the "
@@ -369,9 +371,8 @@
 ;; association sets from association discovery models in model-list
 ;; User can also set a list of fields to be excluded and a maximum
 ;; number of rules that should be obtained
-(define (assoc-feature-gen dataset-id model-list name excluded num-of-rules)
-  (let (rules (floor (/ num-of-rules 2))
-        new-fields
+(define (assoc-feature-gen dataset-id model-list name excluded rules)
+  (let (new-fields
         (map (lambda(m) (_batch-association-sets dataset-id m "antecedent" rules))
              (_model-from-list model-list "association")))
     (_dataset-with-rules dataset-id name (flatten new-fields) excluded)))
@@ -447,8 +448,7 @@
 
 ;; Applies recursive feature elimination to obtain the most important
 ;; fields from a dataset, evaluating each iteration with the test-ds-id
-(define (recursive-feature-elimination ds-id nfeatures obj-id
-                                       test-ds-id metric balance)
+(define (rfe ds-id nfeatures obj-id test-ds-id metric balance)
   (let (do-evaluation (= (resource-type test-ds-id) "dataset")
         [obj-id otype] (_get-objective ds-id obj-id)
         fields (resource-fields ds-id)
@@ -509,14 +509,18 @@
        "features"))
 
 ;; Filters out the unimportant fields from a dataset
-(define (rfe-output-fields dataset evaluations num-features)
-  (let (excluded (map (lambda (n) (n "last-removed"))
+(define (rfe-output-fields dataset rfe-output num-features shallow)
+  (let (evaluations (rfe-output "evaluations" {})
+        selected (rfe-output "selected-fields")
+        objective  (dataset-get-objective-id dataset)
+        excluded (map (lambda (n) (n "last-removed"))
                       (filter (lambda (n) (> (n "features") num-features))
                               evaluations)))
     (log-info "Finished feature selection")
-    (log-info "Removing " (count excluded) " features")
     (log-info "Using " num-features " features")
-    (_filter-dataset-fields dataset (flatten excluded))))
+    (if shallow
+      (field-names-from-ids (append selected objective) dataset)
+      (_filter-dataset-fields dataset (flatten excluded)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;; MODEL  SELECTION ;;;;;;;;;;;;;;;;;;;;;;
@@ -525,12 +529,15 @@
 
 ;; Creates an optiml model from a train and an
 ;; optional validation dataset
-(define (create-optiml-model train validation params)
+(define (create-optiml-model train validation params shallow)
   (when (= (resource-type train) "dataset")
     (log-info "Creating Optiml, this  can last several minutes (or even hours)")
-    (create-optiml train (if (= (resource-type validation) "dataset")
-                           (merge params {"test_dataset" validation})
-                           params))))
+    (let (max-time {"max_training_time" (if shallow 900 3600)}
+          params (merge params
+                        (if (= (resource-type validation) "dataset")
+                          (merge max-time {"test_dataset" validation})
+                          max-time)))
+      (create-optiml train params))))
 
 ;; Obtains a fusion from the outpus of an execution
 (define (retrieve-fusion exec)

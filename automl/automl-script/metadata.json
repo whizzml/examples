@@ -1,7 +1,7 @@
 {
   "name": "AutoML",
   "description":
-  "This script executes, in the correct order, all the steps from the BigML's Automated Machine Learning pipeline",
+  "This script executes all the steps from the BigML's Automated Machine Learning pipeline",
   "kind": "script",
   "source_code": "script.whizzml",
   "imports":["../automl-library"],
@@ -31,20 +31,21 @@
       "description": "For test executions. Previous execution of this script, to reuse created resources during training, e.g. execution/5d272205eba31d61920005cd"
     },
     {
-      "name": "models-configuration",
-      "type": "map",
-      "default": {},
-      "description": "Configuration parameters for created models. See README for more information"
+      "name": "shallow-search",
+      "type": "boolean",
+      "default": true,
+      "description": "If true, AutoML will perform a more shallow (but faster) search of the best features and models"
     },
     {
       "name": "configuration-params",
       "type": "map",
       "default": {"excluded-fields": [],
                   "excluded-models": [],
-                  "pca-variance-threshold": 1,
-                  "max-rules": 20,
+                  "pca-variance-threshold": 0.6,
+                  "max-association-rules": 10,
                   "validation-rate": 0.2,
-                  "balance-objective": false},
+                  "balance-objective": false,
+                  "models-configuration": {}},
       "description": "Execution configuration parameters. They will be overwritten if automl-execution is given. See README for more information"
     }
   ],

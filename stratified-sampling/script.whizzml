@@ -2,7 +2,7 @@
 ;; categories in that field, and breaks the dataset into pieces, one
 ;; per category. Returns the list of datasets.
 (define (split-it ds-id fld-id bucket-list)
-  (iterate (ds-list []            
+  (iterate (ds-list []
             bucket bucket-list)
     (let (split-filter (flatline "(= (f {{fld-id}}) {{bucket}})")
           split-ds (create-and-wait-dataset ds-id
@@ -16,21 +16,21 @@
   (iterate (ds-list []
             ds split-list
             sample-size sample-list)
-    (let (ds-size ((fetch ds) "rows"))
+    (let (ds-size ((fetch (wait ds)) "rows"))
       (append ds-list (create-dataset ds
                       {"sample_rate" (min (/ sample-size ds-size) 1.0 )})))))
 
 ;; Given a dataset-id, a categorical field-id, and a map of weights, computes
 ;; the relative counts from the class distribution
-(define (weighted-counts ds-id field-id weights) 
+(define (weighted-counts ds-id field-id weights)
   (let (dists (field-distribution (find-field (resource-fields ds-id) field-id))
         class-values (keys weights)
-        smallest-factor 
-          (min (iterate (ratios [] dist dists) 
+        smallest-factor
+          (min (iterate (ratios [] dist dists)
                  (append ratios (floor (/ (dist 1) (weights (dist 0))))))))
-    (iterate (counts [] class-val class-values) 
+    (iterate (counts [] class-val class-values)
       (append counts (* smallest-factor (weights class-val))))))
-      
+
 ;; Putting it together, takes in a dataset, a field id/name, and a map of
 ;; field values to sample counts. Breaks the dataset into pieces by
 ;; field value, samples them according to the sample counts, and puts
@@ -39,7 +39,7 @@
 (define (stratified-sampling ds-id field sample-map weighted)
   (let (field-id (get (find-field (resource-fields ds-id) field) "id")
         field-values (keys sample-map)
-        sample-count (if weighted 
+        sample-count (if weighted
           (weighted-counts ds-id field-id sample-map)
           (values sample-map))
         split-list (split-it ds-id field-id field-values)

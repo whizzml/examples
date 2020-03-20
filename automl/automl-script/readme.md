@@ -15,9 +15,10 @@ be automatically done:
 -  `Feature Generation`: Using the unsupervised models created
   previously to append automatically generated new features to all the
   user given datasets.
-- `Feature Selection`: Reducing, automatically,
-  the number of fields of the datasets using the **Recursive Feature
-  Eliminination** algorithm.
+- `Feature Selection`: Reducing, automatically, the number of fields
+  of the datasets using the **Recursive Feature Eliminination**
+  algorithm. This step is bypassed if the total number of fields is
+  lower than 50 (or 30 if `shallow_search` is `True`)
 -  `Model Selection` Using OptiML to find the best models and using
   the top 3 models to create a `Fusion` model to predict all the test
   dataset instances. If a validation dataset is given, this script
@@ -45,33 +46,34 @@ The **inputs** for the script are:
   `automl-execution` should be provided for the script to work. When
   both are provided, the `automl-execution` argument is discarded and
   new resources are generated from the training data.
-* `models-configuration`: (map) Configuration parameters for the models
-  created by AutoML. They won't be used if `automl-execution` is
-  given. The following keys are accepted: `cluster`, `anomaly`,
-  `association`, `pca`, `topicmodel`, `optiml`.
-  E.g. `{"cluster": {"critical_value": 4},
-         "anomaly": {"forest_size": 256},
-         "optiml": {"number_of_model_candidates": 64}}`
+* `shallow-search`: (boolean) If true, AutoML will perform a more
+  shallow (but faster) search of the best features and models. A
+  ramdomly sampled dataset will be used in some stages of the process,
+  only one association discovery will be created (with lift metric),
+  the objective number of features to obtain from the feature
+  selection process will be fixed to 30 and the maximum training time
+  of the OptiML will be more limited. Default value is `True`.
 * `configuration-params`: (map) Execution configuration
   parameters. They will be overwritten if automl-execution is
   given. The following values must be provided:
   * `excluded-fields`: (list) List of fields that will be excluded
-  from any dataset before any other process starts. e.g. ["bmi",
-  "age"]. Empty by default.
+    from any dataset before any other process starts. e.g. ["bmi",
+    "age"]. Empty by default.
   * `excluded-models`: (list) List of unsupervised models that won't
-  be created nor reused during feature generation. e.g. ["anomaly",
-  "cluster"]. Possible values are: association, cluster, anomaly, pca
-  or topicmodel. Empty by default
+    be created nor reused during feature generation. e.g. ["anomaly",
+    "cluster"]. Possible values are: association, cluster, anomaly, pca
+    or topicmodel. Empty by default
   * `pca-variance-threshold`: (number) The PCA projection uses the
-  minimum number of components such that the cumulative explained
-  variance is greater than the given threshold. Values from 0 to 1.
-  Default value is 1 (all the components will be used)
-  * `max-rules`: (integer) Maximum number of association rules
-    that should be included in the extended datasets. Default value
-    is 20. The final number of rules added to the dataset can be lower
-    than this value if there aren't enough rules in the created
-    association discovery models or if the same rules appear on more
-    than one association discovery model.
+    minimum number of components such that the cumulative explained
+    variance is greater than the given threshold. Values from 0 to 1. A
+    value of 1 means all the components will be used. Default value is
+    0.8.
+  * `max-association-rules`: (integer) Maximum number of association
+    rules that should be included in the extended datasets for each
+    association discovery created. Default value is 10. Please, note
+    that the final number of association rules in the extended
+    datasets can be higher than this value if more than one
+    association discovery is created.
   * `validation-rate`: (number) The portion of the `train-dataset`
     that is sampled in the `validation-dataset`. Values from 0 to 0.5.
     This is used only if a `validation-dataset` is not provided by the
@@ -80,6 +82,13 @@ The **inputs** for the script are:
   * `balance-objective`: (boolean) Whether to balance classes
     proportionally to their category counts or not (during the
     creation of models). False by default.
+  * `models-configuration`:  (map) Configuration parameters for the models
+    created by AutoML. They won't be used if `automl-execution` is
+    given. The following keys are accepted: `cluster`, `anomaly`,
+    `association`, `pca`, `topicmodel`, `optiml`.
+    E.g. `{"cluster": {"critical_value": 4},
+           "anomaly": {"forest_size": 256},
+           "optiml": {"number_of_model_candidates": 64}}`
 
 **WARNING** To avoid confusion, `configuration-params` are always
 overwritten by the corresponding input in `automl-execution` if this
