@@ -1,0 +1,98 @@
+(define (safe-delete id exclude)
+  (when (not (member? id exclude))
+    (try (delete id)
+         (catch e
+           (log-info (str "Error deleting resource " id " ignored"))
+           false))))
+
+;; We divide all the dataset rows into (n-splits+1) intervals.
+;; This returns the position of the first row of interval i,
+;; using zero-based indexing
+(define (time-interval rows n-splits i)
+  (round (* (/ i (+ 1 n-splits)) rows)))
+
+;; Defines a range of intervals and returns a list with its start
+;; and end row positions. We add 1 to the start position because
+;; we don't want ranges to overlap. Furthermore, Bigml's
+;; rows ranges are closed intervals and use one-based indexing
+(define (interval-range rows n-splits from to)
+  (list (+ 1 (time-interval rows n-splits from))
+        (time-interval rows n-splits to)))
+
+(define (calculate-splits-expanding-window rows n-splits)
+  (log-info "Calculating expanding window splits...")
+  (map (lambda (i) (list (interval-range rows n-splits 0 (+ i 1))
+                         (interval-range rows n-splits (+ i 1) (+ i 2))))
+       (range n-splits)))
+
+(define (calculate-splits-rolling-window rows n-splits)
+  (log-info "Calculating rolling window splits...")
+  (map (lambda (i) (list (interval-range rows n-splits i (+ i 1))
+                         (interval-range rows n-splits (+ i 1) (+ i 2))))
+       (range n-splits)))
+
+;; Returns a list where each item (representing an split) contains
+;; the start and end positions of train and test rows intervals
+(define (calculate-splits rows n-splits fixed-window-size?)
+  (if fixed-window-size?
+    (calculate-splits-rolling-window rows n-splits)
+    (calculate-splits-expanding-window rows n-splits)))
+
+(define (create-cv-datasets ds-id name splits i)
+  (list (create-dataset {"origin_dataset" ds-id
+                         "linear_split" true
+                         "name" (str name " | CV Train " i)
+                         "range" ((splits i) 0)})
+        (create-dataset {"origin_dataset" ds-id
+                         "linear_split" true
+                         "name" (str name " | CV Test " i)
+                         "range" ((splits i) 1)})))
+
+(define (create-cv-model datasets name type params i)
+  ;; If user introduces an invalid model type, the generated error
+  ;; will be informative enough. Not need to catch
+  (let (params (assoc params "name" (str name " | CV iter " i)))
+    (create type ((datasets i) 0) params)))
+
+(define (create-cv-evaluation datasets models name i)
+  (create-evaluation (models i) ((datasets i) 1)))
+
+(define (aggregate-evaluations evs)
+  (log-info "Creating final aggregated evaluation")
+  (create-and-wait-evaluation {"evaluations" evs}))
+
+
+;; time-aware-cross-validation
+;;
+;; Performs Cross-Validation considering temporal order.
+;; Inputs and Outputs from this function are the same as
+;; for the script. See readme and metadata.json for more info
+;;
+
+(define (time-aware-cross-validation ds-id n-splits fix-wd-size? m-type m-params)
+  (log-info "Starting Cross-Validation...")
+  (let (dataset (fetch ds-id {"full" "no"})
+        name (dataset "name")
+        splits (calculate-splits (dataset "rows") n-splits fix-wd-size?)
+        _ (log-info "Creating CV datasets")
+        datasets (map (lambda (i) (create-cv-datasets ds-id name splits i))
+                      (range n-splits))
+        _ (log-info "Creating CV models")
+        models (map (lambda (i) (create-cv-model datasets name m-type m-params i))
+                    (range n-splits))
+        _ (log-info "Creating CV evaluations")
+        evs (map (lambda (i) (create-cv-evaluation datasets models name i))
+                 (range n-splits)))
+    (aggregate-evaluations evs)))
+
+
+;; Evaluation resource with aggregated results from all the CV evaluations
+(define cv-evaluation (time-aware-cross-validation dataset-id
+                                                   n-splits
+                                                   fixed-window-size?
+                                                   model-type
+                                                   model-params))
+
+(when delete-resources?
+  (log-info "Deleting intermediate resources")
+  (map (lambda (id) (safe-delete id [cv-evaluation])) (created-resources)))

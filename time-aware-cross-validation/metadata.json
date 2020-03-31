@@ -1,0 +1,50 @@
+{
+  "name": "Time-Aware Cross-Validation",
+  "description": "Cross-Validation considering temporal order",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+      {
+          "name": "dataset-id",
+          "type": "dataset-id",
+          "description": "Training dataset"
+      },
+      {
+          "name": "n-splits",
+          "type": "number",
+          "default": 5,
+          "description": "Number of splitting iterations in the cross-validator"
+      },
+      {
+        "name": "fixed-window-size?",
+        "type": "boolean",
+        "default": false,
+        "description": "if true, a fixed-size rolling window will be used instead of an expanding window"
+      },
+      {
+        "name": "model-type",
+        "type": "string",
+        "default": "ensemble",
+        "description": "Type of supervised model that should be created"
+      },
+      {
+        "name":"model-params",
+        "type": "map",
+        "default": {},
+        "description": "Additional creation parameters for supervised models"
+      },
+      {
+        "name":"delete-resources?",
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to delete intermediate resources"
+      }
+  ],
+  "outputs": [
+      {
+          "name": "cv-evaluation",
+          "type": "evaluation-id",
+          "description": "Evaluation with aggregated results from cross-validation"
+      }
+  ]
+}

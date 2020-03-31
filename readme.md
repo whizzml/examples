@@ -105,6 +105,7 @@ By convention, when the artifact is a library, the files are called
   filters.
 - `statistical-tests`: Performs statistical tests from a given dataset
   and creates a report with the results
+- `time-aware cross-validation`: Cross-Validation considering temporal order
 
 ## How to install
 

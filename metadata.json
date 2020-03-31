@@ -43,6 +43,7 @@
     "correlations-matrix",
     "batch-association-sets",
     "bulk-move",
-    "statistical-tests"
+    "statistical-tests",
+    "time-aware-cross-validation"
   ]
 }
