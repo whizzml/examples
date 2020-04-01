@@ -34,9 +34,11 @@
 ;; Returns a list where each item (representing an split) contains
 ;; the start and end positions of train and test rows intervals
 (define (calculate-splits rows n-splits fixed-window-size?)
-  (if fixed-window-size?
-    (calculate-splits-rolling-window rows n-splits)
-    (calculate-splits-expanding-window rows n-splits)))
+  (if (< n-splits (* 0.1 rows))
+    (if fixed-window-size?
+      (calculate-splits-rolling-window rows n-splits)
+      (calculate-splits-expanding-window rows n-splits))
+    (raise "n-splits should be lower than (0.1 * dataset rows)")))
 
 (define (create-cv-datasets ds-id name splits i)
   (list (create-dataset {"origin_dataset" ds-id
@@ -65,7 +67,7 @@
 ;; time-aware-cross-validation
 ;;
 ;; Performs Cross-Validation considering temporal order.
-;; Inputs and Outputs from this function are the same as
+;; Inputs and Outputs for this function are the same as
 ;; for the script. See readme and metadata.json for more info
 ;;
 

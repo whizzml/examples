@@ -42,8 +42,8 @@ The inputs for the script are:
   Chaning** one. `false` by default
 * `model-type`: (string) Type of supervised model that shuld be
   created. Allowed values are ``model``, ``ensemble``,
-  ``linearregression``, ``logisticregression``
-  ``deepnet`` and ``optiml``. ``ensemble`` is used by default.
+  ``linearregression``, ``logisticregression`` and
+  ``deepnet``. ``ensemble`` is used by default.
 * ``model-params``: (map) Additional creation parameters for
   supervised models. Empty map by default.
 * ``delete-resources``: (boolean): Whether to delete intermediate
