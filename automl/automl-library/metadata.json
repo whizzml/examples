@@ -1,7 +1,7 @@
 {
   "name": "AutoML Library",
   "description":
-  "Collection of utilities for Automated Machine Learning within BigML",
+  "Collection of utilities for Automated Machine Learning within BigML. Find more info in [package readme](https://github.com/whizzml/examples/tree/master/automl).",
   "kind": "library",
   "source_code": "library.whizzml"
 }

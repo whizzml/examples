@@ -8,7 +8,7 @@ Machine Learning** within BigML.
 
 
 The [script](./automl-script) will execute, from a given set of
-train/validation/test datasets, the three main stages in an Automated
+train/holdout/test datasets, the three main stages in an Automated
 Machine Learning pipeline: Feature Generation, Feature Selection and
 Model Selection. The [library](./automl-library) contains some
 lower-level functions to abstract away the complexity from the main

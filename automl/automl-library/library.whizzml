@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.7 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;; library version 0.8 ;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -51,6 +51,15 @@
          (catch e
            (log-info  "Error deleting resource " id " ignored")))))
 
+(define (dataset-split ds-id rate)
+  (if (> rate 0)
+    (let (name (resource-name ds-id)
+        name1 (str name " - Subset " (* 100 rate) "%")
+        name2 (str name " - Subset " (* 100 (- 1 rate)) "%"))
+    (create-random-dataset-split ds-id rate {"name" name1} {"name" name2}))
+    ["" ds-id]))
+
+
 ;; Returns a list of field ids from a list of field names
 ;; Not found fields are ignored
 (define (field-ids-from-names field-names dataset)
@@ -98,7 +107,7 @@
 (define (check-configuration-params config)
   (let (correct #["excluded-fields" "excluded-models"
                   "pca-variance-threshold" "max-association-rules"
-                  "validation-rate" "balance-objective"
+                  "holdout-rate" "balance-objective"
                   "models-configuration"]
         dif (difference correct (set* (keys (or config {})))))
     (when (not (empty? dif))
@@ -150,10 +159,10 @@
                 " in the interval [" min-value  ","  max-value  "]"))))
 
 ;; Checks params values
-(define (check-params pca-variance-threshold max-rules validation-rate)
+(define (check-params pca-variance-threshold max-rules holdout-rate)
   (_check-in-range pca-variance-threshold 0 1 "pca-variance-threshold")
   (_check-in-range  (floor max-rules) 0 1000 "max-rules")
-  (_check-in-range validation-rate 0 0.5 "validation-rate"))
+  (_check-in-range holdout-rate 0 0.5 "holdout-rate"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -529,15 +538,12 @@
 
 ;; Creates an optiml model from a train and an
 ;; optional validation dataset
-(define (create-optiml-model train validation params shallow)
+(define (create-optiml-model train params shallow)
   (when (= (resource-type train) "dataset")
     (log-info "Creating Optiml, this  can last several minutes (or even hours)")
-    (let (max-time {"max_training_time" (if shallow 900 3600)}
-          params (merge params
-                        (if (= (resource-type validation) "dataset")
-                          (merge max-time {"test_dataset" validation})
-                          max-time)))
-      (create-optiml train params))))
+    (let (model-params (merge {"max_training_time" (if shallow 900 3600)}
+                              params))
+      (create-optiml train model-params))))
 
 ;; Obtains a fusion from the outpus of an execution
 (define (retrieve-fusion exec)
