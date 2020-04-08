@@ -1,7 +1,8 @@
 {
   "name": "Recursive Feature Elimination",
-  "description": "Feature selection using the Recursive Feature Elimination algorithm",
+  "description": "Script to select the `n` best features for modeling a given dataset, \nusing a recursive algorithm:\n\n\n\n- Initialize the set `S` of selected features to the full initial \n**dataset**\n\n- Initialize `c` as the current number of features in `S`\n\n\n\n While `c` is greater than `n`:\n\n  - Create random forest with features of `S`\n\n  - Obtain importances from random forest\n\n  - Remove from `S` the least important feature\n\n  - If test-dataset is defined, evaluate the random forest\n\n  - Update `c` with current number of features\n\nFind more info in [readme](https://github.com/whizzml/examples/blob/master/recursive-feature-elimination/readme.md)",
   "kind": "script",
+  "category": 14,
   "source_code": "script.whizzml",
   "inputs": [
       {

@@ -1,8 +1,9 @@
 {
   "name": "Statistical Tests",
-  "description": "Performs statistical tests and creates a report with the results",
+  "description": "Although BigML offers Statistical Tests through its\n[API](https://bigml.com/api/statisticaltests), they are not offered\nin the **Dashboard**.\n\nIn this package you'll find a script that obtains all the statistical\ntests for a given dataset and creates a report dataset with the\nresults. It also returns a map with aggregated metrics across all the\nnumeric fields.\n\nOne interesting thing to do with the output dataset is using the\n**Scatter Plot** view to visualize the metrics for all the fields in\nyour original dataset.\n\nFind more info in [readme](https://github.com/whizzml/examples/blob/master/statistical-tests/readme.md)",
   "kind": "script",
   "source_code": "script.whizzml",
+  "category": 20,
   "inputs": [
     {
       "name": "dataset-id",

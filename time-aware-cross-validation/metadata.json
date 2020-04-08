@@ -1,7 +1,8 @@
 {
   "name": "Time-Aware Cross-Validation",
-  "description": "Cross-Validation considering temporal order",
+  "description": "This script contains a modified version of the Cross-Validation technique that is able to deal with\n**time dependent data**.\n\nThe *i.i.d.* (identically distributed independence) assumption does\nnot hold well to time dependent data. There is an implicit dependence\non previous observations, so the value of the objective field at a\ngiven time is related to the values at previous (and future) times.\nTraditional Cross-Validation, which performs random splits, ignores\nthis, resulting in serious underestimation of predictive error.\n\n**Time-Aware Cross-Validation** techniques, also known as *Block\nCross-Validation*, divide the dataset into train and validation folds\nensuring that the validation set is always ahead of the training one.\n\nThis script offers two kinds of Time-Aware Cross Validation\ntechniques: **Forward Chaining** and **Fixed Window**:\n\n- **Forward Chaining** uses an expanding window meaning that, on each iteration, a new block of samples will be added to the\n**    training data.**\n\n - **Fixed Window** uses a window with fixed size that slides over all the samples.\n\nFind more info in [readme](https://github.com/whizzml/examples/blob/master/time-aware-cross-validation/readme.md).",
   "kind": "script",
+  "category": 11,
   "source_code": "script.whizzml",
   "inputs": [
       {

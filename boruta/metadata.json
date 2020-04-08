@@ -1,7 +1,8 @@
 {
   "name": "Boruta 1-click Feature Selection",
-  "description": "Feature selection using a version of the Boruta algorithm",
+  "description": "In this package you'll find a script implementing feature selection\nusing a version of the [Boruta\nalgorithm](https://www.jstatsoft.org/article/view/v036i11/v36i11.pdf)\nto detect important and unimportant fields in your dataset. The\nalgorithm:\n\n- Retrieves the dataset information.\n\n- Creates a new extended dataset. In the new dataset, each field has a\n  corresponding shadow field which has the same type but contains a random\n  sample of the values contained in the original one.\n\n- Creates a random forest from the extended dataset\n\n- Extracts the maximum of the importances for the shadow fields\n\n- Uses this maximum plus (minus) a minimum gain as threshold. Any of the\n  original fields scoring less than the minimal threshold are considered\n  unimportant and fields scoring more than the maximum threshold are\n  considered important.\n\n- Fields marked as unimportant are removed from the list of fields to be used\n  as input fields for new datasets\n\n- The procedure is repeated, and a new extended dataset is created with\n  the remaining fields. The process stops when it reaches the user-given number\n  of runs or when all the original fields in the dataset are marked as\n  important or unimportant.\n\n- When iteration stops, a new dataset is created where unimportant fields have\n  been removed.\n\nFind more info in [readme](https://github.com/whizzml/examples/blob/master/boruta/readme.md)",
   "kind": "script",
+  "category": 14,
   "source_code": "script.whizzml",
   "inputs": [
       {
