@@ -37,6 +37,8 @@
               (config "max-association-rules")
               (config "holdout-rate"))
 
+;; holdout-split: Only used for Evaluation
+;; validation-split: Only used during Model Selection
 (define [holdout-split validation-split train-split]
   (if reuse-resources
     ;; If we are reusing resources, we don't need the train dataset
@@ -159,6 +161,7 @@
 
 (log-featured "Feature Selection")
 (log-info "Obtaining the most important features")
+
 ;; Obtains the list of important fields from
 ;; a previous execution
 (define (retrieve-important-fields exec)
@@ -167,28 +170,30 @@
 
 ;; Obtains the most important fields from a dataset
 ;; using recursive feature elimination
-(define (compute-important-fields train test shallow)
-  (let (balance (config "balance-objective")
-        train (wait (sampled-ds-maybe train shallow))
-        num-fields (count (keys (resource-fields train)))
-        min-fields-shallow 30
-        min-fields 50
-        rfe-output (if shallow
-                     ;; If shallow-search, fixed number
-                     ;; of fields  after rfe, 30
-                     ;; No evaluations
-                     (rfe train min-fields-shallow "" ""   "" balance)
-                     ;; We want, at least 50 fields. If the total
-                     ;; number of fields is lower, we will skip
-                     ;; feature selection stage
-                     (rfe train min-fields "" test "" balance))
+;;
+;; - If shallow-search, fixed number
+;;   of fields after rfe, 30, with no evaluations.
+;; - If not shallow-search we want, at least 50 fields.
+;;   We will perform evaluations. If the total
+;;   number of fields is lower, we will skip
+;;   feature selection stage.
+(define (compute-important-fields train shallow)
+  (let (min-fields-shallow 30
+        min-fields-non-shallow 50
+        balance (config "balance-objective")
+        [valid* train*] (dataset-split train 0.2)
+        valid* (if shallow "" valid*)
+        sampled-train (wait (sampled-ds-maybe train* shallow))
+        total-fields (count (keys (resource-fields train)))
+        min-fields (if shallow min-fields-shallow min-fields-non-shallow)
+        rfe-output (rfe sampled-train min-fields "" valid* "" balance)
         evaluations (rfe-output "evaluations" {})
         num-features (if shallow
-                       (min num-fields min-fields-shallow)
-                       (if (> num-fields min-fields)
+                       (min total-fields min-fields-shallow)
+                       (if (> total-fields min-fields)
                          (rfe-best-num-features evaluations)
-                         num-fields)))
-    (rfe-output-fields train rfe-output num-features shallow)))
+                         total-fields)))
+    (rfe-output-fields sampled-train rfe-output num-features shallow)))
 
 
 ;; Obtains the most important fields (a list with their names)
@@ -196,8 +201,8 @@
 (define selected-fields
   (if reuse-resources
     (retrieve-important-fields automl-execution)
-    (let ([train valid _ test] extended-datasets)
-      (compute-important-fields train valid shallow-search))))
+    (let ([train _ _ _] extended-datasets)
+      (compute-important-fields train shallow-search))))
 
 (log-info "Filtering the datasets")
 ;; Creates the filtered datasets from the extended datasets,
@@ -221,6 +226,7 @@
       (retrieve-fusion automl-execution)
       (fusion-from-optiml
        (create-optiml-model train
+                            valid
                             ((config "models-configuration") "optiml" {})
                             shallow-search)
        3))))

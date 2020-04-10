@@ -485,10 +485,8 @@
               _ (log-info  "Removed-fields " removed-fields-names)
               ;; Remove field from selected list
               selected (keys (dissoc imps (removed-fields 0)))
-              ev-id (when do-evaluation
-                      (create-evaluation test-ds-id rf-id))
-              ev (when ev-id
-                   (fetch (wait ev-id)))
+              ev-id (when do-evaluation (create-evaluation test-ds-id rf-id))
+              ev (when ev-id (fetch (wait ev-id)))
               ev-result (when ev (ev ["result" "model" evaluation-metric]))
               ;; Iterations evaluation info
               iterations (when ev {"features" (count selected)
@@ -538,10 +536,11 @@
 
 ;; Creates an optiml model from a train and an
 ;; optional validation dataset
-(define (create-optiml-model train params shallow)
+(define (create-optiml-model train valid params shallow)
   (when (= (resource-type train) "dataset")
     (log-info "Creating Optiml, this  can last several minutes (or even hours)")
-    (let (model-params (merge {"max_training_time" (if shallow 900 3600)}
+    (let (model-params (merge {"max_training_time" (if shallow 900 3600)
+                               "test_dataset" valid}
                               params))
       (create-optiml train model-params))))
 

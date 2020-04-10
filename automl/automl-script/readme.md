@@ -107,7 +107,11 @@ the resources created by AutoML. It doesn't matter in which dataset
 use the final evaluation returned by this script. You shouldn't use
 the evaluations created by the OptiML because they are not evaluating
 the final **Fusion** model and because Cross Evaluation method can
-return overoptimistic results in some situations.
+return overoptimistic results in some situations. To avoid any kind of
+leakage, Feature Selection and Model Selection steps will use
+different validation datasets, both obtained from the training
+one. The data used as validation for OptiML, won't have been used
+during feature selection.
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
