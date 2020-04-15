@@ -197,7 +197,7 @@
 
 
 ;; Obtains the most important fields (a list with their names)
-;; from a train and an optional test dataset
+;; from a train dataset
 (define selected-fields
   (if reuse-resources
     (retrieve-important-fields automl-execution)
@@ -218,7 +218,7 @@
        extended-datasets))
 
 (log-featured "Model Selection")
-;; Creates the final fusion model with the top 5 models
+;; Creates the final fusion model with the top 3 models
 ;; from an optiml generated with the filtered datasets
 (define output-fusion
   (let ([train valid _ _] filtered-datasets)

@@ -1,6 +1,6 @@
 {
   "name": "AutoML",
-  "description":"These WhizzML script will let the user run a **fully automated\nMachine Learning pipeline** in BigML. It need the AutoML Library, more info [here](https://github.com/whizzml/examples/tree/master/automl).\n\n\nFrom a train, holdout and test datasets, the following tasks will\nbe automatically done:\n\n-  `Unsupervised Models Generation`: Creating the following\n  **unsupervised models**: `Cluster`, `Anomaly Detector`, `Association\n  Discovery` (with leverage and lift as search_strategy), `PCA` and\n**  `Topic Model` (for datasets that contain text fields).**\n\n - `Feature Generation`: Using the unsupervised models created\n  previously to append automatically generated new features to all the\n**  user given datasets.**\n\n - `Feature Selection`: Reducing, automatically, the number of fields\n  of the datasets using the **Recursive Feature Eliminination**\n  algorithm. This step is bypassed if the total number of fields is\n**  lower than 50 (or 30 if `shallow_search` is `True`)**\n\n - `Model Selection` Using OptiML to find the best models and using\n  the top 3 models to create a `Fusion` model to predict all the test\n  dataset instances. The script will return an evaluation of the final\n  model too.\n\n\nFind more info in [package readme](https://github.com/whizzml/examples/tree/master/automl) and [script readme](https://github.com/whizzml/examples/blob/master/automl/automl-script/readme.md)",
+  "description":"These WhizzML script will let the user run a **fully automated\nMachine Learning pipeline** in BigML. It needs the AutoML Library, more info [here](https://github.com/whizzml/examples/tree/master/automl).\n\n\nFrom a train, holdout and test datasets, the following tasks will\nbe automatically done:\n\n-  `Unsupervised Models Generation`: Creating the following\n  **unsupervised models**: `Cluster`, `Anomaly Detector`, `Association\n  Discovery` (with leverage and lift as search_strategy), `PCA` and\n**  `Topic Model` (for datasets that contain text fields).**\n\n - `Feature Generation`: Using the unsupervised models created\n  previously to append automatically generated new features to all the\n**  user given datasets.**\n\n - `Feature Selection`: Reducing, automatically, the number of fields\n  of the datasets using the **Recursive Feature Eliminination**\n  algorithm. This step is bypassed if the total number of fields is\n**  lower than 50 (or 30 if `shallow_search` is `True`)**\n\n - `Model Selection` Using OptiML to find the best models and using\n  the top 3 models to create a `Fusion` model to predict all the test\n  dataset instances. The script will return an evaluation of the final\n  model too.\n\n\nFind more info in [package readme](https://github.com/whizzml/examples/tree/master/automl) and [script readme](https://github.com/whizzml/examples/blob/master/automl/automl-script/readme.md)",
   "kind": "script",
   "category": 1,
   "source_code": "script.whizzml",
@@ -10,19 +10,19 @@
       "name": "train-dataset",
       "type": "dataset-id",
       "default": "",
-      "description": "Train dataset id"
+      "description": "Train dataset ID"
     },
     {
       "name": "holdout-dataset",
       "type": "dataset-id",
       "default": "",
-      "description": "Hold-out dataset id, only to perform final evaluation"
+      "description": "Hold-out dataset ID. Used to evaluate the final Fusion Model"
     },
     {
       "name": "test-dataset",
       "type": "dataset-id",
       "default": "",
-      "description": "Test dataset id, for scoring"
+      "description": "Test dataset ID. Inputs that will be scored using the final Fusion model"
     },
     {
       "name": "automl-execution",

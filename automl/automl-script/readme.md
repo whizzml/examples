@@ -21,25 +21,29 @@ be automatically done:
   lower than 50 (or 30 if `shallow_search` is `True`)
 -  `Model Selection` Using OptiML to find the best models and using
   the top 3 models to create a `Fusion` model to predict all the test
-  dataset instances. The script will return an evaluation of the final
-  model too.
+  dataset instances.
+- `Fusion Evaluation`: Evaluating the Fusion using the data in the
+   holdout dataset.
+- `Fusion Prediction`: Scoring the input data provided
+   in the test dataset (if set) using the final Fusion model.
+
 
 
 The **inputs** for the script are:
 
-* `train-dataset`: (dataset-id) Dataset id for the train dataset
+* `train-dataset`: (dataset-id) Dataset ID from the train dataset
   (e.g. dataset/5d272205eba31d61920005cd). If no train dataset is
   provided, the script will expect an `automl-execution` and will use
   its models as starting point. Useful when we only want to perform
   scoring , using  a previous execution of AutoML.
-* `holdout-dataset`: (dataset-id) Dataset id for the holdout dataset
+* `holdout-dataset`: (dataset-id) Dataset ID from the holdout dataset
   (e.g. dataset/5d272205ea31d61920005cd). It will be used **only at
-  the end of the workflow** after the model has been trained, to
-  evaluate the final model. If empty, some random rows from the
+  the end of the workflow**, after the resulting Fusion model has been
+  created, to evaluate it. If empty, some random rows from the
   `train-dataset` will be set aside and used as `holdout-dataset`. The
   parameter `holdout-rate` indicates the portion of the
   `train-dataset` that is sampled in the `holdout-dataset`
-* `test-dataset`: (dataset-id) Dataset id for the test dataset
+* `test-dataset`: (dataset-id) Dataset ID from the test dataset
   (e.g. dataset/7j272205eba31d61920005vf). AutoML will create a batch
   prediction with this dataset at the end of the workflow. It won't be
   used during previouse stages. If empty, no output-dataset
@@ -103,15 +107,14 @@ holdout or test datasets will be considered `non-preferred` in all
 the resources created by AutoML. It doesn't matter in which dataset
 (train, holdout or test) they are set as non-preferred fields.
 
-**WARNING** In order to know your AutoML model performance, you should
-use the final evaluation returned by this script. You shouldn't use
-the evaluations created by the OptiML because they are not evaluating
-the final **Fusion** model and because Cross Evaluation method can
-return overoptimistic results in some situations. To avoid any kind of
-leakage, Feature Selection and Model Selection steps will use
-different validation datasets, both obtained from the training
-one. The data used as validation for OptiML, won't have been used
-during feature selection.
+**WARNING** The AutoML script creates partial models and evaluations
+both in the RFE and the OptiML selection processes. Those models and
+evaluations are using samples of the training data and independent
+validation datasets (extracted from the training data as totally
+complementary splits to avoid leakage between the Feature Selection
+and Model Selection steps). Therefore, only the final evaluation of
+the Fusion model on the holdout data can be used as an estimate for
+its performance.
 
 The **outputs** for the script are:
 * `output-dataset`: (dataset-id) Dataset with final predictions for the test dataset
@@ -127,10 +130,10 @@ There are two different ways of using this script:
 
 ### From a train and a test dataset (and an optional holdout dataset)
 In this case, the expected inputs for the script are the
-`train-dataset` and the `test-dataset`, with no `autml-execution`
+`train-dataset` and the `test-dataset`, with no `automl-execution`
 input.  The objective field used in the script will be the one
 associated to the datasets used, so remember to choose them previously
-in both the training and holdout datasets.
+in the training dataset (and holdout dataset when used).
 
 The script will run the fully **automated Machine Learning pipeline**
 and it will return, at the end of the process, the **output-dataset**
