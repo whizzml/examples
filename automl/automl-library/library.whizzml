@@ -263,9 +263,8 @@
         (str "(not (missing? (f \"" field-name "\")))")
         (str "(missing? (f \"" field-name "\"))")))))
 
-(define (_describe-rule association rule-id match)
-  (let (fields (resource-fields association)
-        associations (association "associations" {})
+(define (_describe-rule association fields rule-id match)
+  (let (associations (association "associations" {})
         items (associations "items" [])
         rules (associations "rules" [])
         rule (try (head (filter (lambda (r) (= (r "id") rule-id)) rules))
@@ -289,10 +288,9 @@
         total (+ (count lhs) (count rhs)))
     (= total (count (field-names-from-ids (concat lhs rhs) dataset-id)))))
 
-(define (_flatline-rule association rule match dataset-id)
+(define (_flatline-rule association fields rule match dataset-id)
   (when (_check-assoc-field-exists association rule dataset-id)
-    (let (fields (resource-fields association)
-          associations (association "associations" {})
+    (let (associations (association "associations" {})
           items (associations "items" [])
           get-item-fn
           (lambda (i) (_flatline-item (items i) (fields ((items i) "field_id"))))
@@ -311,12 +309,14 @@
             (str "(and " lhs " " rhs ")")))))
 
 (define (_batch-association-sets dataset-id association-id match max-rules)
-  (let (association (fetch association-id)
+  (let (association (fetch (wait association-id))
         associations (association "associations" {})
         rules (associations "rules" [])
+        fields (resource-fields association)
         flatline-rules (take max-rules
                              (map (lambda (rule)
                                     (_flatline-rule association
+                                                    fields
                                                     rule
                                                     match
                                                     dataset-id))
@@ -326,6 +326,7 @@
                      (if flatline-rule
                        (append acc {"field" flatline-rule
                                     "name" (_describe-rule association
+                                                           fields
                                                            (rule "id")
                                                            match)
                                     "label" (str (association "name")
