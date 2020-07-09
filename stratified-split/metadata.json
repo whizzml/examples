@@ -1,0 +1,36 @@
+{
+  "name": "Stratified Split",
+  "description": "An implementation of stratified split",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "ds-id",
+      "type": "dataset-id",
+      "description": "The dataset you wish to split from"
+    },
+    {
+      "name": "objective-field",
+      "type": "string",
+      "description": "The field id or name of the strata"
+    },
+    {
+      "name": "training-rate",
+      "type": "number",
+      "description": "The rate of instances to be used in training (default = 0.8)",
+      "default": 0.8
+    }
+  ],
+  "outputs": [
+    {
+      "name": "training-ds",
+      "type": "dataset-id",
+      "description": "The generated training dataset"
+    },
+    {
+      "name": "test-ds",
+      "type": "dataset-id",
+      "description": "The generated test dataset"
+    }
+  ]
+}

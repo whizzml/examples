@@ -27,6 +27,7 @@
     "smacdown-ensemble",
     "stacked-generalization",
     "stratified-sampling",
+    "stratified-split",
     "stacked-predictions",
     "quadratically-weighted-kappa",
     "stepwise-regression",
