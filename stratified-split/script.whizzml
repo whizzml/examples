@@ -1,22 +1,6 @@
 ;; Transposes the matrix: [[a b] [c d]] to [[a c] [b d]]
-
 (define (_transpose m)
   (apply map list m))
-
-;; Creates the each dataset by sampling and using out-of-bag
-
-(define (sample-dataset ds-id rate oob)
-  (create-and-wait-dataset {"sample_rate" rate
-                            "origin_dataset"  ds-id
-                            "out_of_bag" oob
-                            "seed" "bigml"}))
-
-;; Splits the original dataset in two complementary datasets using
-;; a given sample rate
-
-(define (split-dataset ds-id rate)
-  (list (sample-dataset ds-id rate false)
-        (sample-dataset ds-id rate true)))
 
 ;; Deletes resources ignoring errors
 (define (safe-delete id)
@@ -26,31 +10,32 @@
          false)))
 
 ;; Check that the objective field exists and is a categorical field
-
 (define (check-cat fields objective-field)
   (let (field (find-field fields objective-field))
     (when (not (find-field fields objective-field))
-      (raise {"message" (str "The objective field cannot be found in this"
-                             " dataset")
+      (raise {"message" (str "The objective field "
+                             objective-field
+                             " cannot be found in this dataset")
               "code" 100}))
     (when (not (categorical-field? field))
-      (raise {"message" (str "The objective field is not a categorical field."
+      (raise {"message" (str "The objective field "
+                             objective-field
+                             " is not a categorical field."
                              " Only categorical fields can be used.")
               "code" 101}))))
 
-
 ;; Function to apply stratified split with a given training-rate to the
 ;; objective field
-
 (define (stratified-split-fn ds-id training-rate objective-field)
   (let (dataset (fetch ds-id)
+        ds-name (dataset "name")
         fields (resource-fields dataset)
         _ (check-cat fields objective-field)
         objective-id ((find-field fields objective-field) "id")
         summary (dataset ["fields" objective-id "summary" "categories"] [[]])
         cat-names (map head summary)
         cat-ds-ids (for (cat cat-names)
-                     (split-dataset
+                     (create-dataset-split
                        (create-dataset {"origin_dataset" ds-id
                                         "lisp_filter" (flatline
                                                         "(= "
@@ -59,19 +44,20 @@
                                         "name" (str (dataset "name")
                                                     " - "
                                                     cat)})
-                       training-rate))
-
-        ds-ids (map (lambda (ids) (create-dataset {"origin_datasets" ids}))
-                    (_transpose cat-ds-ids) ))
+                       training-rate
+                       "bigml"))
+        ds-ids (map (lambda (ids name)
+                      (create-dataset {"origin_datasets" ids
+                                       "name" name}))
+                    (_transpose cat-ds-ids)
+                    [(str ds-name " - train (" (* training-rate 100) "%)")
+                     (str ds-name
+                          " - test ("
+                          (round (* 100 (- 1 training-rate)))
+                          "%)")]))
     (wait* ds-ids)
     (map safe-delete cat-ds-ids)
-    (iterate (acc []
-              ds-id ds-ids
-              type [(str "train (" (* training-rate 100) "%)")
-                    (str "test (" (round (* 100 (- 1 training-rate))) "%)")])
-      (append acc (update ds-id {"name" (str (dataset "name") " - " type)})))))
-
-
+    ds-ids))
 
 (define stratified-split (stratified-split-fn ds-id
                                               training-rate
