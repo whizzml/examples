@@ -68,7 +68,10 @@
 (define non-preferred-fields
   (remove-duplicates
    (flatten
-    (map (lambda(ds) (field-names-from-ids (non-preferred ds) ds))
+    (map (lambda(ds)
+           (if (and ds (> (count (resource-id ds)) 0))
+             (field-names-from-ids (non-preferred (wait ds)) ds)
+             []))
          [train-split validation-split test-dataset]))))
 
 (log-info "These fields will be set as non-preferred:")
@@ -199,10 +202,11 @@
 ;; Obtains the most important fields (a list with their names)
 ;; from a train dataset
 (define selected-fields
-  (if reuse-resources
-    (retrieve-important-fields automl-execution)
-    (let ([train _ _ _] extended-datasets)
-      (compute-important-fields train shallow-search))))
+  (concat non-preferred-fields
+          (if reuse-resources
+            (retrieve-important-fields automl-execution)
+            (let ([train _ _ _] extended-datasets)
+              (compute-important-fields train shallow-search)))))
 
 (log-info "Filtering the datasets")
 ;; Creates the filtered datasets from the extended datasets,
@@ -212,9 +216,10 @@
          (when (= "dataset" (resource-type ds))
            (let (name (str (resource-name ds) " | filtered")
                  fields (field-ids-from-names selected-fields ds))
-             (create-dataset {"name" name
-                              "origin_dataset" ds
-                              "input_fields" (remove-duplicates fields)}))))
+             (set-non-preferred
+              (create-dataset {"name" name  "origin_dataset" ds
+                              "input_fields" (remove-duplicates fields)})
+              non-preferred-fields))))
        extended-datasets))
 
 (log-featured "Model Selection")

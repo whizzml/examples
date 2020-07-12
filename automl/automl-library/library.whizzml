@@ -1,5 +1,5 @@
 ;;;;;;;;;;;;;;;;;;;;;;; AUTOML LIBRARY ;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;;;;;;;;;;;;;;;;;; library version 0.8 ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;; library version 0.8.1 ;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;; Private functions start with _ ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;; Check automl script ;;;;;;;;;;;;;;;;;;;;;
 
@@ -86,7 +86,7 @@
 
 ;; Set a list of fields from a dataset as non-preferred
 (define (set-non-preferred dataset-id field-names)
-  (let (fids (field-ids-from-names field-names dataset-id)
+  (let (fids (field-ids-from-names field-names (wait dataset-id))
         fvalues (repeat (count fids) {"preferred" false}))
     (update dataset-id {"fields" (make-map fids fvalues)})))
 
