@@ -1,0 +1,144 @@
+;; Script to delete a bunch of projects selected by user-provided filters
+
+(define RES-TYPES ["project"])
+
+(define EMPTY-ID ["Unknown" ""])
+
+(define LIMIT 100)
+
+(define MAX-RESOURCES 10000)
+
+(define SLEEP 2000)
+
+(define PLURAL-IRREGULAR-TYPES {"anomalies" "anomaly"
+                                "timeseries" "timeseries"})
+
+(define ACTIONS ["list" "archive" "delete"])
+
+(define (singular-type res-type)
+  (PLURAL-IRREGULAR-TYPES res-type (replace res-type "s*$" "")))
+
+(define (add-filter expr parm value)
+  (if (= value "")
+      expr
+      (assoc expr parm value)))
+
+;; Building the combined filter to select the resources to be deleted
+(define (list-res filter-expr
+                  tags
+                  res-types)
+  (let (filter-expr (add-filter filter-expr "tags__in" tags)
+        res-types (filter (lambda (x) (member? x (resource-types)))
+                          res-types)
+        res-types (if (empty? res-types)
+                      (resource-types)
+                      res-types))
+    [filter-expr (filter-by-expr filter-expr res-types)]))
+
+;;Building the list of IDs filtered by the expression
+(define (filter-by-expr expr res-types)
+  (if (not (empty? expr))
+      (iterate (acc [] type res-types)
+        (log-info "selecting type: " type ", expr: " expr)
+        (loop (offset 0 acc acc)
+          (let (expr-str (merge expr {"limit" LIMIT "offset" offset})
+                resp (resources type expr-str)
+                acc (concat acc (resource-ids resp)))
+            (if (< (count resp) LIMIT)
+                acc
+                (recur (+ offset LIMIT) acc)))))
+      []))
+
+;; Acting on a project and its resources. It previously checks the number
+;; of resources and deletes or archives them in batches if it's over a limit.
+(define (act-on-project-with-resources project-id action new-project-id)
+  (let (project (fetch project-id)
+        total-res (reduce + 0 (map (lambda (x) (x "count"))
+                                   (values (project "stats" {})))))
+    (when (or (= action "archive") (> total-res MAX-RESOURCES))
+        (log-info "This project " project-id " has " total-res " resources."
+                  " The action will proceed in batches.")
+        (act-in-project project action new-project-id))
+    (delete project-id)))
+    ;;(log-info project-id)))
+
+;; Acting on the resources in a project in batches of MAX-RESOURCES
+(define (act-in-project project action new-project-id)
+  (let (stats (project "stats" {})
+        res-types (keys stats)
+        changes {"tags" [(str "archived:" (project "resource"))]
+                 "user_metadata" {"project_id" (project "resource")
+                                  "project_name" (project "name")}
+                 "project" new-project-id}
+        sel-types (iterate (acc [] type res-types)
+                    (let (res-count (stats [type "count"]))
+                      (if (> res-count 0)
+                          (append acc type)
+                          acc)))
+        sel-types (map singular-type sel-types)
+        sel-res (filter-by-expr {"project" (project "resource")}
+                                sel-types))
+    (act-in-batches sel-res changes action MAX-RESOURCES)))
+
+;; Updating the resources with the new project and the info about the
+;; original project when archiving them
+(define (merged-updates ids changes)
+  (for (id ids)
+    (let (resource (fetch id)
+          tags (concat (resource "tags") (changes "tags"))
+          user-metadata (merge (resource "user_metadata")
+                               (changes "user_metadata")))
+      (update id {"tags" tags "user_metadata" user-metadata
+                  "project" (changes "project")}))))
+
+;; Deleting or updating the resources in a list in batches to avoid timeouts
+(define (act-in-batches a-list changes action limit)
+  (when (not (empty? a-list))
+    (log-info action " on resources batch: " (take limit a-list))
+    (if (= action "archive")
+        (merged-updates (take limit a-list) changes)
+        (safe-delete* (take limit a-list)))
+    (sleep SLEEP)
+    (act-in-batches (drop limit a-list) changes action limit)))
+
+;; Creating an archive project
+(define (create-archive)
+  (let (new-project (fetch (create-project {"name" "Archive"}))
+        date (replace (new-project "created") "T" " "))
+   (update (wait (new-project "resource")) {"name" (str "Archive - " date)})))
+
+;; Catching delete errors
+(define (safe-delete* a-list)
+  (try
+    (delete* a-list)
+    (catch error
+      (log-info error ": " a-list))))
+
+;; Main select projects function
+(define (select-projects filter-expr tags action max-projects)
+  (let ([expr ids] (list-res filter-expr tags RES-TYPES)
+        _ (when (empty? expr)
+                (raise {"message" (str "A valid filter condition must be"
+                                       " provided to select "
+                                       "the projects.")}))
+        action (if (member? action ACTIONS) action "list")
+        ids (take max-projects ids)
+        counter (iterate (counter {} id ids)
+                  (assoc counter (resource-type id)
+                                 (+ (counter (resource-type id) 0) 1)))
+        text-list (map (lambda (x) (str ((fetch x) "name") " (" x ")")) ids))
+    (log-info "Selected Resources for: ")
+    (log-info "  " expr)
+    (for (type (keys counter))
+      (log-info "  " type ": " (counter type "\n")))
+    (if (= action "list")
+        (log-info text-list)
+        (let (new-project (when (= action "archive")
+                                (create-archive)))
+          (for (id ids)
+            (log-info "Acting on resource: " id)
+            (act-on-project-with-resources id action new-project))))
+    text-list))
+
+(define selected-projects (select-projects filter-expr tags action
+                                           max-projects))
