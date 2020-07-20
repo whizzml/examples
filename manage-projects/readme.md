@@ -16,6 +16,10 @@ the old project ID is added to each archived resource, and the name and ID of
 the original project is added to the `user_metadata` attribute as `project_id`
 and `project_name`.
 
+**IMPORTANT**: To run the script using the Dashboard, please remember
+to get out of any of the projects that you want to select for deletion or
+archive.
+
 **DISCLAIMER**: Please, note that the `delete` option will cause the deletion
 of the projects and the resources therein and is a non-undoable operation.
 Use that at your own risk.
