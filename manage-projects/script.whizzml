@@ -138,7 +138,7 @@
       (log-info "  " type ": " (counter type "\n")))
     (if (= action "list")
         (log-info text-list)
-        (let (new-project (when (= action "archive")
+        (let (new-project (when (and (= action "archive") (> (count ids) 0))
                                 (create-archive)))
           (for (id ids)
             (log-info "Acting on resource: " id)
