@@ -85,7 +85,7 @@
 (define (merged-updates ids changes)
   (iterate (acc [] id ids)
     (if (= "sample" (resource-type id))
-      (proc
+      (prog
         (log-info "The sample " id  " will not be archived")
         acc)
       (let (resource (fetch id)
