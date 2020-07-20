@@ -83,13 +83,17 @@
 ;; Updating the resources with the new project and the info about the
 ;; original project when archiving them
 (define (merged-updates ids changes)
-  (for (id ids)
-    (let (resource (fetch id)
-          tags (concat (resource "tags") (changes "tags"))
-          user-metadata (merge (resource "user_metadata")
-                               (changes "user_metadata")))
-      (update id {"tags" tags "user_metadata" user-metadata
-                  "project" (changes "project")}))))
+  (iterate (acc [] id ids)
+    (if (= "sample" (resource-type id))
+      (proc
+        (log-info "The sample " id  " will not be archived")
+        acc)
+      (let (resource (fetch id)
+            tags (concat (resource "tags") (changes "tags"))
+            user-metadata (merge (resource "user_metadata")
+                                 (changes "user_metadata")))
+        (append acc (update id {"tags" tags "user_metadata" user-metadata
+                                "project" (changes "project")}))))))
 
 ;; Deleting or updating the resources in a list in batches to avoid timeouts
 (define (act-in-batches a-list changes action limit)
@@ -103,7 +107,8 @@
 
 ;; Creating an archive project
 (define (create-archive)
-  (let (new-project (fetch (create-project {"name" "Archive"}))
+  (let (new-project (fetch (create-project {"name" "Archive"
+                                            "tags" ["bigml-archive"]}))
         date (replace (new-project "created") "T" " "))
    (update (wait (new-project "resource")) {"name" (str "Archive - " date)})))
 

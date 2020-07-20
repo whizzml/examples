@@ -9,6 +9,13 @@ in one execution of the script (default=10). The goal of the execution can be
 either list the projects, archive their resources in a new project and
 delete them, or delete the projects and the resources therein.
 
+When archiving, a new project is created to contain the archived resources.
+The name of the project is "Archive - " followed by the date it was created.
+Also, a "bigml-archive" tag is added to the project. Also, a tag that contains
+the old project ID is added to each archived resource, and the name and ID of
+the original project is added to the `user_metadata` attribute as `project_id`
+and `project_name`.
+
 **DISCLAIMER**: Please, note that the `delete` option will cause the deletion
 of the projects and the resources therein and is a non-undoable operation.
 Use that at your own risk.
