@@ -70,7 +70,7 @@
    (flatten
     (map (lambda(ds)
            (if (and ds (> (count (resource-id ds)) 0))
-             (field-names-from-ids (non-preferred (wait ds)) ds)
+             (field-names-from-ids (non-preferred ds) ds)
              []))
          [train-split validation-split test-dataset]))))
 
@@ -218,7 +218,7 @@
                  fields (field-ids-from-names selected-fields ds))
              (set-non-preferred
               (create-dataset {"name" name  "origin_dataset" ds
-                              "input_fields" (remove-duplicates fields)})
+                               "input_fields" (remove-duplicates fields)})
               non-preferred-fields))))
        extended-datasets))
 

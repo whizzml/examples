@@ -63,7 +63,7 @@
 ;; Returns a list of field ids from a list of field names
 ;; Not found fields are ignored
 (define (field-ids-from-names field-names dataset)
-  (let (dataset-fields (resource-fields dataset))
+  (let (dataset-fields (resource-fields (wait dataset)))
     (remove-false
      (map (lambda(f) (get (or (find-field dataset-fields f) {}) "id" false))
           field-names))))
@@ -80,13 +80,13 @@
 ;; from a given dataset
 (define (non-preferred dataset-id)
   (when (= (resource-type dataset-id) "dataset")
-    (let (fields (resource-fields dataset-id))
+    (let (fields (resource-fields (wait dataset-id)))
       (filter (lambda (k) (not (fields [k "preferred"] true)))
               (keys fields)))))
 
 ;; Set a list of fields from a dataset as non-preferred
 (define (set-non-preferred dataset-id field-names)
-  (let (fids (field-ids-from-names field-names (wait dataset-id))
+  (let (fids (field-ids-from-names field-names dataset-id)
         fvalues (repeat (count fids) {"preferred" false}))
     (update dataset-id {"fields" (make-map fids fvalues)})))
 
