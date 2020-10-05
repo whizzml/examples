@@ -1,0 +1,39 @@
+{
+  "name": "List, Archive or Delete Projects",
+  "description": "Selects a bunch of projects by applying user-provided filter conditions.\n The conditions are a filter expression like the ones used in BigML's API list calls, or the keywords used as tags in the project.\nThe user can set a limit to he number of projects that will be selected in one execution of the script (default=10).\n\nThe selected projects can be returned as a list of IDs, archived in a new project or deleted.\n\nDISCLAIMER: Please, mind that delete is a non-undoable operation. We recommend doing a dry-run by listing the projects and checking. Use `delete` at your own risk.",
+  "kind": "script",
+  "category": 4,
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+        "name": "filter-expr",
+        "type": "map",
+        "default": {},
+        "description": "Map of parameters to be used as filter (e.g. {\"name\": \"iris\"}). If empty, the filter is not applied (default).)"
+    },
+    {
+        "name": "tags",
+        "type": "string",
+        "default": "",
+        "description": "Tag contained in the selected resources. If empty, the filter is not applied (default)."
+    },
+    {
+        "name": "action",
+        "type": "string",
+        "default": "list",
+        "description": "The action to take on the list of projects selected by the filter expression. Choices are: list, archive or delete"
+    },
+    {
+        "name": "max-projects",
+        "type": "number",
+        "default": 10,
+        "description": "Maximum number of projects to be deleted in a single execution."
+    }
+  ],
+  "outputs": [
+    {
+        "name": "selected-projects",
+        "type": "list",
+        "description": "List of selected Project IDs"
+    }]
+}
