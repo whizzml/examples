@@ -6,7 +6,7 @@
 (define (safe-delete id)
   (try (delete id)
        (catch e
-         (log-info (str "Error deleting resource " id " ignored"))
+         (log-info (str "Error deleting resource " id " ignored:" e))
          false)))
 
 ;; Check that the objective field exists and is a categorical field
@@ -46,6 +46,7 @@
                                                     cat)})
                        training-rate
                        "bigml"))
+        inner-ds (created-resources)
         ds-ids (map (lambda (ids name)
                       (create-dataset {"origin_datasets" ids
                                        "name" name}))
@@ -56,7 +57,7 @@
                           (round (* 100 (- 1 training-rate)))
                           "%)")]))
     (wait* ds-ids)
-    (map safe-delete cat-ds-ids)
+    (map safe-delete inner-ds)
     ds-ids))
 
 (define stratified-split (stratified-split-fn ds-id
