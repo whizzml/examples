@@ -48,8 +48,7 @@
                        "bigml"))
         inner-ds (created-resources)
         ds-ids (map (lambda (ids name)
-                      (create-dataset {"origin_datasets" ids
-                                       "name" name}))
+                      (merge-datasets ids {"name" name}))
                     (_transpose cat-ds-ids)
                     [(str ds-name " - train (" (* training-rate 100) "%)")
                      (str ds-name
