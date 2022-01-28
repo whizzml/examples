@@ -1,0 +1,37 @@
+{
+  "name": "Chronological-Cluster-Split",
+  "description": "Splits training and test data chronologically by similarities based on a K-means cluster. Can be helpful to split data chronologically keeping relevant portions in both train and test datasets. Actions:  Trains cluster from input dataset. Processes batch centroid over the same dataset. For each cluster label, creates specific dataset and splits train-test chronologically with given proportions. Merges all train and test portions separately providing a final train and test database. Requirements: The original dataset needs to be ordered chronologically.",
+  "kind": "script",
+  "category": 11,
+  "inputs": [
+    {
+      "name": "dataset-input",
+      "type": "dataset-id",
+      "description": "Dataset to be split"
+    },
+    {
+      "name": "cluster-fields-input",
+      "type": "list",
+      "description": "List of field names to be used when training the cluster. Example: [\"field1\", \"field2\", ... \"field3\"]"
+    },
+    {
+      "name": "num-clusters",
+      "type": "number",
+      "default": 10,
+      "description": "K: number of clusters to be created in the K-means"
+    },
+    {
+      "name": "train-percent",
+      "type": "number",
+      "default": 80,
+      "description": "Percentage proportion for the training dataset"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "return-split-datasets",
+      "type": "map",
+      "description": "Map containing references to the \"training-dataset\" and  \"test-dataset\" datasets respectively."
+    }
+  ]
+}
