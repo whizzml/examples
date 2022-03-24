@@ -24,7 +24,13 @@
       "name": "train-percent",
       "type": "number",
       "default": 80,
-      "description": "Percentage proportion for the training dataset"
+      "description": "Percentage proportion for the training dataset (default 80)"
+    },
+    {
+      "name": "default-numeric-value",
+      "type": "string",
+      "default": "mean",
+      "description": "Method to be used to replace numeric missing values (default mean)"
     }
   ],
   "outputs": [

@@ -1,46 +1,80 @@
 ;; create cluster from inputs
-(define cluster (create-and-wait-cluster {"dataset" dataset-input
-                                           "k" num-clusters
-                                           "default_numeric_value" "mean"
-                                           "input_fields" cluster-fields-input}))
+(define cluster 
+  (create-and-wait-cluster 
+    {"dataset" dataset-input
+     "k" num-clusters
+      "default_numeric_value" default-numeric-value
+      "input_fields" cluster-fields-input}))
 
 ;; batch centroid to label input dataset
-(define batch-centroid (create-and-wait-batchcentroid {"cluster" cluster
-                                                       "dataset" dataset-input
-                                                       "all_fields" true
-                                                       "output_dataset" true}))
+(define batch-centroid 
+  (create-and-wait-batchcentroid 
+    {"cluster" cluster
+     "dataset" dataset-input
+     "all_fields" true
+     "output_dataset" true}))
 
-(define dataset-centroid ((fetch (wait batch-centroid)) ["output_dataset_resource"] false))
+(define dataset-centroid 
+  ((fetch (wait batch-centroid)) 
+    ["output_dataset_resource"] false))
 
 ;; get cluster names from resulting dataset
-(define fields (resource-fields (wait dataset-centroid)))
-(define cluster-field-id ((find-field fields "cluster") "id"))
-(define cluster-names (map head (fields [cluster-field-id "summary" "categories"])))
+(define fields 
+  (resource-fields 
+   (wait dataset-centroid)))
+
+(define cluster-field-id 
+  ((find-field fields "cluster") "id"))
+
+(define cluster-names 
+  (map head 
+    (fields [cluster-field-id "summary" 
+                              "categories"])))
 
 ;; filter centroid dataset for each cluster (returns filtered dataset list with num-clusters elements)
-(define cluster-datasets (map (lambda(x) (create-and-wait-dataset {"origin_dataset" dataset-centroid
-                                                          "lisp_filter" (flatline "(= (f \"cluster\") {{x}})")
-                                                          "excluded_fields" ["cluster"]})) cluster-names))
+(define cluster-datasets 
+  (map (lambda(x) 
+          (create-and-wait-dataset {"origin_dataset" dataset-centroid
+                                    "lisp_filter" (flatline "(= (f \"cluster\") {{x}})")
+                                    "excluded_fields" ["cluster"]})) 
+           cluster-names))
 
 ;; count rows for each dataset inside a new list
-(define num-rows (map (lambda (x) ((fetch x) "rows")) cluster-datasets))
-(define num-train-rows (map (lambda (x) (round (* (/ x 100) train-percent))) num-rows))
+(define num-rows 
+  (map (lambda (x) 
+          ((fetch x) "rows")) 
+           cluster-datasets))
+
+(define num-train-rows 
+  (map (lambda (x) 
+          (round (* (/ x 100) train-percent))) 
+           num-rows))
 
 ;; split cluster datasets
-(define train-datasets (map (lambda (x y)
-                                    (create-and-wait-dataset {"origin_dataset" x "range" [1, y]}))
-                             cluster-datasets
-                             num-train-rows))
+(define train-datasets 
+  (map (lambda (x y)
+          (create-and-wait-dataset {"origin_dataset" x 
+                                    "range" [1 y]}))
+           cluster-datasets
+           num-train-rows))
 
-(define test-datasets (map (lambda (x y z)
-                                    (create-and-wait-dataset {"origin_dataset" x "range" [(+ 1 y), z]}))
-                             cluster-datasets
-                             num-train-rows
-                             num-rows))
+(define test-datasets 
+  (map (lambda (x y z)
+          (create-and-wait-dataset {"origin_dataset" x 
+                                    "range" [(+ 1 y) z]}))
+           cluster-datasets
+           num-train-rows
+           num-rows))
 
 ;; build train and test datasets
-(define dataset-train (create-and-wait-dataset {"origin_datasets" train-datasets}))
-(define dataset-test (create-and-wait-dataset {"origin_datasets" test-datasets}))
+(define dataset-train 
+  (create-and-wait-dataset 
+    {"origin_datasets" train-datasets}))
+(define dataset-test 
+  (create-and-wait-dataset 
+    {"origin_datasets" test-datasets}))
 
 
-(define return-split-datasets {"training-dataset" dataset-train "test-dataset" dataset-test})
+(define return-split-datasets 
+  {"training-dataset" dataset-train 
+   "test-dataset" dataset-test})
