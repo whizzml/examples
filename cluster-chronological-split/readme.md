@@ -1,5 +1,5 @@
 # Cluster 10 split
-###Split dataset chronologically into a Training and Test dataset based on a Cluster
+### Split dataset chronologically into a Training and Test dataset based on a Cluster
 
 * **Inputs:** Given a dataset chronologically ordered, a set of input fields, a K number and a split proportion
 * **Outputs:** Returns a dictionary including a test and training dataset resulting from the implemented split
@@ -13,4 +13,8 @@
 Requirements: The input dataset needs to be ordered chronologically (BigML ordering capabilities can be manually used as desired)
 
 Installation command to be executed from the local directory (bigmler needs to be previously installed):
-`bigmler whizzml --package-dir . --output-dir ~/tmp --org-project project/yourProjectId12345
+
+```
+    bigmler whizzml --package-dir . --output-dir ~/tmp --org-project project/yourProjectId12345
+
+```
