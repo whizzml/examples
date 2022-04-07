@@ -1,7 +1,7 @@
 # Examples of WhizzML scripts and libraries
 
 <p align=center><a href="http://bigml.com/whizzml"><img
-src="https://static.horizon.bigml.com/static/img/whizzml/whizzml_share_logo.png"
+src="https://static.bigml.com/static/img/share/share_bigml_features_automating.jpg"
 alt="WhizzML" width=350></img></a></p>
 
 Each script or library is in a directory in this folder.  For each one
@@ -63,6 +63,10 @@ By convention, when the artifact is a library, the files are called
 - `unify-optype` Script that matches the field optypes to a given dataset
 - `stratified-sampling` Script that implements the stratified sampling
   technique.
+- `stratified-split` Script that creates train/test splits maintaining classes
+  proportion.
+- `cluster-chronological-split`: Split dataset chronologically into a Training
+  and Test dataset based on a Cluster.
 - `low-coverage` Script that removes all the sparse fields that have
   coverage less than a given threshold coverage.
 - `stacked-predictions` Script that builds several predictors and
