@@ -16,7 +16,8 @@
                             "operating_point"])
 
 ;; list of available classification models
-(define SLMS ["model" "ensemble" "logisticregression" "deepnet"])
+(define SLMS
+  ["model" "ensemble" "logisticregression" "deepnet" "linearregression])
 
 (define (_transpose m)
   (apply map list m))
@@ -84,7 +85,6 @@
 ;; Raises:
 ;;  103: The k-folds argument is not an integer
 ;;  104: The k-folds argument is not >= 2
-;;  106: The model is not a classification model
 ;;  107: The number of instances in minority class is less than k
 
 (define (ds-cross-validation dataset-id
@@ -96,14 +96,16 @@
                              delete-resources?
                              . stratified?)
   (check-integer k-folds 2 false)
-  (check-minority-instances k-folds dataset-id objective-id)
   (let (dataset (fetch dataset-id)
         dataset-name (dataset "name" false)
         fields (resource-fields dataset-id)
-        _ (check-categorical-objective-id objective-id fields)
+        regression? (is-regression objective-id fields)
+        _ (when (not regression?)
+                (check-minority-instances k-folds dataset-id objective-id))
         objective-name (fields [objective-id "name"] false)
-        k-fold-datasets (if (or (empty? stratified?)
-                                  (not (stratified? 0)))
+        k-fold-datasets (if (or is-regression
+                                (empty? stratified?)
+                                (not (stratified? 0)))
                               (create-k-folds dataset-id k-folds)
                               (stratified-k-folds dataset
                                                   k-folds
@@ -185,6 +187,18 @@
     (raise {"message" (str "Only classification models can be"
                            " cross-validated")
             "code" 106})))
+
+;; is-regression
+;;
+;; Checks whether the objective field is numeric
+;;
+;; Inputs:
+;;  objective-id: (string) ID of the objective field
+;;  fields: (map) Fields informatiion
+;;
+;; Output: (boolean) True if numeric objective field
+(define (is-regression objective-id fields)
+  (= "numeric" (fields [objective-id "optype"] false)))
 
 
 ;; check-minority-instances
