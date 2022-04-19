@@ -60,7 +60,7 @@
 ;;  102: The slm-id is not a supervised model ID
 ;;  103: The k-folds argument is not an integer
 ;;  104: The k-folds argument is not >= 2
-;;  106: The model is not a classification model
+;;  106: Non-compatible model for the dataset objective field type
 ;;  107: The number of instances in minority class is less than k
 ;;
 (define (model-cross-validation slm-id
@@ -85,6 +85,7 @@
 ;; Raises:
 ;;  103: The k-folds argument is not an integer
 ;;  104: The k-folds argument is not >= 2
+;;  106: Non-compatible model for the dataset objective field type
 ;;  107: The number of instances in minority class is less than k
 
 (define (ds-cross-validation dataset-id
@@ -102,6 +103,7 @@
         regression? (is-regression objective-id fields)
         _ (when (not regression?)
                 (check-minority-instances k-folds dataset-id objective-id))
+        _ (check-modeltype model-type regression?)
         objective-name (fields [objective-id "name"] false)
         k-fold-datasets (if (or is-regression
                                 (empty? stratified?)
@@ -200,6 +202,20 @@
 (define (is-regression objective-id fields)
   (= "numeric" (fields [objective-id "optype"] false)))
 
+
+;; check-modeltype
+;;
+;; Checks whether the model type matches the regression / classification
+;; problem
+(define (check-modeltype model-type regression?)
+  (let (error (or (and (= model-type "logisticregression") regression?)
+                  (and (= model-type "linearregression") (not regression?))))
+    (when error
+          (raise {"message" (str "The " model-type " cannot be used to"
+                             " predict " (if regression? "regressions"
+                                                         "classifications")
+                             ".")
+              "code" 106}))))
 
 ;; check-minority-instances
 ;;
