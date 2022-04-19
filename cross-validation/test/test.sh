@@ -17,9 +17,11 @@ run_bigmler --train s3://bigml-public/csv/iris.csv --no-model \
 prefix='[["dataset-id", "'
 suffix='"],["model-type", "model"]]'
 text=''
+prefix_reg='[["objective-id", "000000"],["dataset-id", "'
 cat cmd/pre_test/dataset | while read dataset
 do
 echo "$prefix$dataset$suffix" > "test_inputs.json"
+echo "$prefix_reg$dataset$suffix" > "test_reg_inputs.json"
 done
 
 log "Testing basic script ----------------------------------"
@@ -39,6 +41,7 @@ if [[ " $file_content " =~ $regex ]]
 fi
 
 log "Testing model script ----------------------------------"
+rm cmd/results/whizzml_results.json
 # running the execution with the given inputs
 run_bigmler execute --scripts .build/model/scripts --inputs test_inputs.json \
                     --output-dir cmd/results
@@ -55,6 +58,7 @@ if [[ " $file_content " =~ $regex ]]
         exit 1
 fi
 log "Testing ensemble script -------------------------------"
+rm cmd/results/whizzml_results.json
 # running the execution with the given inputs
 run_bigmler execute --scripts .build/ensemble/scripts \
                     --inputs test_inputs.json \
@@ -72,6 +76,7 @@ if [[ " $file_content " =~ $regex ]]
         exit 1
 fi
 log "Testing logistic regression script --------------------"
+rm cmd/results/whizzml_results.json
 # running the execution with the given inputs
 run_bigmler execute --scripts .build/logistic-regression/scripts \
                     --inputs test_inputs.json  --output-dir cmd/results
@@ -87,7 +92,25 @@ if [[ " $file_content " =~ $regex ]]
         echo "logistic regression KO:\n $file_content"
         exit 1
 fi
+log "Testing linear regression script --------------------"
+rm cmd/results/whizzml_results.json
+# running the execution with the given inputs
+run_bigmler execute --scripts .build/linear-regression/scripts \
+                    --inputs test_reg_inputs.json  --output-dir cmd/results
+# check the outputs
+declare file="cmd/results/whizzml_results.json"
+declare regex="\"outputs\": \[\[\"cross-validation-output\",\
+ \"evaluation/[a-f0-9]{24}\", \"evaluation\"\]\]"
+declare file_content=$( cat "${file}" )
+if [[ " $file_content " =~ $regex ]]
+    then
+        echo "linear regression OK"
+    else
+        echo "linear regression KO:\n $file_content"
+        exit 1
+fi
 log "Testing boosted ensemble script -------------------------------"
+rm cmd/results/whizzml_results.json
 # running the execution with the given inputs
 run_bigmler execute --scripts .build/boosted-ensemble/scripts \
                     --inputs test_inputs.json \
@@ -105,6 +128,7 @@ if [[ " $file_content " =~ $regex ]]
         exit 1
 fi
 log "Testing deepnet script --------------------"
+rm cmd/results/whizzml_results.json
 # running the execution with the given inputs
 run_bigmler execute --scripts .build/deepnet/scripts \
                     --inputs test_inputs.json  --output-dir cmd/results

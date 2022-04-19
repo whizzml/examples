@@ -11,6 +11,9 @@ cross-validation for different resources:
   cross-validation for ensembles.
 - [Boosted Ensemble k-fold cross-validation](./boosted-ensemble) General k-fold
   cross-validation for boosted ensembles.
+- [Linear regression k-fold cross-validation](./linear-regression)
+  General k-fold
+  cross-validation for linear regressions.
 - [Logistic regression k-fold cross-validation](./logistic-regression)
   General k-fold
   cross-validation for logistic regressions.

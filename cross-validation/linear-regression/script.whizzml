@@ -1,0 +1,73 @@
+;;get_linear_options
+;;
+;; maps the options to be used in linear regression
+;; Inputs:
+;;   bias: (boolean) Whether to include an intercept term
+;;   default-numeric-value: (string) List of values to be used as
+;;                                   objective_weights
+;;   field-codings: (list) Coding schemes for categorical fields: 'dummy',
+;;                         'contrast', or 'other'
+;;   seed: (string) Seed used in random samplings
+;; Output: (map) options map
+;;
+(define (get_linear_options bias
+                            default-numeric-value
+                            field-codings
+                            seed)
+  (let (options {"bias" bias
+                 "field_codings" field-codings}
+        options (if (empty? seed)
+                    options
+                   (assoc options "seed" seed)))
+    (if (empty? default-numeric-value)
+        options
+        (assoc options "default_numeric_value" default-numeric-value))))
+
+
+;; linear-cross-validation
+;;
+;; creates k-fold cross-validation for a dataset using linear regressions
+;; Inputs:
+;;   dataset-id: (string) Dataset ID
+;;   k-folds: (integer) Number of folds
+;;   objective-id: (string) ID of the objective field
+;;   bias: (boolean) Whether to include an intercept term
+;;   default-numeric-value: (string) List of values to be used as
+;;                                   objective_weights
+;;   field-codings: (list) Coding schemes for categorical fields: 'dummy',
+;;                         'contrast', or 'other'
+;;   seed: (string) Seed used in random samplings
+;;   delete-resources?: (boolean) Whether to delete all intermediate resources
+;;
+;; Output: (map) Average of evaluations results
+;;
+(define (linear-cross-validation dataset-id
+                                 k-folds
+                                 objective-id
+                                 bias
+                                 default-numeric-value
+                                 field-codings
+                                 seed
+                                 delete-resources?)
+  (let (options (get_linear_options bias
+                                    default-numeric-value
+                                    field-codings
+                                    seed)
+        objective-id (if (empty? objective-id)
+                         (dataset-get-objective-id dataset-id)
+                         objective-id)
+        dft-evaluation-options {})
+    (ds-cross-validation dataset-id k-folds objective-id  "linearregression"
+                         options dft-evaluation-options
+                         delete-resources?)))
+
+
+(define cross-validation-output
+  (linear-cross-validation dataset-id
+                           k-folds
+                           objective-id
+                           bias
+                           default-numeric-value
+                           field-codings
+                           seed
+                           delete-resources?))
