@@ -17,7 +17,7 @@
 
 ;; list of available classification models
 (define SLMS
-  ["model" "ensemble" "logisticregression" "deepnet" "linearregression])
+  ["model" "ensemble" "logisticregression" "deepnet" "linearregression"])
 
 (define (_transpose m)
   (apply map list m))
