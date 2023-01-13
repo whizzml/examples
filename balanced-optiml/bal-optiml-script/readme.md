@@ -22,7 +22,7 @@ for the rare class imbalance:
 - The test dataset created in the first step is returned as output for
   final evaluations
 
-#Inputs
+## Inputs
 
 - The dataset you wish to sample.
 
@@ -44,7 +44,7 @@ for the rare class imbalance:
 
 - The OptiML parameters to be used as a map (default = {}).
 
-#Output
+## Output
 
 - A collection of undersampled OptiMLs.
 
