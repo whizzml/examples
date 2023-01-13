@@ -1,0 +1,7 @@
+{
+  "name": "Balanced OptiML Library",
+  "description":
+  "Collection of utilities for Balancing Automated Machine Learning within BigML. Find more info in [package readme](https://github.com/whizzml/examples/tree/master/balanced-optiml).",
+  "kind": "library",
+  "source_code": "library.whizzml"
+}

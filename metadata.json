@@ -46,6 +46,7 @@
     "batch-association-sets",
     "bulk-move",
     "statistical-tests",
-    "time-aware-cross-validation"
+    "time-aware-cross-validation",
+    "balanced-optiml"
   ]
 }

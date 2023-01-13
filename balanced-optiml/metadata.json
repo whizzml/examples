@@ -1,0 +1,9 @@
+{
+  "name": "Balanced OptiML",
+  "description": "Addressing Imbalance in Automated Machine Learning with BigML",
+  "kind": "package",
+  "components": [
+    "bal-optiml-library",
+    "bal-optiml-script"
+  ]
+}

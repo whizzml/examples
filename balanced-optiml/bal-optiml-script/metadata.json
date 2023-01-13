@@ -1,0 +1,67 @@
+{
+  "name": "Balanced OptiML Script",
+  "description": "Applying undersampling techniques for datasets that contain a rare class before building OptiMLs. The result is a list of OptiMLs built on a collection of undersampled datasets and the unbalanced test data to do the final evaluation.",
+  "kind": "script",
+  "imports": ["../bal-optiml-library"],
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "ds-id",
+      "type": "dataset-id",
+      "description": "The unbalanced dataset"
+    },
+    {
+      "name": "objective-field",
+      "type": "string",
+      "description": "The name or id of the categorical field"
+    },
+    {
+      "name": "rare-class",
+      "type": "string",
+      "description": "The unbalanced rare category"
+    },
+    {
+      "name": "training-rate",
+      "type": "number",
+      "description": "The rate of instances to be used in training (default = 0.8)",
+      "default": 0.8
+    },
+    {
+      "name": "number-of-samples",
+      "type": "number",
+      "description": "Number of undersampled OptiMLs to be built",
+      "default": 5
+    },
+    {
+      "name": "proportion",
+      "type": "number",
+      "description": "Proportion between the non-rare instances to be sampled to the rare instances",
+      "default": 1
+    },
+    {
+      "name": "metric",
+      "type": "string",
+      "description": "Evaluation metric that will guide the optimization",
+      "default": "recall"
+    },
+    {
+      "name": "optiml-config",
+      "type": "map",
+      "description": "OptiMLs configuration options",
+      "default": {}
+    }
+  ],
+  "outputs": [
+    {
+      "name": "undersampled-optimls",
+      "type": "list",
+      "description": "List of OptiMLs built on undersampled datasets"
+    },
+    {
+      "name": "unbalanced-test-ds",
+      "type": "dataset-id",
+      "description": "Test dataset to be used for final evaluations"
+    }
+
+  ]
+}
