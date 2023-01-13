@@ -1,0 +1,139 @@
+;; Transposes the matrix: [[a b c] [d e f]] to [[a d] [b e] [c f]]
+(define (_transpose m)
+  (apply map list m))
+
+;; Deletes resources ignoring errors
+(define (_safe-delete id)
+  (try (delete id)
+       (catch e
+         (log-info (str "Error deleting resource " id " ignored:" e))
+         false)))
+
+;; Check that the objective field exists, is a categorical field and
+;; contains the rare class
+(define (_check-cat fields objective-field rare-class)
+  (let (field (find-field fields objective-field))
+    (when (not (find-field fields objective-field))
+      (raise {"message" (str "The objective field "
+                             objective-field
+                             " cannot be found in this dataset")
+              "code" 100}))
+    (when (not (categorical-field? field))
+      (raise {"message" (str "The objective field "
+                             objective-field
+                             " is not a categorical field."
+                             " Only categorical fields can be used.")
+              "code" 101}))
+    (when (not (member? rare-class (field-categories field)))
+      (raise {"message" (str "The objective field "
+                             objective-field
+                             " does not contain the "
+                             rare-class
+                             " category. Please check its name.")
+              "code" 102}))))
+
+;; Function that splits a dataset in training, validation and test datasets
+(define (_create-train-validation-test ds-id train-rate seed)
+  (let (first-split (create-dataset-split ds-id train-rate seed)
+        second-split (create-dataset-split (last first-split) 0.5 seed))
+    (cons (head first-split) second-split)))
+
+
+;; Function to apply stratified split for the rare class of the objective field
+;; with a given train
+(define (rare-stratified-split-fn ds-id training-rate objective-field
+                                  rare-class project)
+  (let (dataset (fetch ds-id)
+        ds-name (dataset "name")
+        fields (resource-fields dataset)
+        _ (_check-cat fields objective-field rare-class)
+        objective-id ((find-field fields objective-field) "id")
+        filters [(flatline "(= (f {{objective-id}}) {{rare-class}})")
+                 (flatline "(!= (f {{objective-id}}) {{rare-class}})")]
+        names [rare-class (str "not " rare-class)]
+        cat-ds-ids (iterate (acc [] expr filters name names)
+                     (append acc
+                       (_create-train-validation-test
+                         (create-dataset {"origin_dataset" ds-id
+                                          "lisp_filter" expr
+                                          "name" (str (dataset "name")
+                                                      " - "
+                                                      name)
+                                          "project" project})
+                         training-rate
+                         "bigml")))
+        inner-ds (flatten cat-ds-ids)
+        ds-ids (map (lambda (ids name)
+                      (merge-datasets ids {"name" name}))
+                    (_transpose cat-ds-ids)
+                    [(str ds-name " - train")
+                     (str ds-name " - validation")
+                     (str ds-name " - test")]))
+    (wait* ds-ids)
+    (map _safe-delete inner-ds)
+    ds-ids))
+
+
+;; Function to generated datasets that keep all instances of the rare class
+;; while undersampling the instances in the common class to maintain a
+;; proportion with the rare class
+(define (undersample-fn ds-id number-of-samples objective-field rare-class
+         proportion)
+  (let (dataset (fetch ds-id)
+        ds-name (dataset "name")
+        fields (resource-fields dataset)
+        _ (_check-cat fields objective-field rare-class)
+        objective-id ((find-field fields objective-field) "id")
+        rows (dataset "rows")
+        field-summary (field-distribution (find-field fields objective-field))
+        _ (log-info field-summary)
+        rare-instances ((head (filter (lambda (f) (= (f 0) rare-class))
+                                      field-summary)) 1)
+        common-instances (- rows rare-instances)
+        balance-rate (* proportion (/ rare-instances common-instances))
+        rare-filter (flatline "(= (f {{objective-id}}) {{rare-class}})")
+        common-filter (flatline "(!= (f {{objective-id}}) {{rare-class}})")
+        rare-ds (create-dataset {"origin_dataset" ds-id
+                                 "lisp_filter" rare-filter
+                                 "name" (str (dataset "name")
+                                             " - train ["
+                                             objective-field
+                                             "="
+                                             rare-class
+                                             "]")})
+        samples-ds-ids (iterate (acc [] index (range number-of-samples))
+                         (append acc
+                           (create-dataset {"origin_dataset" ds-id
+                                            "lisp_filter" common-filter
+                                            "sample_rate" balance-rate
+                                            "name" (str (dataset "name")
+                                                        " - "
+                                                        index)
+                                            "seed" (str "bigml" index)})))
+        ds-ids (map (lambda (sampled-ds index)
+                      (merge-datasets [sampled-ds rare-ds]
+                                      {"name" (str ds-name
+                                                   " - undersampled "
+                                                   index)}))
+                    samples-ds-ids (range number-of-samples)))
+
+    (wait* ds-ids)
+    (map _safe-delete samples-ds-ids)
+    (_safe-delete rare-ds)
+    ds-ids))
+
+;; Function to create a collection of OptiMLs for a particular metric and class
+;; using a validation dataset
+(define (optimls-fn ds
+                    objective-field
+                    metric
+                    metric-class
+                    validation-ds
+                    optiml-config)
+  (let (config {"dataset" ds
+                "objective_field" objective-field
+                "test_dataset" validation-ds
+                "metric" metric
+                "metric_class" metric-class}
+        config (merge config optiml-config))
+    (create-optiml config)))

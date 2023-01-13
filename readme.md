@@ -110,6 +110,8 @@ By convention, when the artifact is a library, the files are called
 - `statistical-tests`: Performs statistical tests from a given dataset
   and creates a report with the results
 - `time-aware cross-validation`: Cross-Validation considering temporal order
+- `balanced-optiml': OptiMLs for Unbalanced Datasets using undersampling
+  techniques.
 
 ## How to install
 
