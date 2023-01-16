@@ -1,3 +1,5 @@
+(define MIN-RARE-INSTANCES 7)
+
 ;; Transposes the matrix: [[a b c] [d e f]] to [[a d] [b e] [c f]]
 (define (_transpose m)
   (apply map list m))
@@ -9,11 +11,28 @@
          (log-info (str "Error deleting resource " id " ignored:" e))
          false)))
 
+;; Find objective ID field info
+(define (_find-objective fields objective-field)
+  (find-field fields objective-field))
+
+;; Returns the instances associated to a class in a distribution
+(define (_class-instances field class)
+  (let (field-summary (field-distribution field))
+    ((head (filter (lambda (f) (= (f 0) class))
+                                        field-summary)) 1)))
+
+
+;; Returns the total instances in a distribution
+(define (_total-instances field)
+  (let (field-summary (field-distribution field))
+    (reduce + 0 (map (lambda (c) (c 1)) field-summary))))
+
 ;; Check that the objective field exists, is a categorical field and
 ;; contains the rare class
 (define (_check-cat fields objective-field rare-class)
-  (let (field (find-field fields objective-field))
-    (when (not (find-field fields objective-field))
+  (let (field (_find-objective fields objective-field)
+        rare-instances (_class-instances field rare-class))
+    (when (not field)
       (raise {"message" (str "The objective field "
                              objective-field
                              " cannot be found in this dataset")
@@ -30,7 +49,23 @@
                              " does not contain the "
                              rare-class
                              " category. Please check its name.")
-              "code" 102}))))
+              "code" 102}))
+    (when (< rare-instances MIN-RARE-INSTANCES)
+      (raise {"message" (str "The objective field "
+                             objective-field
+                             " contains "
+                             rare-instances
+                             " instances of the "
+                             rare-class
+                             " category. "
+                             MIN-RARE-INSTANCES
+                             " instances are needed at least.")
+              "code" 103})
+    (when (= (_total-instances field) rare-instances)
+      (raise {"message" (str "The objective field "
+                             objective-field
+                             " only contains one class.")
+              "code" 104})))))
 
 ;; Function that splits a dataset in training, validation and test datasets
 (define (_create-train-validation-test ds-id train-rate seed)
@@ -47,21 +82,20 @@
         ds-name (dataset "name")
         fields (resource-fields dataset)
         _ (_check-cat fields objective-field rare-class)
-        objective-id ((find-field fields objective-field) "id")
+        objective-id ((_find-objective fields objective-field) "id")
         filters [(flatline "(= (f {{objective-id}}) {{rare-class}})")
                  (flatline "(!= (f {{objective-id}}) {{rare-class}})")]
         names [rare-class (str "not " rare-class)]
-        cat-ds-ids (iterate (acc [] expr filters name names)
-                     (append acc
-                       (_create-train-validation-test
-                         (create-dataset {"origin_dataset" ds-id
-                                          "lisp_filter" expr
-                                          "name" (str (dataset "name")
-                                                      " - "
-                                                      name)
-                                          "project" project})
-                         training-rate
-                         "bigml")))
+        cat-ds-ids-fn (lambda (expr name) (_create-train-validation-test
+                        (create-dataset {"origin_dataset" ds-id
+                                         "lisp_filter" expr
+                                         "name" (str (dataset "name")
+                                                     " - "
+                                                     name)
+                                         "project" project})
+                        training-rate
+                        "bigml"))
+        cat-ds-ids (map cat-ds-ids-fn filters names)
         inner-ds (flatten cat-ds-ids)
         ds-ids (map (lambda (ids name)
                       (merge-datasets ids {"name" name}))
@@ -78,17 +112,15 @@
 ;; while undersampling the instances in the common class to maintain a
 ;; proportion with the rare class
 (define (undersample-fn ds-id number-of-samples objective-field rare-class
-         proportion)
+                        proportion)
   (let (dataset (fetch ds-id)
         ds-name (dataset "name")
         fields (resource-fields dataset)
         _ (_check-cat fields objective-field rare-class)
-        objective-id ((find-field fields objective-field) "id")
+        objective-f (_find-objective fields objective-field)
+        objective-id (objective-f "id")
         rows (dataset "rows")
-        field-summary (field-distribution (find-field fields objective-field))
-        _ (log-info field-summary)
-        rare-instances ((head (filter (lambda (f) (= (f 0) rare-class))
-                                      field-summary)) 1)
+        rare-instances (_class-instances objective-f rare-class)
         common-instances (- rows rare-instances)
         balance-rate (* proportion (/ rare-instances common-instances))
         rare-filter (flatline "(= (f {{objective-id}}) {{rare-class}})")

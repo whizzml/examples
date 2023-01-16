@@ -6,7 +6,7 @@
 ;; [train-dataset validation-dataset test-dataset] collection
 ;; The proportion of instances for the rare class and the rest is
 ;; identical to the one in the original dataset for all of them.
-(define train-val-test-split (rare-stratified-split-fn ds-id
+(define train-val-test-split (rare-stratified-split-fn dataset-id
                                                        training-rate
                                                        objective-field
                                                        rare-class
