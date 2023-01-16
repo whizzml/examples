@@ -21,11 +21,24 @@
     ((head (filter (lambda (f) (= (f 0) class))
                                         field-summary)) 1)))
 
-
 ;; Returns the total instances in a distribution
 (define (_total-instances field)
   (let (field-summary (field-distribution field))
     (reduce + 0 (map (lambda (c) (c 1)) field-summary))))
+
+;; Checks positive number
+(define (_check-positive number var-name)
+  (when (<= number 0)
+    (log-info (str var-name " is not a positive number"))
+    (raise {"message" "The " var-name " value needs to be a positive number."
+            "code" 105})))
+
+;; Checks integer number
+(define (_check-integer number var-name)
+  (when (not (integer? number))
+    (log-info (str var-name " is not an integer number"))
+    (raise {"message" "The " var-name " value needs to be an integer."
+            "code" 106})))
 
 ;; Check that the objective field exists, is a categorical field and
 ;; contains the rare class
@@ -116,6 +129,9 @@
   (let (dataset (fetch ds-id)
         ds-name (dataset "name")
         fields (resource-fields dataset)
+        _ (_check-positive number-of-samples "number-of-samples")
+        _ (_check-integer number-of-samples "number-of-samples")
+        _ (_check-positive proportion "proportion")
         _ (_check-cat fields objective-field rare-class)
         objective-f (_find-objective fields objective-field)
         objective-id (objective-f "id")
