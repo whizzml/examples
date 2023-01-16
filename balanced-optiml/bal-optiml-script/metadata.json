@@ -6,7 +6,7 @@
   "source_code": "script.whizzml",
   "inputs": [
     {
-      "name": "ds-id",
+      "name": "dataset-id",
       "type": "dataset-id",
       "description": "The unbalanced dataset"
     },
@@ -53,14 +53,19 @@
   ],
   "outputs": [
     {
+      "name": "undersampled-dss",
+      "type": "list",
+      "description": "List of undersampled Datasets"
+    },
+    {
       "name": "undersampled-optimls",
       "type": "list",
-      "description": "List of OptiMLs built on undersampled datasets"
+      "description": "List of OptiMLs built on undersampled Datasets"
     },
     {
       "name": "unbalanced-test-ds",
       "type": "dataset-id",
-      "description": "Test dataset to be used for final evaluations"
+      "description": "Test Dataset to be used for final evaluations"
     }
 
   ]

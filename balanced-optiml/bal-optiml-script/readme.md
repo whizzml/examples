@@ -36,7 +36,7 @@ for the rare class imbalance:
   50%-50% the hold out instances.
 
 - The number of datasets that will be created by undersampling the common
-  classes. (default = 5).
+  classes (default = 5).
 
 - The common-classes sampling proportion to be used (default = 1).
 
@@ -46,6 +46,8 @@ for the rare class imbalance:
 
 ## Output
 
-- A collection of undersampled OptiMLs.
+- The collection of undersampled Datasets.
+
+- The collection of undersampled OptiMLs.
 
 - The test dataset to be used in the final evaluation.
