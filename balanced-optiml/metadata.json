@@ -4,6 +4,7 @@
   "kind": "package",
   "components": [
     "bal-optiml-library",
-    "bal-optiml-script"
+    "bal-optiml-script",
+    "bal-best-fusion"
   ]
 }

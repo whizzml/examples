@@ -1,0 +1,25 @@
+{
+  "name": "Balanced Best Fusion",
+  "description": "Creating and evaluating a Fusion model from the best models found by the Balanced OptiML script.",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "bal-optiml-exec",
+      "type": "execution-id",
+      "description": "The Balanced OptiML execution ID "
+    }],
+  "outputs": [
+    {
+      "name": "best-fusion",
+      "type": "fusion-id",
+      "description": "Fusion ID built from the best models"
+    },
+    {
+      "name": "best-fusion-eval",
+      "type": "evaluation-id",
+      "description": "Fusion Evaluation"
+    }
+
+  ]
+}
