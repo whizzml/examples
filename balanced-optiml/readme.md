@@ -60,7 +60,7 @@ command:
 
 
 
-That will create both the AutoML library and script resources for you.
+That will create both the Balanced OptiML library and script resources for you.
 Please, make sure to execute the command above in the repository's top
 level directory, *not* in [balanced-optiml](./).
 

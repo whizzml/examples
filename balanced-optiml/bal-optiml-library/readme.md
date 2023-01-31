@@ -16,4 +16,6 @@ Private functions, that are only used inside the library, start with
    of classes. The user provides the number of samples to be created,
    the objective field, the positive class and a proportion
    that will determine the ratio of instances that belong to the negative
-   classes and the number of instances that belong to the positive class.
+   classes to the number of instances that belong to the positive class (e.g:
+   proportion=2 means that the number of instances that are sampled for the
+   negative classes doubles the positive class number of instances).
