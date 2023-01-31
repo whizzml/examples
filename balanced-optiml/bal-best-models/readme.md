@@ -1,51 +1,38 @@
-# Balanced OptiML script
+# Balanced Best Models
 
-This script builds undersampled datasets to compensate imbalance in datasets
-with a rare class and creates OptiMLs for them to provide a Balanced
-Automated search for the best model.
+This script extracts the best models found in an existing Balanced OptiML
+script execution. The Balanced OptiML script creates undersampled datasets to
+balance an imbalanced dataset with a minority positive class. Builds
+OptiMLs for them to provide a Balanced Automated search for the best model. You
+should first execute such a script to be able to use the Balanced Best Models
+script.
 
+The Inputs and Outputs of a Balanced OptiML script are described in its
+[readme file](../bal-optiml-script) and contain information about the original
+unbalanced dataset, the positive class, the best model found by applying OptiML
+to the unbalanced train dataset, the best models found by applying OptiML to
+a set of undersampled datasets and the unbalanced test dataset to be used
+for their final evaluation.
 
-Several operations are applied to the original dataset to try to compensate
-for the rare class imbalance:
-
-- A stratified split is applied to generate a training/validation/test
-  dataset collection ensuring that the original proportion of instances in
-  the rare class is maintained in all of them.
-- The training dataset is used to generate a list of undersampled datasets.
-  The datasets will contain all the instances belonging to the rare class
-  and a sample of instances of the common classes. The proportion of instances
-  between the rare and the common classes can be provided by the user as an
-  integer and 1 is used by default.
-- An OptiML will be built for every undersampled dataset and optimization will
-  be done for the user-given metric (`recall` will be used by default) and the
-  rare class. Other OptiML configurations can also be provided.
-- The test dataset created in the first step is returned as output for
-  final evaluations
+The Balanced Best Models script will use the unbalanced Test Dataset to compare
+the best model for the unbalanced Train Dataset to the best models for the
+undersampled versions of the Train Dataset (as found by their corresponding
+OptiMLs). The sorted list of Best available Models will be produced.
 
 ## Inputs
 
-- The dataset you wish to sample.
-
-- The id or name of the categorical field to use for generating the stratified
-  split (usually the objective field).
-
-- The rare class to be balanced.
-
-- The rate of instances that you want to use for training (default is 0.8 and
-  selects 80% of the instances). Test and Validation datasets will split
-  50%-50% the hold out instances.
-
-- The number of datasets that will be created by undersampling the common
-  classes. (default = 5).
-
-- The common-classes sampling proportion to be used (default = 1).
-
-- The metric to be used in the OptiML optimization process (default = recall).
-
-- The OptiML parameters to be used as a map (default = {}).
+- The execution ID of the Balanced OptiML script execution.
 
 ## Output
 
-- A collection of undersampled OptiMLs.
+- The best unbalanced model built on the entire Train Dataset.
 
-- The test dataset to be used in the final evaluation.
+- The best models for the undersamples built from the Train Dataset.
+
+- The list of models whose validation metrics are better than the one achieved
+  by the best unbalanced model.
+
+- The final Evaluation of the best unbalanced model using the Test Dataset.
+
+- The final Evaluations of the list of best udersampled models uisng the Test
+  Dataset.
