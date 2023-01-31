@@ -87,18 +87,18 @@
     (cons (head first-split) second-split)))
 
 
-;; Function to apply stratified split for the rare class of the objective field
-;; with a given train
-(define (rare-stratified-split-fn ds-id training-rate objective-field
-                                  rare-class project)
+;; Function to apply stratified split for the positive class of the objective
+;; field with a given train
+(define (positive-stratified-split-fn ds-id training-rate objective-field
+                                      positive-class project)
   (let (dataset (fetch ds-id)
         ds-name (dataset "name")
         fields (resource-fields dataset)
-        _ (_check-cat fields objective-field rare-class)
+        _ (_check-cat fields objective-field positive-class)
         objective-id ((_find-objective fields objective-field) "id")
-        filters [(flatline "(= (f {{objective-id}}) {{rare-class}})")
-                 (flatline "(!= (f {{objective-id}}) {{rare-class}})")]
-        names [rare-class (str "not " rare-class)]
+        filters [(flatline "(= (f {{objective-id}}) {{positive-class}})")
+                 (flatline "(!= (f {{objective-id}}) {{positive-class}})")]
+        names [positive-class (str "not " positive-class)]
         cat-ds-ids-fn (lambda (expr name) (_create-train-validation-test
                         (create-dataset {"origin_dataset" ds-id
                                          "lisp_filter" expr
@@ -121,10 +121,10 @@
     ds-ids))
 
 
-;; Function to generated datasets that keep all instances of the rare class
+;; Function to generated datasets that keep all instances of the positive class
 ;; while undersampling the instances in the common class to maintain a
-;; proportion with the rare class
-(define (undersample-fn ds-id number-of-samples objective-field rare-class
+;; proportion with the minority positive class
+(define (undersample-fn ds-id number-of-samples objective-field positive-class
                         proportion)
   (let (dataset (fetch ds-id)
         ds-name (dataset "name")
@@ -132,22 +132,22 @@
         _ (_check-positive number-of-samples "number-of-samples")
         _ (_check-integer number-of-samples "number-of-samples")
         _ (_check-positive proportion "proportion")
-        _ (_check-cat fields objective-field rare-class)
+        _ (_check-cat fields objective-field positive-class)
         objective-f (_find-objective fields objective-field)
         objective-id (objective-f "id")
         rows (dataset "rows")
-        rare-instances (_class-instances objective-f rare-class)
+        rare-instances (_class-instances objective-f positive-class)
         common-instances (- rows rare-instances)
         balance-rate (* proportion (/ rare-instances common-instances))
-        rare-filter (flatline "(= (f {{objective-id}}) {{rare-class}})")
-        common-filter (flatline "(!= (f {{objective-id}}) {{rare-class}})")
+        rare-filter (flatline "(= (f {{objective-id}}) {{positive-class}})")
+        common-filter (flatline "(!= (f {{objective-id}}) {{positive-class}})")
         rare-ds (create-dataset {"origin_dataset" ds-id
                                  "lisp_filter" rare-filter
                                  "name" (str (dataset "name")
                                              " - train ["
                                              objective-field
                                              "="
-                                             rare-class
+                                             positive-class
                                              "]")})
         samples-ds-ids (iterate (acc [] index (range number-of-samples))
                          (append acc

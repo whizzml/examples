@@ -16,9 +16,9 @@
       "description": "The name or id of the categorical field"
     },
     {
-      "name": "rare-class",
+      "name": "positive-class",
       "type": "string",
-      "description": "The unbalanced rare category"
+      "description": "The minority positive category"
     },
     {
       "name": "training-rate",
@@ -63,9 +63,24 @@
       "description": "List of OptiMLs built on undersampled Datasets"
     },
     {
+      "name": "unbalanced-train-ds",
+      "type": "dataset-id",
+      "description": "Original Train Dataset"
+    },
+    {
+      "name": "unbalanced-validation-ds",
+      "type": "dataset-id",
+      "description": "Validation Dataset to be used for OptiML search"
+    },
+    {
       "name": "unbalanced-test-ds",
       "type": "dataset-id",
       "description": "Test Dataset to be used for final evaluations"
+    },
+    {
+      "name": "unbalanced-optiml",
+      "type": "optiml-id",
+      "description": "OptiML created for the original unbalanced train dataset"
     }
 
   ]

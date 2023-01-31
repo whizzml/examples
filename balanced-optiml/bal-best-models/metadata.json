@@ -1,0 +1,39 @@
+{
+  "name": "Balanced Best Models",
+  "description": "Filtering and evaluating with the test dataset the best models found by the Balanced OptiML script.",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "inputs": [
+    {
+      "name": "bal-optiml-exec",
+      "type": "execution-id",
+      "description": "The Balanced OptiML execution ID "
+    }],
+  "outputs": [
+    {
+      "name": "best-unbalanced-model",
+      "type": "supervised-id",
+      "description": "Best model, as to the validation metrics, built on the unbalanced train dataset "
+    },
+    {
+      "name": "undersampled-best-models",
+      "type": "list",
+      "description": "Complete list of the best models of each undersample according to the validation metric"
+    },
+    {
+      "name": "better-models",
+      "type": "list",
+      "description": "List of models with better validation metrics"
+    },
+    {
+      "name": "best-unbalanced-test",
+      "type": "evaluation-id",
+      "description": "Evaluation with test dataset for the best unbalanced model"
+    },
+    {
+      "name": "better-models-tests",
+      "type": "list",
+      "description": "List of evaluations with test dataset for the better-models"
+    }
+  ]
+}

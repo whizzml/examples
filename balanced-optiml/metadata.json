@@ -5,6 +5,6 @@
   "components": [
     "bal-optiml-library",
     "bal-optiml-script",
-    "bal-best-fusion"
+    "bal-best-models"
   ]
 }
