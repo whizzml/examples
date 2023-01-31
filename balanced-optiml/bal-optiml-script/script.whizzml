@@ -4,37 +4,46 @@
 (define project (create-project {"name" "Balanced OptiMLs"}))
 
 ;; [train-dataset validation-dataset test-dataset] collection
-;; The proportion of instances for the rare class and the rest is
+;; The proportion of instances for the positive class and the rest is
 ;; identical to the one in the original dataset for all of them.
-(define train-val-test-split (rare-stratified-split-fn dataset-id
-                                                       training-rate
-                                                       objective-field
-                                                       rare-class
-                                                       project))
+(define train-val-test-split (positive-stratified-split-fn dataset-id
+                                                           training-rate
+                                                           objective-field
+                                                           positive-class
+                                                           project))
 
 
 ;; List of undersampled datasets built by keeping all the instances for the
-;; rare class and randomly sampling the same amount of instances from the
-;; rest of data using different seeds. The proportion between non-rare vs. rare
-;; instaces can also be defined.
+;; positive class and randomly sampling the same amount of instances from the
+;; rest of data using different seeds. The proportion between negative vs.
+;; positive class instaces can also be defined.
 (define undersampled-dss (undersample-fn (head train-val-test-split)
                                          number-of-samples
                                          objective-field
-                                         rare-class
+                                         positive-class
                                          proportion))
 
 ;; Outputs
 
 ;; List of OptiMLs generated from the collection of undersampled datasets.
-;; Optimization is for the given metric and rare class and validation
+;; Optimization is for the given metric and positive class and validation
 ;; uses the validation dataset
 (define undersampled-optimls (map
   (lambda (uds) (optimls-fn uds
                             objective-field
                             metric
-                            rare-class
+                            positive-class
                             (train-val-test-split 1)
                             optiml-config))
   undersampled-dss))
 
 (define unbalanced-test-ds (train-val-test-split 2))
+(define unbalanced-train-ds (train-val-test-split 0))
+(define unbalanced-validation-ds (train-val-test-split 1))
+
+(define unbalanced-optiml (optimls-fn unbalanced-train-ds
+                                      objective-field
+                                      metric
+                                      positive-class
+                                      unbalanced-validation-ds
+                                      optiml-config))
