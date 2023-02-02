@@ -101,8 +101,8 @@
   (let (ref-metric (best-unbalanced-model "metric")
         ref-max-phi (best-unbalanced-model "max_phi"))
     (reverse (sort-by-key "metric"
-      (filter (lambda (m) (and (> (m "metric") ref-metric)
-                               (> (m "max_phi") ref-max-phi)))
+      (filter (lambda (m) (or (> (m "metric") ref-metric)
+                              (> (m "max_phi") ref-max-phi)))
               undersampled-best-models)))))
 
 (define better-models-tests (reverse (sort-by-key "metric"
