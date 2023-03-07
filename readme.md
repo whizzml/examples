@@ -15,7 +15,7 @@ By convention, when the artifact is a library, the files are called
 
 ## Quick Start
 
-The `tutorials` folder offers [101's](./tutorials/docs/)
+The `tutorials` folder offers [101's](./tutorials/docs/readme.md)
 describing the WhizzML code needed to create the
 canonical training and predicting workflows for the different available models
 in BigML.
