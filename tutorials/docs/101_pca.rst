@@ -1,0 +1,94 @@
+.. toctree::
+   :hidden:
+
+WhizzML: 101 - Using a PCA
+=================================
+
+The PCA model is used to find the linear combination of your original
+features that best describes your data. In that sense, the goal of the model
+is to provide a transformation that allows dimensionality reduction.
+Following the schema described in the prediction workflow
+document, this is the code snippet that shows the minimal workflow to
+create a PCA model and produce a single projection.
+
+.. code-block::
+
+    ;; step 0: creating a source from the data in your remote "https://static.bigml.com/csv/iris.csv" file
+    (define source-id (create-source {"remote" "https://static.bigml.com/csv/iris.csv"}))
+    (log-info "Creating remote source: " source-id)
+    ;; step 1: creating a dataset from the previously created `source`
+    (define dataset-id (create-dataset source-id))
+    (log-info "Creating dataset from source: " dataset-id)
+    ;; step 2: creating a decision tree model
+    (define pca-id (create-pca dataset-id))
+    (log-info "Creating PCA from dataset: " pca-id)
+    ;; the new input data to predict for
+    (define input-data {"petal width" 1.75
+                        "petal length" 2.45
+                        "sepal length" 4
+                        "sepal width" 1})
+    ;; creating a single projection
+    (define projection-id (create-projection pca-id
+                                             {"input_data" input-data}))
+    (log-info "Projection has been created: " projection-id)
+    (define projection-resource (fetch projection-id))
+    ;; extracting the projection components from the projection-resource
+    (define projection (projection-resource ["projection" "result"]))
+    (log-info "Projection: " projection)
+
+You can test this code in the `WhizzML REPL <https://bigml.com/labs/repl/>`_.
+
+Note that create calls are not waiting for the asynchronous resources to be
+finished before returning control. However, when a resource is used to generate
+another one, the next create call will wait for the origin resource to be
+finished before starting the creation process (e.g, `(create-dataset source-id)`
+will wait for the source to be finished before creating the dataset from it).
+
+If you want to create projections for all the rows in the dataset, you can do
+so by creating a `batchprojection` resource.
+
+.. code-block::
+
+    ;; step 3: creating a batch projection
+    (define batch-projection-id (create-batchprojection pca-id
+                                                        dataset-id))
+
+The batch projection output (as well as any of the resources created)
+can be configured using additional arguments in the corresponding create calls.
+For instance, to include all the information in the original dataset in the
+output you would change `step 3` to:
+
+.. code-block::
+
+    (define batch-projection-id (create-batchprojection
+                                  {"pca" pca-id
+                                   "dataset" dataset-id
+                                   "all_fields" true}))
+
+and to generate a new dataset that adds the projection components as new
+columns appended at the end of the original ones and retrieve the information
+therein, the step would be:
+
+.. code-block::
+
+    ;; step 3: creating a batch projection. Note that we now use
+    ;; `create-and-wait-batchprojection` to ensure that we wait for the
+    ;; resource to be finished to read its properties in the next step.
+    ;; We can also use `create-batchprojection` and wait later for the
+    ;; resource to finish using  `wait`. The `create-[resource-type]` and
+    ;; `create-and-wait-[resource-type]` procedures are available for
+    ;; all resources
+    (define batch-projection-id (create-and-wait-batchprojection
+                                  {"pca" pca-id
+                                   "dataset" dataset-id
+                                   "all_fields" true
+                                   "output_dataset" true}))
+    ;; step 6: retrieving the batch projection information
+    (define batch-projection-resource (fetch batch-projection-id))
+    ;; step 7: extracting the output dataset ID and waiting for it to be
+    ;; finished too in order to use it.
+    (define batch-projection-ds
+      (wait (batch-projection-resource "output_dataset_resource")))
+
+Check the `API documentation <https://bigml.com/api/>`_ to learn about the
+available configuration options for any BigML resource.

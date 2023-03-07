@@ -1,0 +1,39 @@
+.. toctree::
+   :hidden:
+
+WhizzML: 101 - Using a Time Series
+==================================
+
+Following the schema described in the prediction workflow
+document, this is the code snippet that shows the minimal workflow to
+create a time series and produce a forecast.
+
+.. code-block::
+
+    ;; step 0: creating a source from the data in your remote "https://raw.githubusercontent.com/bigmlcom/python/master/data/grades.csv" file
+    (define source-id (create-source {"remote" "https://raw.githubusercontent.com/bigmlcom/python/master/data/grades.csv"}))
+    (log-info "Creating remote source: " source-id)
+    ;; step 1: creating a dataset from the previously created `source`
+    (define dataset-id (create-dataset source-id))
+    (log-info "Creating dataset from source: " dataset-id)
+    ;; step 2: creating a time series
+    (define timeseries-id (create-timeseries dataset-id))
+    (log-info "Creating time series from dataset: " timeseries-id)
+    ;; the new input data to forecast
+    (define input-data {"000005" {"horizon" 10}})
+    ;; creating the forecast
+    (define forecast-id (create-forecast timeseries-id
+                                         {"input_data" input-data}))
+    (log-info "Creating forecast for some input data: " forecast-id)
+    ;; the forecast resource contains a property where it stores
+    ;; the forecast value.
+    (define forecast-resource (fetch forecast-id))
+    ;; extracting the forecast value from the resource
+    (define forecast (forecast-resource ["forecast" "result"]))
+    (log-info "The forecast for " input-data " is : " forecast)
+
+You can test this code in the `WhizzML REPL <https://bigml.com/labs/repl/>`_.
+
+To learn more about the arguments that can be set in the `forecast` and
+`timeseries` creation calls and the response properties, please have a look
+at the `API documentation <https://bigml.com/api/>`_

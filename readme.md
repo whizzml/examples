@@ -13,6 +13,21 @@ By convention, when the artifact is a library, the files are called
 `library.whizzml` and `metadata.json`, while for a script we use
 `script.whizzml` and `metadata.json`.
 
+## Quick Start
+
+The `tutorials` folder offers [101's](./tutorials/docs/)
+describing the WhizzML code needed to create the
+canonical training and predicting workflows for the different available models
+in BigML.
+
+## Reference and Documentation
+
+The [Getting Started](https://static.bigml.com/static/pdf/BigML_WhizzML_Primer.pdf),
+[WhizzML Reference](https://static.bigml.com/static/pdf/BigML_WhizzML_Reference.pdf) and
+[WhizzML Tutorials](https://static.bigml.com/static/pdf/BigML_WhizzML_Tutorials.pdf)
+documents, provide all the information about the available language directives
+as well as examples of use.
+
 ## Examples
 
 - `covariate-shift` Determine if there is a shift in data distribution
