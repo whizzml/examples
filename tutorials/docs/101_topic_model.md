@@ -1,15 +1,10 @@
-.. toctree::
-   :hidden:
-
-WhizzML: 101 - Using a Topic Model
-==================================
+# WhizzML: 101 - Using a Topic Model
 
 Following the schema described in the prediction workflow
 document, this is the code snippet that shows the minimal workflow to
 create a topic model and produce a single topic distribution.
 
-.. code-block::
-
+```
     ;; step 0: creating a source from the data in your remote "https://raw.githubusercontent.com/bigmlcom/python/master/data/spam.csv" file
     (define source-id (create-source {"remote" "https://raw.githubusercontent.com/bigmlcom/python/master/data/spam.csv"}))
     (log-info "Creating remote source: " source-id)
@@ -33,8 +28,9 @@ create a topic model and produce a single topic distribution.
     (define topicdistribution (topicdistribution-resource
                                 ["topic_distribution" "result"]))
     (log-info "The topic distribution for " input-data " is : " topicdistribution)
+```
 
-You can test this code in the `WhizzML REPL <https://bigml.com/labs/repl/>`_.
+You can test this code in the [WhizzML REPL](https://bigml.com/labs/repl/).
 
 Remember that your dataset needs to have at least a text field to be able
 to create a topic model.
@@ -49,14 +45,13 @@ If you want to configure some of the attributes of your Topic Model,
 like the number of topics selected,
 you can use the second argument in the create call.
 
-
-.. code-block::
-
+```
     ;; step 2: creating a topic model with a final list the 20 topics
     (create-topicmodel dataset-id {"number_of_topics" 20})
+```
 
-You can check all the available creation arguments in the `API documentation
-<https://bigml.com/api/topic_models?id=topic-model-arguments>`_.
+You can check all the available creation arguments in the
+[API documentation](https://bigml.com/api/topic_models?id=topic-model-arguments).
 
 If you want to assign topic distributions to the original dataset
 (or a different dataset), you can do so by creating
@@ -64,8 +59,7 @@ a `batchtopicdistribution` resource. In the example, we'll be assuming you alrea
 created a `topic model` following the steps 0 to 2 in the previous snippet and
 that you want to find the topic distribution for the same data used to create it.
 
-.. code-block::
-
+```
     ;; step 3: creating a batch topic distribution
     (define batch-topicdistribution-id (create-batchtopicdistribution
                                          topicmodel-id
@@ -74,25 +68,25 @@ that you want to find the topic distribution for the same data used to create it
     (define batch-topicdistribution-v2-id (create-batchtopicdistribution
                                             {"topicmodel" topicmodel-id
                                              "dataset" dataset-id}))
+```
 
 The batch topic distribution output (as well as any of the resources created)
 can be configured using additional arguments in the corresponding create calls.
 For instance, to include all the information in the original dataset in the
 output you would change `step 3` to:
 
-.. code-block::
-
+```
     (define batch-topicdistribution-id (create-batchtopicdistribution
                                          {"topicmodel" topicmodel-id
                                           "dataset" dataset-id
                                           "all_fields" true}))
+```
 
 and to generate a new dataset that adds the topic distributions as a new
 columns, one per topic, appended at the end of the original ones and
 retrieve the information therein, the steps would be:
 
-.. code-block::
-
+```
     ;; step 3: creating a batch topic distribution. Note that we now use
     ;; `create-and-wait-batchtopicdistribution` to ensure that we wait for the
     ;; resource to be finished to read its properties in the next step.
@@ -114,6 +108,7 @@ retrieve the information therein, the steps would be:
     ;; `output_dataset_resource` attribute of the batch topic distribution info
     (define batch-topicdistribution-ds
       (wait (batch-topicdistribution-resource "output_dataset_resource")))
+```
 
-Check the `API documentation <https://bigml.com/api/>`_ to learn about the
+Check the [API documentation](https://bigml.com/api/) to learn about the
 available configuration options for any BigML resource.

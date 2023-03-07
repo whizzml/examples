@@ -1,15 +1,10 @@
-.. toctree::
-   :hidden:
-
-WhizzML: 101 - Images Classification
-====================================
+# WhizzML: 101 - Images Classification
 
 Following the schema described in the prediction workflow
 document, this is the code snippet that shows the minimal workflow to
 create a deepnet from an images dataset and produce a single prediction.
 
-.. code-block::
-
+```
     ;; step 0: creating a source from the data in your remote
     ;; "https://github.com/bigmlcom/python/blob/master/data/images/fruits_hist.zip?raw=true" file.
     ;; The file contains two folders, each
@@ -48,5 +43,6 @@ create a deepnet from an images dataset and produce a single prediction.
     ;; extracting the associated probability
     (define prediction-probability (prediction-resource "probability"))
     (log-info "Prediction probability: " prediction-probability)
+```
 
-You can test this code in the `WhizzML REPL <https://bigml.com/labs/repl/>`_.
+You can test this code in the [WhizzML REPL](https://bigml.com/labs/repl/).

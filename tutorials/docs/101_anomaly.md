@@ -1,16 +1,11 @@
-.. toctree::
-   :hidden:
-
-WhizzML: 101 - Using an Anomaly Detector
-========================================
+# WhizzML: 101 - Using an Anomaly Detector
 
 Following the schema described in the prediction workflow
 document, this is the code snippet that shows the minimal workflow to
 create an Anomaly Detector to produce a single Anomaly Score.
 
 
-.. code-block::
-
+```
     ;; step 0: creating a source from the data in your remote "https://static.bigml.com/csv/iris.csv" file
     (define source-id (create-source {"remote" "https://static.bigml.com/csv/iris.csv"}))
     (log-info "Creating remote source: " source-id)
@@ -33,8 +28,9 @@ create an Anomaly Detector to produce a single Anomaly Score.
     ;; extracting the score value from the score resource
     (define score (score-resource "score"))
     (log-info "The score for " input-data " is : " score)
+```
 
-You can test this code in the `WhizzML REPL <https://bigml.com/labs/repl/>`_.
+You can test this code in the [WhizzML REPL](https://bigml.com/labs/repl/).
 
 Note that create calls are not waiting for the asynchronous resources to be
 finished before returning control. However, when a resource is used to generate
@@ -47,13 +43,13 @@ like the number of top anomalies retrieved,
 you can use the second argument in the create call.
 
 
-.. code-block::
-
+```
     ;; step 2: creating an anomaly detector with a list of the 20 top anomalies
     (create-anomaly dataset-id {"top_n" 20})
+```
 
-You can check all the available creation arguments in the `API documentation
-<https://bigml.com/api/anomalies?id=anomaly-detector-arguments>`_.
+You can check all the available creation arguments in the
+[API documentation](https://bigml.com/api/anomalies?id=anomaly-detector-arguments).
 
 If you want to assign scores to the original dataset (or a different dataset),
 you can do so by creating
@@ -61,8 +57,7 @@ a `batchanomalyscore` resource. In the example, we'll be assuming you already
 created an `anomaly` following the steps 0 to 2 in the previous snippet and
 that you want to score the same data you used in the Anomaly Detector.
 
-.. code-block::
-
+```
     ;; step 3: creating a batch anomaly score
     (define batch-anomalyscore-id (create-batchanomalyscore anomaly-id
                                                             dataset-id))
@@ -70,25 +65,25 @@ that you want to score the same data you used in the Anomaly Detector.
     (define batch-anomalyscore-v2-id (create-batchanomalyscore
                                        {"anomaly" anomaly-id
                                         "dataset" dataset-id}))
+```
 
 The batch anomaly score output (as well as any of the resources created)
 can be configured using additional arguments in the corresponding create calls.
 For instance, to include all the information in the original dataset in the
 output you would change `step 3` to:
 
-.. code-block::
-
+```
     (define batch-anomalyscore-id (create-batchanomalyscore
                                     {"anomaly" anomaly-id
                                      "dataset" dataset-id
                                      "all_fields" true}))
+```
 
 and to generate a new dataset that adds the anomaly score as a new column
 appended at the end of the original ones and retrieve the information therein,
 the steps would be:
 
-.. code-block::
-
+```
     ;; step 3: creating a batch anomaly score. Note that we now use
     ;; `create-and-wait-batchanomalyscore` to ensure that we wait for the
     ;; resource to be finished to read its properties in the next step.
@@ -101,7 +96,6 @@ the steps would be:
                                      "dataset" dataset-id
                                      "all_fields" true
                                      "output_dataset" true}))
-
     ;; step 4: We need to wait for the batch anomaly score to be created to
     ;; retrieve its information
     (define batch-anomalyscore-resource (fetch batch-anomalyscore-id))
@@ -110,6 +104,7 @@ the steps would be:
     ;; `output_dataset_resource` attribute of the batch anomaly score info
     (define batch-anomalyscore-ds
       (wait (batch-anomalyscore-resource "output_dataset_resource")))
+```
 
-Check the `API documentation <https://bigml.com/api/>`_ to learn about the
+Check the [API documentation](https://bigml.com/api/) to learn about the
 available configuration options for any BigML resource.

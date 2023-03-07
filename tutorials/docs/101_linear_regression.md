@@ -1,43 +1,41 @@
-.. toctree::
-   :hidden:
-
-WhizzML: 101 - Using a Decision Tree Model
-==========================================
+# WhizzML: 101 - Using a Linear Regression
 
 Following the schema described in the prediction workflow
 document, this is the code snippet that shows the minimal workflow to
-create a decision tree model and produce a single prediction.
+create a linear regression model and produce a single prediction.
 
-.. code-block::
-
+```
     ;; step 0: creating a source from the data in your remote "https://static.bigml.com/csv/iris.csv" file
     (define source-id (create-source {"remote" "https://static.bigml.com/csv/iris.csv"}))
     (log-info "Creating remote source: " source-id)
     ;; step 1: creating a dataset from the previously created `source`
     (define dataset-id (create-dataset source-id))
     (log-info "Creating dataset from source: " dataset-id)
-    ;; step 2: creating a decision tree model
-    (define model-id (create-model dataset-id))
-    (log-info "Creating decision tree from dataset: " model-id)
+    ;; step 2: creating a linear regression. As this is a `regression` model,
+    ;; we use the numeric field `sepal length` as target.
+    ;; We also fill in numeric missing information with the `mean` value.
+    (define linearregression-id (create-linearregression
+                                  dataset-id
+                                  {"objective_field" "sepal length"
+                                   "default_numeric_value" "mean"}))
+    (log-info "Creating a linear regression from dataset: " linearregression-id)
     ;; the new input data to predict for
     (define input-data {"petal width" 1.75
-                        "petal length" 2.45})
+                        "petal length" 2.45
+                        "species" "Iris-setosa"})
     ;; creating a single prediction
-    (define prediction-id (create-prediction model-id
+    (define prediction-id (create-prediction linearregression-id
                                              {"input_data" input-data}))
     (log-info "Prediction has been created: " prediction-id)
     ;; the prediction info contains an `output` property where it stores
-    ;; the predicted value. Also, classifications will have `probability` and
-    ;; a `confidence` attributes associated to it.
+    ;; the predicted value.
     (define prediction-resource (fetch prediction-id))
     ;; extracting the predicted value from the prediction info
     (define prediction (prediction-resource "output"))
     (log-info "Prediction: " prediction)
-    ;; extracting the associated confidence
-    (define prediction-confidence (prediction-resource "confidence"))
-    (log-info "Prediction confidence: " prediction-confidence)
+```
 
-You can test this code in the `WhizzML REPL <https://bigml.com/labs/repl/>`_.
+You can test this code in the [WhizzML REPL](https://bigml.com/labs/repl/).
 
 Note that create calls are not waiting for the asynchronous resources to be
 finished before returning control. However, when a resource is used to generate
@@ -50,35 +48,35 @@ creating
 a `batchprediction` resource. First, you will need to upload to the platform
 all the input data that you want to predict for and create the corresponding
 `source` and `dataset` resources. In the example, we'll be assuming you already
-created a `model` following the steps 0 to 2 in the previous snippet.
+created a `linearregression` following the steps 0 to 2 in the previous snippet.
 
-.. code-block::
-
+```
     ;; step 3: creating a source from the data in your remote "https://static.bigml.com/csv/test_iris.csv" file
     (define test-source-id (create-source {"remote" "https://static.bigml.com/csv/test_iris.csv"))
     ;; step 4: creating a dataset from the previously created `source`
     (define test-dataset-id (create-dataset test-source-id))
     ;; step 5: creating a batch prediction
-    (define batch-prediction-id (create-batchprediction model-id test-dataset-id))
+    (define batch-prediction-id (create-batchprediction linearregression-id
+                                                        test-dataset-id))
+```
 
 The batch prediction output (as well as any of the resources created)
 can be configured using additional arguments in the corresponding create calls.
 For instance, to include all the information in the original dataset in the
 output you would change `step 5` to:
 
-.. code-block::
-
+```
     (define batch-prediction-id (create-batchprediction
-                                  {"model" model-id
+                                  {"model" linearregression-id
                                    "dataset" test-dataset-id
                                    "all_fields" true}))
+```
 
 and to generate a new dataset that adds the prediction as a new column appended
 at the end of the original ones and retrieve the information therein, the step
 would be:
 
-.. code-block::
-
+```
     ;; step 5: creating a batch prediction. Note that we now use
     ;; `create-and-wait-batchprediction` to ensure that we wait for the
     ;; resource to be finished to read its properties in the next step.
@@ -87,7 +85,7 @@ would be:
     ;; `create-and-wait-[resource-type]` procedures are available for
     ;; all resources
     (define batch-prediction-id (create-and-wait-batchprediction
-                                  {"model" model-id
+                                  {"model" linearregression-id
                                    "dataset" test-dataset-id
                                    "all_fields" true
                                    "output_dataset" true}))
@@ -97,6 +95,7 @@ would be:
     ;; finished too in order to use it.
     (define batch-prediction-ds
       (wait (batch-prediction-resource "output_dataset_resource")))
+```
 
-Check the `API documentation <https://bigml.com/api/>`_ to learn about the
+Check the [API documentation](https://bigml.com/api/) to learn about the
 available configuration options for any BigML resource.

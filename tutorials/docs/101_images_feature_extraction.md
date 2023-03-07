@@ -1,17 +1,11 @@
-.. toctree::
-   :hidden:
-
-WhizzML: 101 - Images Feature Extraction
-========================================
+# WhizzML: 101 - Images Feature Extraction
 
 Following the schema described in the prediction workflow
 document, this is the code snippet that shows the minimal workflow to
 extract features from images and generate an enriched dataset that can be
 used to train any kind of model.
 
-.. code-block:: python
-
-
+```
     ;; step 0: creating a source from the data in your remote
     ;; "https://github.com/bigmlcom/python/blob/master/data/images/fruits_hist.zip?raw=true" file.
     ;; The file contains two folders, each
@@ -52,5 +46,6 @@ used to train any kind of model.
     ;; extracting the score from the anomaly score info
     (define score (anomalyscore-resource "score"))
     (log-info "Anomaly score: " score)
+```
 
-You can test this code in the `WhizzML REPL <https://bigml.com/labs/repl/>`_.
+You can test this code in the [WhizzML REPL](https://bigml.com/labs/repl/).
