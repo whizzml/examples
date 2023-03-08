@@ -1,5 +1,4 @@
 # WhizzML: Training and Predicting Workflows
-============================================
 
 ## The detailed Training Workflow
 
@@ -12,7 +11,7 @@ You can see a sketch of the process in the following image.
 
 ### Step 0: uploading your data to create a **Source**
 
-The first step (**step 0**) is creating a **Source** by uploading your data.
+The first step is creating a **Source** by uploading your data.
 
 This means that you'll need to use the **create-source** call
 to create a **Source** object. The only mandatory argument
@@ -32,7 +31,7 @@ This will be achieved by using the **create-dataset** call
 and the only mandatory argument for this call is the **Source ID** which
 points to the **Source** object we want to create the **Dataset** from. The
 rest of arguments described in the
-`API Documentation <https://bigml.com/api/datasets#ds_dataset_arguments>`_
+[API Documentation](https://bigml.com/api/datasets?id=dataset-arguments)
 are optional. The response for the **create-dataset** is the
 corresponding **resource ID** for the dataset
 (e.g. dataset/4f603fe203ce89bb2d000004). The dataset
@@ -49,7 +48,7 @@ the objective field will be set to the dataset's last field if not
 explicitly set).
 
 The rest of creation arguments described in the
-[API Documentation](https://bigml.com/api/models#md_model_arguments)
+[API Documentation](https://bigml.com/api/models?id=model-arguments)
 are optional.
 For instance, when
 building a classification model you might like to limit the number
@@ -93,5 +92,5 @@ arguments for the **create-batchprediction** call are the ID of the model
 used to predict and the ID of the dataset that contains the test instances that
 you want to predict for.
 The rest of arguments described in the
-[API Documentation](https://bigml.com/api/batchpredictions#bp_batch_prediction_arguments)
+[API Documentation](https://bigml.com/api/batchpredictions?id=batch-prediction-arguments)
 are optional.
