@@ -1,6 +1,6 @@
 # WhizzML: 101 - Using an Anomaly Detector
 
-Following the schema described in the prediction workflow
+Following the schema described in the [training and prediction workflow](workflow.md)
 document, this is the code snippet that shows the minimal workflow to
 create an Anomaly Detector to produce a single Anomaly Score.
 

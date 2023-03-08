@@ -1,6 +1,6 @@
 # WhizzML: 101 - Using a Topic Model
 
-Following the schema described in the prediction workflow
+Following the schema described in the [training and prediction workflow](workflow.md)
 document, this is the code snippet that shows the minimal workflow to
 create a topic model and produce a single topic distribution.
 

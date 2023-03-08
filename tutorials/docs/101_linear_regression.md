@@ -1,6 +1,6 @@
 # WhizzML: 101 - Using a Linear Regression
 
-Following the schema described in the prediction workflow
+Following the schema described in the [training and prediction workflow](workflow.md)
 document, this is the code snippet that shows the minimal workflow to
 create a linear regression model and produce a single prediction.
 

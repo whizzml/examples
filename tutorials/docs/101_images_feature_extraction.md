@@ -1,6 +1,6 @@
 # WhizzML: 101 - Images Feature Extraction
 
-Following the schema described in the prediction workflow
+Following the schema described in the [training and prediction workflow](workflow.md)
 document, this is the code snippet that shows the minimal workflow to
 extract features from images and generate an enriched dataset that can be
 used to train any kind of model.
@@ -28,6 +28,14 @@ used to train any kind of model.
     ;; extracting the requested features
     (define dataset-id (create-dataset source-id))
     (log-info "Creating dataset from source: " dataset-id)
+```
+
+The created dataset contains the features extracted by computing the
+`average pixels` and `histogram of gradients` functions. These extracted
+features can be used to build any type of model (supervised or unsupervised)
+from them. For instance, we can create an anomaly detector.
+
+```
     ;; step 2: creating an anomaly detector
     (define anomaly-id (create-anomaly dataset-id))
     (log-info "Creating anomaly detector from dataset: " anomaly-id)

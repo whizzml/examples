@@ -1,6 +1,6 @@
 # WhizzML: 101 - Images Classification
 
-Following the schema described in the prediction workflow
+Following the schema described in the [training and prediction workflow](workflow.md)
 document, this is the code snippet that shows the minimal workflow to
 create a deepnet from an images dataset and produce a single prediction.
 

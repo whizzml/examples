@@ -25,8 +25,8 @@ in BigML.
 The [Getting Started](https://static.bigml.com/static/pdf/BigML_WhizzML_Primer.pdf),
 [WhizzML Reference](https://static.bigml.com/static/pdf/BigML_WhizzML_Reference.pdf) and
 [WhizzML Tutorials](https://static.bigml.com/static/pdf/BigML_WhizzML_Tutorials.pdf)
-documents, provide all the information about the available language directives
-as well as examples of use.
+documents, provide all the information about the language's syntax and standard
+library functions as well as examples of use.
 
 ## Examples
 
