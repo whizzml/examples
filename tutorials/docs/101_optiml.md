@@ -24,5 +24,11 @@ create an OptiML.
 
 You can test this code in the [WhizzML REPL](https://bigml.com/labs/repl/).
 
+Note that create calls are not waiting for the asynchronous resources to be
+finished before returning control. However, when a resource is used to generate
+another one, the next create call will wait for the origin resource to be
+finished before starting the creation process (e.g, `(create-dataset source-id)`
+will wait for the source to be finished before creating the dataset from it).
+
 You can check all the available creation arguments in the
 [API documentation](https://bigml.com/api/optimls#op_optiml_arguments).

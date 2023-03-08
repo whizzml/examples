@@ -20,7 +20,7 @@ existing CSV file that is available in a remote URL:
     ;; waiting for the execution to be finished before retrieving the result
     (define execution-resource (fetch (wait execution-id)))
     ;; retrieving the result (that is, a source ID)
-    (define result (execution-resource["execution" "result"]))
+    (define result (execution-resource ["execution" "result"]))
 ```
 
 You can test this code in the [WhizzML REPL](https://bigml.com/labs/repl/).
