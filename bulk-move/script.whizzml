@@ -6,6 +6,7 @@
 
 (define NON-ALLOWED-TYPES ["project", "execution"])
 (define EMPTY-ID ["Unknown" ""])
+(define LIMIT 100)
 
 (define (list-res project-id
                   tags
@@ -35,9 +36,15 @@
 
 (define (filter-by-expr expr res-types)
   (iterate (acc [] type res-types)
-    (let (resp (resources type expr))
-      (log-info "selecting type: " type ", expr: " expr)
-      (concat acc (map (lambda (x) (x "resource")) resp)))))
+    (log-info "selecting type: " type ", expr: " expr)
+    (loop (offset 0 acc acc)
+      (let (expr-str (merge expr {"limit" LIMIT "offset" offset})
+            _ (log-info "page: " expr-str)
+            resp (resources type expr-str)
+            acc (concat acc (resource-ids resp)))
+        (if (< (count resp) LIMIT)
+            acc
+            (recur (+ offset LIMIT) acc))))))
 
 (define (types-in-project project-id res-types)
   (let (project (fetch project-id)
