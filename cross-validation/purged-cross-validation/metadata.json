@@ -1,0 +1,6 @@
+{
+  "name": "Purged k-fold cross-validation script",
+  "description": "The objective of this script is performing a purged k-fold cross validation of any supervised model built from a time-series like already sorted dataset. The algorithm:\n\n - Divides the dataset in k parts\n - Holds out the data in one of the parts and builds a supervised model\n with the rest of data\n - Removes the edges of the hold out dataset to create the test dataset (avoiding leakage).\n- Evaluates the supervised model with the purged test dataset\n - The second, third and fourth steps are repeated with each of the k parts, so that\n k evaluations are generated\n - Finally, the evaluation metrics are averaged to provide the cross-validation\n metrics.\n\n The **goal** of the script is producing a\n cross-validation, an evaluation whose metrics are averages of the k evaluations\n created in the cross-validation process.\n\n For more information, please see the [readme](https://github.com/whizzml/examples/tree/master/cross-validation/purged-cross-validation).",
+  "kind": "script",
+  "source_code": "script.whizzml"
+}
